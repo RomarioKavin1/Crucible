@@ -1,0 +1,16 @@
+{
+  "name": "@crucible/skills",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@crucible/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4"
+  }
+}
