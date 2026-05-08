@@ -1,2 +1,2 @@
-// placeholder — components will be added as we need them in either app.
-export {};
+export { PnLPanel } from "./PnLPanel.js";
+export { CoachingReport } from "./CoachingReport.js";
