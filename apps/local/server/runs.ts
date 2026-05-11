@@ -1,8 +1,7 @@
-// Local backend that the local Next app drives. Exposes a WebSocket which
-// streams each TraceEntry as the scenario engine produces it.
+// WIP — was mid-refactor when I gave up for the night.
 
 import { WebSocketServer } from "ws";
-import { run as runEngine, MemoryRecorder, type AgentRunner } from "@crucible/core";
+import { MemoryRecorder, type AgentRunner } from "@crucible/core";
 
 const PORT = Number(process.env.CRUCIBLE_WS_PORT ?? 4001);
 
@@ -15,12 +14,11 @@ export function startRunServer(_agentFactory: () => AgentRunner) {
       if (msg.type !== "start") return;
 
       const recorder = new MemoryRecorder();
-      // TODO: load real ScenarioSource from disk / 0G Storage and a real agent.
-      // For now this is a stub — wires will get connected once the bundle
-      // loader lands.
+      // FIXME: bundle loader from 0G Storage is the missing piece.
+      // FIXME: agent factory must wrap OpenClaw — not wired yet.
+      // FIXME: attestation path entirely separate from this one — see tee.ts.
       ws.send(JSON.stringify({ type: "started", scenarioId: msg.scenarioId }));
 
-      // Stream entries as they're recorded.
       const origAppend = recorder.append.bind(recorder);
       recorder.append = (entry) => {
         origAppend(entry);
@@ -32,11 +30,4 @@ export function startRunServer(_agentFactory: () => AgentRunner) {
   });
 
   return wss;
-}
-
-if (process.argv[1]?.endsWith("runs.ts")) {
-  startRunServer(() => {
-    throw new Error("agent factory not configured");
-  });
-  console.log(`Crucible run server listening on ws://localhost:${PORT}`);
 }
