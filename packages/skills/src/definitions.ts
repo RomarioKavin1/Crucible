@@ -25,15 +25,6 @@ export const SKILL_DEFINITIONS: SkillDefinition[] = [
     },
   },
   {
-    name: "get_recent_trades",
-    description: "Returns the most recent N trades.",
-    parameters: {
-      type: "object",
-      properties: { n: { type: "integer", minimum: 1, maximum: 100, default: 20 } },
-      additionalProperties: false,
-    },
-  },
-  {
     name: "get_news_feed",
     description: "Returns news headlines published since a given timestamp.",
     parameters: {

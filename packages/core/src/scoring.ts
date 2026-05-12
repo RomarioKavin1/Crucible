@@ -4,10 +4,12 @@ function mean(xs: number[]): number {
 }
 
 function downsideStd(returns: number[], target = 0): number {
-  const downside = returns.filter((r) => r < target);
-  if (downside.length === 0) return 0;
-  const m = mean(downside);
-  const variance = downside.reduce((acc, r) => acc + (r - m) ** 2, 0) / downside.length;
+  if (returns.length === 0) return 0;
+  // Standard semi-deviation: variance of (r - target)^2 for r < target,
+  // normalized by full series length (NOT just downside count).
+  const variance = returns
+    .filter((r) => r < target)
+    .reduce((acc, r) => acc + (r - target) ** 2, 0) / returns.length;
   return Math.sqrt(variance);
 }
 

@@ -30,7 +30,13 @@ export async function runCommand(opts: RunOpts): Promise<void> {
   const stepFn = (snapshot: Parameters<typeof agentStep>[0]) =>
     agentStep(snapshot, runtime);
 
-  const result = await engine.run(stepFn);
+  let result;
+  try {
+    result = await engine.run(stepFn);
+  } catch (err) {
+    await recorder.close().catch(() => {});
+    throw err;
+  }
   await writeFile(
     path.join(runDir, "scorecard.json"),
     JSON.stringify(
@@ -41,7 +47,7 @@ export async function runCommand(opts: RunOpts): Promise<void> {
   );
   console.log(`Run complete. Output: ${runDir}`);
   console.log(`  Sortino:           ${result.scorecard.sortino.toFixed(4)}`);
-  console.log(`  Max drawdown:      ${(result.scorecard.maxDrawdownPct * 100).toFixed(2)}%`);
+  console.log(`  Max drawdown:      ${(Math.abs(result.scorecard.maxDrawdownPct) * 100).toFixed(2)}%`);
   console.log(`  Total return:      ${(result.scorecard.totalReturnPct * 100).toFixed(2)}%`);
   console.log(`  Win rate:          ${(result.scorecard.winRate * 100).toFixed(1)}%`);
 }
