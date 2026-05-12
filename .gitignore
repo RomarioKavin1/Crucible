@@ -8,3 +8,7 @@ coverage/
 .turbo/
 runs/
 *.tsbuildinfo
+contracts/.env
+contracts/cache/
+contracts/out/
+contracts/broadcast/
