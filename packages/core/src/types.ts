@@ -34,7 +34,7 @@ export interface Order {
   type: OrderType;
   qty: number;
   price?: number;        // required for limit, ignored for market
-  ttlTicks?: number;     // optional for limit; null = good-till-cancel
+  ttlTicks?: number;     // optional for limit; omit for good-till-cancel
   createdAtTick: number;
 }
 
@@ -115,19 +115,13 @@ export interface EngineHandle {
   getPosition(): number;
   getCash(): number;
   getPnl(): { realized: number; unrealized: number };
-  getOpenOrders(): {
-    id: string;
-    side: OrderSide;
-    qty: number;
-    price?: number;
-    type: "limit" | "market";
-  }[];
-  placeMarketOrder(side: OrderSide, qty: number): { id: string; filled_at: number };
+  getOpenOrders(): Order[];
+  placeMarketOrder(side: OrderSide, qty: number): { id: string; fillPrice: number };
   placeLimitOrder(
     side: OrderSide,
     qty: number,
     price: number,
-    ttl_ticks?: number
+    ttlTicks?: number
   ): { id: string };
   cancelOrder(id: string): boolean;
   journalRead(key: string): string | null;

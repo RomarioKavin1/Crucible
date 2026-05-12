@@ -366,7 +366,7 @@ export interface Order {
   type: OrderType;
   qty: number;
   price?: number;        // required for limit, ignored for market
-  ttlTicks?: number;     // optional for limit; null = good-till-cancel
+  ttlTicks?: number;     // optional for limit; omit for good-till-cancel
   createdAtTick: number;
 }
 
@@ -447,19 +447,13 @@ export interface EngineHandle {
   getPosition(): number;
   getCash(): number;
   getPnl(): { realized: number; unrealized: number };
-  getOpenOrders(): {
-    id: string;
-    side: OrderSide;
-    qty: number;
-    price?: number;
-    type: "limit" | "market";
-  }[];
-  placeMarketOrder(side: OrderSide, qty: number): { id: string; filled_at: number };
+  getOpenOrders(): Order[];
+  placeMarketOrder(side: OrderSide, qty: number): { id: string; fillPrice: number };
   placeLimitOrder(
     side: OrderSide,
     qty: number,
     price: number,
-    ttl_ticks?: number
+    ttlTicks?: number
   ): { id: string };
   cancelOrder(id: string): boolean;
   journalRead(key: string): string | null;
@@ -1592,7 +1586,7 @@ function fakeEngine(): EngineHandle & { _placedOrders: unknown[] } {
     getOpenOrders: () => [],
     placeMarketOrder: (side, qty) => {
       _placedOrders.push({ kind: "market", side, qty });
-      return { id: "ord-1", filled_at: 100 };
+      return { id: "ord-1", fillPrice: 100 };
     },
     placeLimitOrder: (side, qty, price, ttl) => {
       _placedOrders.push({ kind: "limit", side, qty, price, ttl });
@@ -1794,11 +1788,11 @@ export const SKILL_DEFINITIONS: SkillDefinition[] = [
 `packages/skills/src/runtime.ts`:
 ```typescript
 import { z } from "zod";
-import type { EngineHandle, OrderSide } from "@crucible/core";
+import type { EngineHandle, Order, OrderSide } from "@crucible/core";
 
 // Re-export for convenience so callers of @crucible/skills don't need to
 // import EngineHandle separately from @crucible/core.
-export type { EngineHandle } from "@crucible/core";
+export type { EngineHandle, Order } from "@crucible/core";
 
 const SideEnum = z.enum(["buy", "sell"]);
 
@@ -2031,14 +2025,7 @@ export class ScenarioEngine {
         const s = eng.portfolio.snapshot(eng.currentMarket.last);
         return { realized: s.realizedPnl, unrealized: s.unrealizedPnl };
       },
-      getOpenOrders: () =>
-        eng.orderBook.openOrders().map((o) => ({
-          id: o.id,
-          side: o.side,
-          qty: o.qty,
-          price: o.price,
-          type: o.type as "limit" | "market",
-        })),
+      getOpenOrders: () => eng.orderBook.openOrders(),
       placeMarketOrder: (side: OrderSide, qty: number) => {
         const slip = computeMarketFillPrice({
           side,
@@ -2058,12 +2045,12 @@ export class ScenarioEngine {
           ts: eng.currentMarket.ts,
           tick: eng.currentTickIndex,
         });
-        return { id, filled_at: slip };
+        return { id, fillPrice: slip };
       },
-      placeLimitOrder: (side: OrderSide, qty: number, price: number, ttl?: number) => {
+      placeLimitOrder: (side: OrderSide, qty: number, price: number, ttlTicks?: number) => {
         const id = `l-${eng.nextOrderId++}`;
         const order: Order = {
-          id, side, type: "limit", qty, price, ttlTicks: ttl ?? 100, createdAtTick: eng.currentTickIndex,
+          id, side, type: "limit", qty, price, ttlTicks: ttlTicks ?? 100, createdAtTick: eng.currentTickIndex,
         };
         eng.orderBook.add(order);
         return { id };
