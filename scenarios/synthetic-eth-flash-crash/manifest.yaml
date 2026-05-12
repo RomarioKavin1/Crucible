@@ -1,0 +1,22 @@
+id: synthetic-eth-flash-crash
+title: "Synthetic ETH flash crash"
+asset: ETH-USD
+window:
+  start: "2025-04-02T13:00:00Z"
+  end:   "2025-04-02T13:01:40Z"
+tick_interval_ms: 1000
+duration_ticks: 100
+starting_cash_usd: 10000
+starting_position: 0
+scoring:
+  primary: sortino_ratio
+  secondary: [max_drawdown_pct, total_return_pct, win_rate]
+slippage:
+  base_bps: 1
+  impact_coeff: 5
+content_hash: "0x0000000000000000000000000000000000000000000000000000000000000000"
+visibility: public
+budgets:
+  llm_completions_per_tick: 5
+  tool_calls_per_tick: 20
+  wall_clock_ms_per_tick: 30000
