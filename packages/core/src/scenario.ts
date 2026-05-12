@@ -42,5 +42,21 @@ export async function loadScenario(bundleDir: string): Promise<Scenario> {
     );
   }
 
+  for (let i = 1; i < ticks.length; i++) {
+    if (ticks[i]!.ts < ticks[i - 1]!.ts) {
+      throw new Error(
+        `Scenario ${manifest.id}: ticks.jsonl is not in chronological order at row ${i}`
+      );
+    }
+  }
+
+  for (let i = 1; i < news.length; i++) {
+    if (news[i]!.ts < news[i - 1]!.ts) {
+      throw new Error(
+        `Scenario ${manifest.id}: news.jsonl is not in chronological order at row ${i}`
+      );
+    }
+  }
+
   return { manifest, ticks, news, startingState, bundleDir };
 }
