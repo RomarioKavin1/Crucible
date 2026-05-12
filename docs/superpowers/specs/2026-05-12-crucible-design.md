@@ -394,6 +394,46 @@ Surface served by `apps/web` on Vercel. All views are queries over `RunRegistry`
 
 ---
 
+## 9.1 OpenClaw integration (Track 1 alignment)
+
+OpenClaw is a self-hosted gateway that drives AI coding agents across chat surfaces (Discord, Slack, Telegram, etc.). It exposes a plugin/skill ecosystem and accepts custom OpenAI-compatible model providers via `models.providers.<id>`.
+
+Crucible's relationship to OpenClaw is **interoperable, not coupled**. Three integration paths exist; v1 ships only Path A.
+
+### Path A — `0g-router` as a custom OpenClaw model provider (v1 — docs only)
+
+Crucible's README documents how an OpenClaw user can wire 0G Compute Router into their `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "models": {
+    "providers": {
+      "0g-router": {
+        "baseUrl": "https://router-api.0g.ai/v1",
+        "apiKey": "${OG_COMPUTE_API_KEY}",
+        "api": "openai-completions",
+        "models": [{ "id": "zai-org/GLM-5-FP8" }]
+      }
+    }
+  },
+  "agents": {
+    "defaults": { "model": { "primary": "0g-router/zai-org/GLM-5-FP8" } }
+  }
+}
+```
+
+Effect: any OpenClaw agent (including the bundled Pi agent) can run inference through 0G Compute. Crucible's AI Coach uses the same Router under the hood. Zero extra build cost.
+
+### Path B — Trading skill bundle on ClawHub (post-v1)
+
+Package Crucible's 12 trading skills (each with a `SKILL.md` + frontmatter) and publish a `crucible-trading-skills` bundle to ClawHub. Any OpenClaw user could `openclaw skills install crucible-trading-skills` and bring trading capabilities to their personal agent (operating against simulated or paper-trading endpoints).
+
+### Path C — Crucible runtime as an OpenClaw plugin (post-v1)
+
+Build an OpenClaw plugin (`openclaw.plugin.json`) that registers Crucible as an agent runtime. `crucible run` would drive an OpenClaw `agent` invocation, gaining session management, multi-channel delivery (chat with your trading agent from Telegram during a backtest), and the standard hook surface (`before_tool_call`, `after_tool_call`, `agent_end`, etc.).
+
+---
+
 ## 10. Hackathon Submission Alignment
 
 | Requirement | Fulfilled by |
@@ -434,6 +474,8 @@ Documented to signal scope ambition. Not in v1:
 - Coach-suggested recipe variants auto-evaluated in batch
 - Plugin system for user-contributed failure-mode patterns
 - Real-time multi-player arena (live agents trading against each other in shared simulated markets)
+- **OpenClaw Path B** — publish Crucible's 12 trading skills as a ClawHub bundle (`crucible-trading-skills`) so any OpenClaw user can install them
+- **OpenClaw Path C** — register Crucible as an OpenClaw agent runtime via `openclaw.plugin.json`, enabling chat-from-anywhere monitoring of running benchmarks
 
 ---
 
@@ -443,7 +485,7 @@ Honest record of risks identified during design:
 
 - **Coach quality is the whole game.** A coach that says "buy low, sell high" is worse than no coach. The Coach's system prompt is itself a research problem; plan for explicit tuning iteration.
 - **TEE developer experience on 0G is fresh.** TeeML integration could eat days. Fallback: deterministic local execution with a trusted-attester signing key for v1; migrate to full TEE post-hackathon.
-- **OpenClaw + 0G Compute integration is unfamiliar.** Build a non-OpenClaw fallback path (raw model API call loop) so the engine works even if OpenClaw integration hits a wall.
+- **OpenClaw + 0G Compute integration scope.** v1 ships only OpenClaw Path A (the `0g-router` provider config doc). Paths B (skill bundle on ClawHub) and C (Crucible-as-OpenClaw-plugin) are deferred — implementing them on the hackathon timeline would compete with the Coach + on-chain layer. The agent in Plan 1 uses the raw Anthropic SDK, which sidesteps OpenClaw runtime as a hard dependency.
 - **Scenario data pipeline.** Crypto ticks are easy; historical news with correct timestamps requires manual curation. Budget time explicitly.
 - **0G mainnet deployment.** First mainnet deploy has unknown gotchas (RPC, faucet, gas). Test on Galileo first, deploy mainnet with a scripted, reviewed flow.
 - **Counterfactual misinterpretation.** Phrasing matters; counterfactuals must be observations, not directives.
