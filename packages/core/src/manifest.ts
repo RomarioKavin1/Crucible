@@ -9,6 +9,8 @@ export const ManifestSchema = z.object({
   window: z.object({
     start: z.string().datetime(),
     end: z.string().datetime(),
+  }).refine((w) => new Date(w.end) > new Date(w.start), {
+    message: "window.end must be after window.start",
   }),
   tick_interval_ms: z.number().int().positive(),
   duration_ticks: z.number().int().positive(),
@@ -35,6 +37,17 @@ export type Manifest = z.infer<typeof ManifestSchema>;
 
 export async function loadManifest(filePath: string): Promise<Manifest> {
   const raw = await readFile(filePath, "utf8");
-  const parsed = yaml.load(raw);
-  return ManifestSchema.parse(parsed);
+  let parsed: unknown;
+  try {
+    parsed = yaml.load(raw);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to parse YAML at ${filePath}: ${msg}`);
+  }
+  try {
+    return ManifestSchema.parse(parsed);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Invalid manifest at ${filePath}: ${msg}`);
+  }
 }
