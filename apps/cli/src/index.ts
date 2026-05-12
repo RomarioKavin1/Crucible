@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { runCommand } from "./run.js";
+import { runCommand, type RunOpts } from "./run.js";
 
 const program = new Command();
 program.name("crucible").description("Crucible — AI trading agent benchmark").version("0.1.0");
@@ -11,8 +11,22 @@ program
   .requiredOption("-s, --scenario <path>", "Path to scenario bundle directory")
   .requiredOption("-a, --agent <path>", "Path to recipe.yaml")
   .option("-o, --out-dir <path>", "Output directory for runs", "./runs")
+  .option("--publish-network <net>", "If set, publish run to 0G chain (galileo|mainnet)")
+  .option("--publish-agent-id <id>", "Required with --publish-network: agent token id (number)")
+  .option("--publish-key-env <env>", "Env var holding deployer private key", "DEPLOYER_PRIVATE_KEY")
   .action(async (opts) => {
-    await runCommand({ scenario: opts.scenario, agent: opts.agent, outDir: opts.outDir });
+    let publish: RunOpts["publish"] = undefined;
+    if (opts.publishNetwork) {
+      if (!opts.publishAgentId) throw new Error("--publish-network requires --publish-agent-id");
+      const pk = process.env[opts.publishKeyEnv];
+      if (!pk) throw new Error(`Missing env var ${opts.publishKeyEnv}`);
+      publish = {
+        agentId: BigInt(opts.publishAgentId),
+        network: opts.publishNetwork as "galileo" | "mainnet",
+        privateKey: pk,
+      };
+    }
+    await runCommand({ scenario: opts.scenario, agent: opts.agent, outDir: opts.outDir, publish });
   });
 
 program.parseAsync(process.argv).catch((err) => {

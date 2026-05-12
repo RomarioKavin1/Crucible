@@ -29,6 +29,9 @@ importers:
       '@crucible/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@crucible/og-client':
+        specifier: workspace:*
+        version: link:../../packages/og-client
       '@crucible/skills':
         specifier: workspace:*
         version: link:../../packages/skills

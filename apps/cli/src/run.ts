@@ -1,7 +1,9 @@
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { JsonlFileRecorder, ScenarioEngine, loadScenario } from "@crucible/core";
 import { SkillRuntime } from "@crucible/skills";
+import { publishRun } from "@crucible/og-client";
 import { loadRecipe } from "./recipe.js";
 import { makeAnthropicAgent } from "./agent.js";
 
@@ -9,6 +11,7 @@ export interface RunOpts {
   scenario: string;
   agent: string;
   outDir: string;
+  publish?: { agentId: bigint; network: "galileo" | "mainnet"; privateKey: string };
 }
 
 export async function runCommand(opts: RunOpts): Promise<void> {
@@ -50,4 +53,19 @@ export async function runCommand(opts: RunOpts): Promise<void> {
   console.log(`  Max drawdown:      ${(Math.abs(result.scorecard.maxDrawdownPct) * 100).toFixed(2)}%`);
   console.log(`  Total return:      ${(result.scorecard.totalReturnPct * 100).toFixed(2)}%`);
   console.log(`  Win rate:          ${(result.scorecard.winRate * 100).toFixed(1)}%`);
+
+  if (opts.publish) {
+    const recipeBytes = await readFile(opts.agent);
+    const recipeHash = "0x" + createHash("sha256").update(recipeBytes).digest("hex");
+    console.log(`Publishing to 0G ${opts.publish.network}...`);
+    const { runId, txHash } = await publishRun({
+      runDir,
+      agentId: opts.publish.agentId,
+      recipeHash,
+      network: opts.publish.network,
+      privateKey: opts.publish.privateKey,
+    });
+    console.log(`  Run ID on-chain: ${runId}`);
+    console.log(`  Tx hash:         ${txHash}`);
+  }
 }

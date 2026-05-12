@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@crucible/core": "workspace:*",
+    "@crucible/og-client": "workspace:*",
     "@crucible/skills": "workspace:*",
     "@anthropic-ai/sdk": "^0.27.0",
     "commander": "^12.0.0",
