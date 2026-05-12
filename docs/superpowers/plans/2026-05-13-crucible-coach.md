@@ -705,12 +705,27 @@ export class OgLlmClient {
   }
 }
 
-/** Construct from env vars */
+/**
+ * Construct from env vars.
+ *
+ * Verified endpoints (from docs.0g.ai, May 2026):
+ *   - Mainnet:  https://router-api.0g.ai/v1
+ *   - Testnet:  https://router-api-testnet.integratenetwork.work/v1
+ *
+ * API key is created at pc.0g.ai → Dashboard → API Keys (with "inference"
+ * permission). It starts with "sk-".
+ *
+ * Browse the live model catalog (no auth):
+ *   curl https://router-api.0g.ai/v1/models
+ *
+ * Default model uses one currently in the catalog; verify yours via the
+ * catalog before relying on it.
+ */
 export function loadOgLlmFromEnv(): OgLlmClient {
-  const baseURL = process.env.OG_COMPUTE_BASE_URL ?? "https://router.0g.ai/v1";
+  const baseURL = process.env.OG_COMPUTE_BASE_URL ?? "https://router-api.0g.ai/v1";
   const apiKey = process.env.OG_COMPUTE_API_KEY;
-  const model = process.env.OG_COMPUTE_MODEL ?? "claude-sonnet-4-6";
-  if (!apiKey) throw new Error("Missing OG_COMPUTE_API_KEY env var");
+  const model = process.env.OG_COMPUTE_MODEL ?? "zai-org/GLM-5-FP8";
+  if (!apiKey) throw new Error("Missing OG_COMPUTE_API_KEY env var (get one at pc.0g.ai)");
   return new OgLlmClient({ baseURL, apiKey, model });
 }
 ```
@@ -1241,9 +1256,14 @@ This task requires `OG_COMPUTE_API_KEY` in the environment.
 - [ ] **Step 1: Set env**
 
 ```bash
-export OG_COMPUTE_API_KEY=your-key-here
-export OG_COMPUTE_BASE_URL=https://router.0g.ai/v1   # adjust per actual endpoint
-export OG_COMPUTE_MODEL=claude-sonnet-4-6
+# Get an API key at pc.0g.ai → Dashboard → API Keys (inference permission).
+export OG_COMPUTE_API_KEY=sk-...
+# Mainnet (default — matches Plan 3's mainnet deployment).
+export OG_COMPUTE_BASE_URL=https://router-api.0g.ai/v1
+# For testnet experimentation use:
+#   export OG_COMPUTE_BASE_URL=https://router-api-testnet.integratenetwork.work/v1
+# Pick a model from the live catalog (curl https://router-api.0g.ai/v1/models).
+export OG_COMPUTE_MODEL=zai-org/GLM-5-FP8
 ```
 
 - [ ] **Step 2: Run against a real trace**

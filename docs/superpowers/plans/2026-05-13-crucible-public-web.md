@@ -934,13 +934,15 @@ vercel link        # link to a new project
 
 - [ ] **Step 4: Set environment variables on Vercel**
 
-Via dashboard or CLI:
+Via dashboard or CLI (endpoints verified from docs.0g.ai, May 2026):
 ```
 NEXT_PUBLIC_OG_NETWORK=mainnet
-OG_MAINNET_RPC=https://evmrpc.0g.ai           # verify URL
-OG_MAINNET_INDEXER=https://indexer-storage.0g.ai  # verify URL
-DEPLOYER_PRIVATE_KEY=<read-only-key-or-omit>  # only if storage downloads need a signed RPC
+OG_MAINNET_RPC=https://evmrpc.0g.ai
+OG_MAINNET_INDEXER=https://indexer-storage-turbo.0g.ai
+DEPLOYER_PRIVATE_KEY=<read-only-key>            # required by storage SDK signer; can be a fresh wallet with $0
 ```
+
+Note: the 0G Storage SDK requires a signer for downloads (it constructs an `ethers.Wallet` internally). Use a dedicated read-only wallet with no funds — there's no transfer of value during downloads, but the SDK's API requires a key.
 
 - [ ] **Step 5: Deploy preview**
 

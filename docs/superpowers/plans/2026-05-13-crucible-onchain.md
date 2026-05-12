@@ -6,7 +6,11 @@
 
 **Architecture:** Foundry workspace under `contracts/`. New TS package `@crucible/og-client` wraps ethers.js v6 + the 0G Storage SDK. Three contracts are minimal (~80-150 lines each); deploy scripts use Foundry's `forge script`. The CLI gains an opt-in `--publish` flag — without it, runs stay purely local.
 
-**Tech Stack:** Solidity ^0.8.24, Foundry (forge/cast), ethers.js v6, `@0glabs/0g-ts-sdk` (or current name — verify via docs.0g.ai), TypeScript ESM.
+**Tech Stack:** Solidity ^0.8.24, Foundry (forge/cast), ethers.js v6, `@0gfoundation/0g-storage-ts-sdk` (verified package name from docs.0g.ai, May 2026), TypeScript ESM.
+
+**Verified network endpoints (from docs.0g.ai):**
+- Galileo testnet — Chain ID 16602 — RPC `https://evmrpc-testnet.0g.ai` — Indexer `https://indexer-storage-testnet-turbo.0g.ai` — Faucet `https://faucet.0g.ai` — Explorer `https://chainscan-galileo.0g.ai`
+- Mainnet — Chain ID 16661 — RPC `https://evmrpc.0g.ai` — Indexer `https://indexer-storage-turbo.0g.ai` — Explorer `https://chainscan.0g.ai`
 
 **Out of scope (later):** TEE attestation enforcement (Compete-mode runs accept any signed attestation in v1, full TeeML wiring deferred), open attester registration, cross-chain bridges, Agent ID metadata standard beyond the basic ERC-721.
 
@@ -695,7 +699,7 @@ git commit -m "feat(contracts): deploy scripts for Galileo + 0G mainnet"
 
 - [ ] **Step 1: Get faucet tokens**
 
-Visit faucet at `https://faucet.0g.ai` (verify URL via docs.0g.ai) and fund the deployer wallet with Galileo testnet 0G.
+Visit `https://faucet.0g.ai` (or the Google Cloud Web3 Faucet at `https://cloud.google.com/application/web3/faucet/0g/galileo`) and fund the deployer wallet. Limit is 0.1 0G per wallet per day, which is plenty for deploying contracts. If you need more, ask in the 0G Discord.
 
 - [ ] **Step 2: Set env**
 
@@ -734,7 +738,7 @@ Update `contracts/deployed-addresses.json`:
 
 - [ ] **Step 5: Verify on Galileo Explorer**
 
-Visit `https://explorer-testnet.0g.ai/address/<ScenarioRegistry-address>` (verify URL via docs.0g.ai).
+Visit `https://chainscan-galileo.0g.ai/address/<ScenarioRegistry-address>` (the official Galileo block explorer, confirmed from docs.0g.ai).
 
 Confirm: contract code visible, deployment tx visible.
 
@@ -773,12 +777,12 @@ git commit -m "deploy(contracts): Galileo testnet deployment + addresses"
   },
   "dependencies": {
     "ethers": "^6.13.0",
-    "@0glabs/0g-ts-sdk": "*"
+    "@0gfoundation/0g-storage-ts-sdk": "*"
   }
 }
 ```
 
-⚠️ Verify the 0G Storage SDK package name via docs.0g.ai. The actual name as of 2026-05 may differ — check `https://docs.0g.ai/developer-hub/building-on-0g/storage/sdk`. If different, update both the package.json and the imports in storage.ts (Task 7).
+The package name `@0gfoundation/0g-storage-ts-sdk` is verified from docs.0g.ai (May 2026). The SDK requires `ethers` as a peer dependency for blockchain interactions.
 
 - [ ] **Step 2: Create tsconfig.json**
 
@@ -854,16 +858,13 @@ git commit -m "feat(og-client): bootstrap package + chain-config loader"
 **Files:**
 - Create: `packages/og-client/src/storage.ts`
 
-- [ ] **Step 1: Verify SDK API surface**
+API surface verified against docs.0g.ai (May 2026): the SDK exports `Indexer`, `ZgFile`, `MemData`, and `Blob` (alias as `ZgBlob` to avoid native Blob collision). Methods return Go-style `[result, err]` tuples. `Indexer.upload(file, rpcUrl, signer)` returns `[tx, err]` where `tx` is `{ rootHash, txHash }` for single uploads (or `{ rootHashes, txHashes }` for fragmented >4GB files). `Indexer.download(rootHash, outputPath, withProof)` returns just `err` and uses `fs.appendFileSync` (Node-only — not browser-safe). `MemData(Uint8Array)` lets us upload in-memory blobs (perfect for trace.jsonl) without writing to disk first.
 
-Run: `cat node_modules/@0glabs/0g-ts-sdk/package.json | jq .main` and read the exports. The SDK API may differ from this plan's assumptions; adjust imports/calls accordingly. Look for: indexer URL, storage RPC, upload/download flows.
-
-- [ ] **Step 2: Implement storage.ts**
+- [ ] **Step 1: Implement storage.ts**
 
 ```typescript
-// NOTE: Adjust imports based on actual @0glabs/0g-ts-sdk exports — verify via docs.0g.ai
-import { Indexer, ZgFile } from "@0glabs/0g-ts-sdk";
-import { writeFile, readFile, mkdtemp, rm } from "node:fs/promises";
+import { Indexer, MemData } from "@0gfoundation/0g-storage-ts-sdk";
+import { readFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { ethers } from "ethers";
@@ -878,7 +879,7 @@ function defaultConfig(network: "galileo" | "mainnet"): StorageConfig {
   const indexerUrl =
     network === "galileo"
       ? process.env.OG_GALILEO_INDEXER ?? "https://indexer-storage-testnet-turbo.0g.ai"
-      : process.env.OG_MAINNET_INDEXER ?? "https://indexer-storage.0g.ai";
+      : process.env.OG_MAINNET_INDEXER ?? "https://indexer-storage-turbo.0g.ai";
   const rpcUrl =
     network === "galileo"
       ? process.env.OG_GALILEO_RPC ?? "https://evmrpc-testnet.0g.ai"
@@ -888,30 +889,34 @@ function defaultConfig(network: "galileo" | "mainnet"): StorageConfig {
   return { indexerUrl, rpcUrl, privateKey };
 }
 
+/** Upload an in-memory byte buffer to 0G Storage. Returns the Merkle root hash and the on-chain tx hash. */
 export async function uploadBytes(
   data: Uint8Array,
   network: "galileo" | "mainnet" = "galileo"
 ): Promise<{ rootHash: string; txHash: string }> {
   const cfg = defaultConfig(network);
-  const tmp = await mkdtemp(path.join(tmpdir(), "og-upload-"));
-  const fp = path.join(tmp, "blob.bin");
-  await writeFile(fp, data);
-  try {
-    const indexer = new Indexer(cfg.indexerUrl);
-    const provider = new ethers.JsonRpcProvider(cfg.rpcUrl);
-    const signer = new ethers.Wallet(cfg.privateKey, provider);
-    const file = await ZgFile.fromFilePath(fp);
-    const [tree, treeErr] = await file.merkleTree();
-    if (treeErr) throw treeErr;
-    const rootHash = tree!.rootHash();
-    const [tx, uploadErr] = await indexer.upload(file, cfg.rpcUrl, signer);
-    if (uploadErr) throw uploadErr;
-    return { rootHash: rootHash!, txHash: tx };
-  } finally {
-    await rm(tmp, { recursive: true, force: true });
-  }
+  const indexer = new Indexer(cfg.indexerUrl);
+  const provider = new ethers.JsonRpcProvider(cfg.rpcUrl);
+  const signer = new ethers.Wallet(cfg.privateKey, provider);
+
+  const memData = new MemData(data);
+  const [tree, treeErr] = await memData.merkleTree();
+  if (treeErr !== null) throw new Error(`merkleTree: ${treeErr}`);
+  const rootHash = tree!.rootHash();
+
+  const [tx, uploadErr] = await indexer.upload(memData, cfg.rpcUrl, signer);
+  if (uploadErr !== null) throw new Error(`upload: ${uploadErr}`);
+
+  // tx may be { rootHash, txHash } (single) or { rootHashes, txHashes } (fragmented).
+  // Our trace.jsonl files are well under 4GB so we expect the single-upload shape.
+  const single = tx as { rootHash?: string; txHash?: string };
+  return {
+    rootHash: single.rootHash ?? rootHash!,
+    txHash: single.txHash ?? "",
+  };
 }
 
+/** Download by root hash. Uses Node fs internally (not browser-safe). */
 export async function downloadBytes(
   rootHash: string,
   network: "galileo" | "mainnet" = "galileo"
@@ -921,8 +926,8 @@ export async function downloadBytes(
   const fp = path.join(tmp, "blob.bin");
   try {
     const indexer = new Indexer(cfg.indexerUrl);
-    const [err] = await indexer.download(rootHash, fp, true);
-    if (err) throw err;
+    const err = await indexer.download(rootHash, fp, true /* withProof */);
+    if (err !== null) throw new Error(`download: ${err}`);
     return new Uint8Array(await readFile(fp));
   } finally {
     await rm(tmp, { recursive: true, force: true });
@@ -930,7 +935,10 @@ export async function downloadBytes(
 }
 ```
 
-⚠️ The SDK's actual function shapes (return tuples, error envelopes) may differ. Run a manual smoke test before relying on this.
+Notes:
+- `MemData` is preferred over `ZgFile.fromFilePath()` because it avoids a temp file roundtrip for our typical use case (trace.jsonl already in memory).
+- The SDK returns Go-style tuples `[result, err]` with `null` (not undefined) for the error slot on success. Always check `err !== null`.
+- For browser-side downloads (Plan 5's public web app), `Indexer.download()` won't work — it uses Node `fs.appendFileSync` internally. Either proxy through a server route (which Plan 5 does) or use `Indexer.downloadToBlob()`.
 
 - [ ] **Step 3: Re-export, commit**
 
@@ -1350,7 +1358,7 @@ const { ScenarioRegistryClient, loadChainConfig } = require("./packages/og-clien
 
 - [ ] **Step 4: Verify on Galileo Explorer**
 
-Visit `https://explorer-testnet.0g.ai/address/<ScenarioRegistry-address>` — should show one new tx + one ScenarioPublished event.
+Visit `https://chainscan-galileo.0g.ai/address/<ScenarioRegistry-address>` — should show one new tx + one ScenarioPublished event.
 
 - [ ] **Step 5: Commit notes**
 
@@ -1393,7 +1401,7 @@ Repeat Task 11 steps 2-3 with `network: "mainnet"` and the mainnet addresses.
 
 - [ ] **Step 5: Capture explorer link**
 
-Save `https://explorer.0g.ai/address/<RunRegistry-mainnet-address>` to `samples/mainnet-explorer-links.md` — this is your hackathon submission's contract address.
+Save `https://chainscan.0g.ai/address/<RunRegistry-mainnet-address>` to `samples/mainnet-explorer-links.md` — this is your hackathon submission's contract address. (Mainnet explorer URL verified from docs.0g.ai.)
 
 - [ ] **Step 6: Commit**
 
@@ -1460,4 +1468,4 @@ git commit -m "smoke: first end-to-end publish run on Galileo"
 2. **Submission alignment:** mainnet contract address (RunRegistry) captured in `samples/mainnet-explorer-links.md`. Verifiable on-chain activity = scenario publish + agent mint + run record.
 3. **Out of scope:** TEE attestation enforcement (v1 uses owner-allowlist trustedAttester model), open attester registration, Compete-mode rigor (Coach + leaderboard layer comes via Plan 5).
 4. **Placeholders:** none. Each step has commands or code.
-5. **Risks:** SDK shape verification needed in Task 7 + Task 11 (we used assumed names — validate against docs.0g.ai before running).
+5. **Risks:** SDK shape verified against docs.0g.ai (May 2026): package is `@0gfoundation/0g-storage-ts-sdk`, `Indexer.upload()` returns `[tx, err]` tuple with `tx = { rootHash, txHash }` for single uploads. If the SDK API drifts (versions are still pre-1.0 in some areas), check the [TypeScript Starter Kit](https://github.com/0gfoundation/0g-storage-ts-starter-kit) for the canonical example.
