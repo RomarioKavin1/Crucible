@@ -1,3 +1,5 @@
+"use client";
+import { useEffect, useRef } from "react";
 import type { TraceEntry } from "@crucible/core";
 
 export interface AgentReasoningStreamProps {
@@ -9,14 +11,36 @@ export interface AgentReasoningStreamProps {
   maxHeight?: number;
   /** Strip outer bg/border/padding so the component can be embedded in a parent panel. */
   bare?: boolean;
+  /** When true, scroll the highlighted tick into view as it changes (playback mode). */
+  autoScrollToHighlight?: boolean;
 }
 
 export function AgentReasoningStream({
   entries, highlightTick, newestFirst = false, maxHeight = 600, bare = false,
+  autoScrollToHighlight = false,
 }: AgentReasoningStreamProps) {
   const ordered = newestFirst ? [...entries].reverse() : entries;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!autoScrollToHighlight || highlightTick === undefined) return;
+    const el = highlightRef.current;
+    const container = containerRef.current;
+    if (!el || !container) return;
+    // Scroll within the container so the highlighted tick is centered-ish
+    const elTop = el.offsetTop;
+    const elHeight = el.offsetHeight;
+    const containerHeight = container.clientHeight;
+    container.scrollTo({
+      top: elTop - containerHeight / 2 + elHeight / 2,
+      behavior: "smooth",
+    });
+  }, [highlightTick, autoScrollToHighlight]);
+
   return (
     <div
+      ref={containerRef}
       style={{ maxHeight, overflowY: "auto" }}
       className={
         bare
@@ -30,9 +54,10 @@ export function AgentReasoningStream({
         return (
           <div
             key={e.tick}
+            ref={isHighlight ? highlightRef : undefined}
             className={`p-3 rounded-lg border-l-2 transition-colors ${
               isHighlight
-                ? "border-l-[#22d3ee] bg-[#22d3ee0a]"
+                ? "border-l-[#22d3ee] bg-[#22d3ee0a] shadow-[inset_0_0_0_1px_#22d3ee33]"
                 : hasNews
                 ? "border-l-[#fbbf24] bg-[#fbbf240a]"
                 : "border-l-[#1c2538] hover:bg-[#ffffff03]"
@@ -48,7 +73,7 @@ export function AgentReasoningStream({
                     <span className="absolute inline-flex h-full w-full rounded-full bg-[#22d3ee] opacity-75 animate-ping" />
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#22d3ee]" />
                   </span>
-                  Live
+                  Now
                 </span>
               )}
             </div>

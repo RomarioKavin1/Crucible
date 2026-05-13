@@ -8,5 +8,6 @@ export * from "./AgentReasoningStream";
 export * from "./PnLPanel";
 export * from "./TradesTable";
 export * from "./EquityCurve";
+export * from "./PlaybackControls";
 export * from "./CoachingReport";
 export * from "./RecipeDiff";

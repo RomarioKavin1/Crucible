@@ -6,13 +6,15 @@ export interface EquityCurveProps {
   initialEquity?: number;
   width?: number;
   height?: number;
+  /** If set, only draw the curve up to this tick index (inclusive) — used for playback. */
+  currentTickIndex?: number;
 }
 
 /**
  * Equity over the run's ticks. Filled area below the curve so it reads as
  * "drawdown from start" rather than just a line.
  */
-export function EquityCurve({ entries, ticks, initialEquity = 10000, width = 360, height = 80 }: EquityCurveProps) {
+export function EquityCurve({ entries, ticks, initialEquity = 10000, width = 360, height = 80, currentTickIndex }: EquityCurveProps) {
   if (entries.length === 0 || ticks.length === 0) {
     return (
       <div
@@ -24,11 +26,24 @@ export function EquityCurve({ entries, ticks, initialEquity = 10000, width = 360
     );
   }
 
-  const series = entries.map((e) => {
+  const visible = currentTickIndex !== undefined
+    ? entries.filter((e) => e.tick <= currentTickIndex)
+    : entries;
+  const series = visible.map((e) => {
     const tick = ticks[e.tick];
     const price = tick?.last ?? 1;
     return e.portfolio.cash + e.portfolio.position * price;
   });
+  if (series.length === 0) {
+    return (
+      <div
+        className="flex items-center justify-center font-mono text-[10px] text-[#5e6b80]"
+        style={{ width, height }}
+      >
+        no data
+      </div>
+    );
+  }
   const allValues = [initialEquity, ...series];
   const min = Math.min(...allValues);
   const max = Math.max(...allValues);

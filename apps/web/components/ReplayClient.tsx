@@ -1,12 +1,22 @@
 "use client";
-import { useEffect, useState } from "react";
-import { ScenarioReplay, AgentReasoningStream, TradesTable, EquityCurve } from "@crucible/ui-kit";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ScenarioReplay, AgentReasoningStream, TradesTable, EquityCurve, PlaybackControls,
+} from "@crucible/ui-kit";
 import type { TraceEntry, Tick, Portfolio } from "@crucible/core";
+
+const DEFAULT_TICK_INTERVAL_MS = 600; // base interval at 1x speed
 
 export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; scenarioId: string }) {
   const [entries, setEntries] = useState<TraceEntry[] | null>(null);
   const [ticks, setTicks] = useState<Tick[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Playback state
+  const [currentTick, setCurrentTick] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const lastInteractionRef = useRef<number>(0);
 
   useEffect(() => {
     (async () => {
@@ -27,6 +37,63 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
     })();
   }, [traceHash, scenarioId]);
 
+  // When data first arrives, default cursor to the FINAL tick (so the page reads as
+  // a completed run by default — user has to press play to see the replay).
+  useEffect(() => {
+    if (ticks && ticks.length > 0) {
+      setCurrentTick(ticks.length - 1);
+    }
+  }, [ticks]);
+
+  // Playback engine — advance currentTick at speed * baseInterval
+  useEffect(() => {
+    if (!isPlaying || !ticks) return;
+    const intervalMs = DEFAULT_TICK_INTERVAL_MS / speed;
+    const id = setInterval(() => {
+      setCurrentTick((t) => {
+        if (t >= ticks.length - 1) {
+          setIsPlaying(false);
+          return t;
+        }
+        return t + 1;
+      });
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [isPlaying, speed, ticks]);
+
+  const handlePlayToggle = useCallback(() => {
+    if (!ticks) return;
+    // If we're at the end and user hits play, restart from 0
+    if (!isPlaying && currentTick >= ticks.length - 1) {
+      setCurrentTick(0);
+    }
+    setIsPlaying((p) => !p);
+    lastInteractionRef.current = Date.now();
+  }, [isPlaying, currentTick, ticks]);
+
+  const handleSeek = useCallback((tick: number) => {
+    setIsPlaying(false);
+    setCurrentTick(tick);
+    lastInteractionRef.current = Date.now();
+  }, []);
+
+  const handleStep = useCallback((delta: number) => {
+    if (!ticks) return;
+    setIsPlaying(false);
+    setCurrentTick((t) => Math.max(0, Math.min(ticks.length - 1, t + delta)));
+  }, [ticks]);
+
+  // Memoized helpers — recompute only when entries/ticks change
+  const fillTickIndexes = useMemo(() => {
+    if (!entries) return { buys: [], sells: [], news: [] };
+    const buys: number[] = [], sells: number[] = [], news: number[] = [];
+    for (const e of entries) {
+      for (const f of e.fills) (f.side === "buy" ? buys : sells).push(e.tick);
+      if (e.newsSeen.length > 0) news.push(e.tick);
+    }
+    return { buys, sells, news };
+  }, [entries]);
+
   if (error) {
     return (
       <div className="bg-[#0f1623] border border-[#ef444466] rounded-2xl p-4 text-[#ef4444] text-[13px]">
@@ -42,37 +109,54 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
     );
   }
 
-  const fills = entries.flatMap((e) => e.fills);
-  const lastEntry = entries[entries.length - 1];
-  const portfolio: Portfolio | undefined = lastEntry?.portfolio;
-  const lastPrice = ticks[ticks.length - 1]?.last ?? 1;
-  const equity = portfolio ? portfolio.cash + portfolio.position * lastPrice : 10000;
+  // Filter data to currentTick — chart, trades, and reasoning all advance in lockstep
+  const visibleFills = entries.flatMap((e) => e.fills.filter(() => e.tick <= currentTick));
+  const allFills = entries.flatMap((e) => e.fills);
+  // Find the entry corresponding to currentTick (or the closest preceding one)
+  const entryAtTick = [...entries].reverse().find((e) => e.tick <= currentTick) ?? entries[0];
+  const portfolio: Portfolio | undefined = entryAtTick?.portfolio;
+  const priceAtTick = ticks[currentTick]?.last ?? ticks[ticks.length - 1]?.last ?? 1;
+  const equity = portfolio ? portfolio.cash + portfolio.position * priceAtTick : 10000;
   const equityChange = (equity - 10000) / 10000;
   const equityColor = equityChange >= 0 ? "#10b981" : "#ef4444";
+  const totalTicks = ticks.length;
 
   return (
     <div className="space-y-6">
-      {/* PRICE TAPE */}
+      {/* PRICE TAPE + PLAYER */}
       <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#1c2538]">
           <div className="flex items-center gap-2.5">
             <span className="text-[13px] font-medium text-[#e6e9f0]">Price tape</span>
             <span className="h-3 w-px bg-[#232d44]" />
             <span className="text-[11px] text-[#aab2c5]">
-              <span className="font-mono text-[#e6e9f0]">{ticks.length}</span> ticks · <span className="font-mono text-[#e6e9f0]">{fills.length}</span> fills
+              <span className="font-mono text-[#e6e9f0]">{ticks.length}</span> ticks · <span className="font-mono text-[#e6e9f0]">{allFills.length}</span> fills
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-[#22d3ee]">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#22d3ee] shadow-[0_0_8px_#22d3ee]" />
-            Replay
+            <span className={`inline-block w-1.5 h-1.5 rounded-full bg-[#22d3ee] ${isPlaying ? "shadow-[0_0_8px_#22d3ee] animate-pulse" : ""}`} />
+            {isPlaying ? "Playing" : currentTick >= totalTicks - 1 ? "End" : "Paused"}
           </div>
         </div>
         <div className="p-3">
-          <ScenarioReplay ticks={ticks} fills={fills} height={420} />
+          <ScenarioReplay ticks={ticks} fills={allFills} currentTickIndex={currentTick} height={420} />
         </div>
+        <PlaybackControls
+          currentTick={currentTick}
+          totalTicks={totalTicks}
+          isPlaying={isPlaying}
+          speed={speed}
+          onPlayToggle={handlePlayToggle}
+          onSeek={handleSeek}
+          onStep={handleStep}
+          onSpeedChange={setSpeed}
+          buyTicks={fillTickIndexes.buys}
+          sellTicks={fillTickIndexes.sells}
+          newsTicks={fillTickIndexes.news}
+        />
       </div>
 
-      {/* EQUITY + POSITION strip */}
+      {/* EQUITY + POSITION strip — values reflect the current tick */}
       {portfolio && (
         <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl card-elevated overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr_1fr_1fr_1fr] divide-y md:divide-y-0 md:divide-x divide-[#1c2538]">
@@ -83,15 +167,15 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
                   {equityChange >= 0 ? "+" : ""}{(equityChange * 100).toFixed(2)}%
                 </span>
               </div>
-              <div className="font-mono text-[24px] text-[#e6e9f0] leading-tight">
+              <div className="font-mono text-[24px] text-[#e6e9f0] leading-tight tabular-nums">
                 ${equity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <div className="mt-3">
-                <EquityCurve entries={entries} ticks={ticks} height={42} />
+                <EquityCurve entries={entries} ticks={ticks} height={42} currentTickIndex={currentTick} />
               </div>
               <div className="mt-1.5 flex items-center justify-between text-[10px] text-[#6b7691]">
                 <span>Start <span className="font-mono text-[#aab2c5]">$10,000</span></span>
-                <span>End <span className="font-mono text-[#aab2c5]">${equity.toFixed(0)}</span></span>
+                <span>At tick <span className="font-mono text-[#aab2c5]">{currentTick}</span></span>
               </div>
             </div>
             <SmallStat label="Position" value={portfolio.position.toString()} />
@@ -110,22 +194,36 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
         </div>
       )}
 
-      {/* TRADES + REASONING */}
+      {/* TRADES + REASONING — both filtered/highlighted by currentTick */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-6 items-stretch">
-        <TradesTable fills={fills} maxHeight={460} />
+        <TradesTable
+          fills={visibleFills}
+          maxHeight={460}
+          title={isPlaying || currentTick < totalTicks - 1 ? `Trades through tick ${currentTick}` : "Trades"}
+        />
         <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden flex flex-col card-elevated">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#1c2538]">
             <div className="flex items-center gap-2.5">
               <span className="text-[13px] font-medium text-[#e6e9f0]">Reasoning</span>
               <span className="h-3 w-px bg-[#232d44]" />
               <span className="text-[11px] text-[#aab2c5]">
-                <span className="font-mono text-[#e6e9f0]">{entries.length}</span> ticks recorded
+                {currentTick < totalTicks - 1 ? (
+                  <>at tick <span className="font-mono text-[#22d3ee]">{currentTick}</span></>
+                ) : (
+                  <><span className="font-mono text-[#e6e9f0]">{entries.length}</span> ticks recorded</>
+                )}
               </span>
             </div>
-            <span className="text-[11px] text-[#6b7691]">Scroll for full trace</span>
+            <span className="text-[11px] text-[#6b7691]">{isPlaying ? "Auto-scroll" : "Scroll for full trace"}</span>
           </div>
           <div className="flex-1 min-h-0">
-            <AgentReasoningStream entries={entries} maxHeight={510} bare />
+            <AgentReasoningStream
+              entries={entries}
+              maxHeight={510}
+              bare
+              highlightTick={currentTick}
+              autoScrollToHighlight={isPlaying || currentTick < totalTicks - 1}
+            />
           </div>
         </div>
       </div>
@@ -137,7 +235,7 @@ function SmallStat({ label, value, color }: { label: string; value: string; colo
   return (
     <div className="px-5 py-4 flex flex-col justify-between">
       <div className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] mb-2 font-medium">{label}</div>
-      <div className="font-mono text-[18px]" style={{ color: color ?? "#e6e9f0" }}>{value}</div>
+      <div className="font-mono text-[18px] tabular-nums" style={{ color: color ?? "#e6e9f0" }}>{value}</div>
     </div>
   );
 }
