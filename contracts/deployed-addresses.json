@@ -1,4 +1,8 @@
 {
-  "galileo": {},
+  "galileo": {
+    "ScenarioRegistry": "0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F",
+    "AgentRegistry": "0x0763d1622D1C1E611b4c6a69a9cbB308B44464fB",
+    "RunRegistry": "0xc514347126590cd2b228fb33047f35389e5de1A7"
+  },
   "mainnet": {}
 }
