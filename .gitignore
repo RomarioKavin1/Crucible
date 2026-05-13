@@ -16,3 +16,4 @@ contracts/.env
 contracts/cache/
 contracts/out/
 contracts/broadcast/
+.next/
