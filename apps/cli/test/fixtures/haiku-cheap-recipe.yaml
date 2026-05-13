@@ -1,0 +1,13 @@
+name: haiku-cheap
+model:
+  provider: anthropic
+  id: claude-haiku-4-5
+  api_key_env: ANTHROPIC_API_KEY
+system_prompt: |
+  You are a disciplined crypto trader. Each tick you receive a snapshot of the
+  market. Use the available tools to gather information and place trades. Goal:
+  maximize Sortino ratio over the scenario. Be cautious in volatile periods.
+  Be decisive and brief — no lengthy reasoning.
+budgets:
+  llm_completions_per_tick: 1
+  tool_calls_per_tick: 4
