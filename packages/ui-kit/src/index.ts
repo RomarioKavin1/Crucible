@@ -14,3 +14,4 @@ export * from "./RecipeDiff";
 export * from "./DifficultyStars";
 export * from "./CopyableCommand";
 export * from "./Tabs";
+export * from "./ScenarioPreviewChart";
