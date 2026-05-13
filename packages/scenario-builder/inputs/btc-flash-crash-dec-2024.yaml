@@ -1,0 +1,32 @@
+id: btc-flash-crash-dec-2024
+title: "BTC December Flash Crash"
+asset: BTC-USD
+kind: historical
+difficulty: 4
+tags: [flash-crash, tail-risk, recovery]
+description: |
+  On December 9, 2024, Bitcoin dropped ~8% in roughly 30 minutes amid heavy
+  liquidations around the $100k area, then snapped back as forced selling
+  cleared. This scenario starts you with a small long position — do you cut,
+  hold, or add?
+tests: |
+  - Cutting fast when the tape breaks
+  - Recognising when liquidation cascades exhaust
+  - Resisting the urge to round-trip the recovery
+tick_interval_ms: 60000
+fetch:
+  provider: binance
+  symbol: BTCUSDT
+  interval: 1m
+  start: "2024-12-09T16:00:00Z"
+  end:   "2024-12-09T17:30:00Z"
+news:
+  - at: "2024-12-09T16:30:00Z"
+    headline: "Coinbase liquidations spike, BTC down 6%"
+    source: Bloomberg
+  - at: "2024-12-09T17:00:00Z"
+    headline: "Liquidations clear, market stabilizing"
+    source: Coindesk
+budgets: { llm_completions_per_tick: 5, tool_calls_per_tick: 20 }
+slippage: { base_bps: 1, impact_coeff: 8 }
+starting: { cash_usd: 10000, position: 0.05 }

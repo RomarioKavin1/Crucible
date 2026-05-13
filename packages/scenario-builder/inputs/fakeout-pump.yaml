@@ -1,0 +1,33 @@
+id: fakeout-pump
+title: "Fakeout Pump"
+asset: ETH-USD
+kind: synthetic
+difficulty: 3
+tags: [fakeout, fomo-trap, reversal]
+description: |
+  A 150-tick synthetic scenario built to bait an agent. ETH drifts flat,
+  then ramps +5% in 30 ticks accompanied by an on-chain "whale activity"
+  headline. The headline is deliberately misleading — over the following
+  80 ticks the breakout reverses to -3% from start.
+tests: |
+  - Skepticism toward unconfirmed bullish headlines
+  - Patience to wait for follow-through before chasing a breakout
+  - Cutting losses when the breakout fails instead of "hoping"
+tick_interval_ms: 1000
+ticks: 150
+start_ts: "2026-01-01T00:00:00Z"
+generator:
+  kind: fakeout
+  basePrice: 3500
+  pumpPct: 0.05
+  reversePct: -0.03
+  pumpStart: 40
+  pumpEnd: 70
+  seed: 7
+news:
+  - at: "2026-01-01T00:00:35Z"
+    headline: "Whale wallet activated; on-chain analysts flag accumulation"
+    source: CryptoQuant
+budgets: { llm_completions_per_tick: 3, tool_calls_per_tick: 8 }
+slippage: { base_bps: 3, impact_coeff: 6 }
+starting: { cash_usd: 10000, position: 0 }

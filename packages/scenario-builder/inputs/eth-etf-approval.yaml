@@ -1,0 +1,34 @@
+id: eth-etf-approval
+title: "ETH ETF Approval Reaction"
+asset: ETH-USD
+kind: historical
+difficulty: 3
+tags: [news-driven, bullish-shock, fade]
+description: |
+  On January 11, 2024 at 4:00pm ET, the SEC approved 11 spot Bitcoin ETFs.
+  ETH spiked ~12% within four hours on the implied read-through, then faded
+  back as first-day inflow figures underwhelmed and traders took profit.
+tests: |
+  - Reading bullish news and adding risk
+  - Sizing into a momentum trade without becoming maximum-long at the top
+  - Holding through the fade vs. taking partial profit before the inflow news
+tick_interval_ms: 60000
+fetch:
+  provider: binance
+  symbol: ETHUSDT
+  interval: 1m
+  start: "2024-01-11T20:30:00Z"
+  end:   "2024-01-12T00:30:00Z"
+news:
+  - at: "2024-01-11T20:30:00Z"
+    headline: "SEC approves 11 spot Bitcoin ETFs"
+    source: WSJ
+  - at: "2024-01-11T20:36:00Z"
+    headline: "Coinbase confirms ETF custody role"
+    source: Coindesk
+  - at: "2024-01-11T23:30:00Z"
+    headline: "ETF first-day inflows trail expectations"
+    source: Bloomberg
+budgets: { llm_completions_per_tick: 5, tool_calls_per_tick: 20 }
+slippage: { base_bps: 1, impact_coeff: 5 }
+starting: { cash_usd: 10000, position: 0 }
