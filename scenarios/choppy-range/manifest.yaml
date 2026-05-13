@@ -1,0 +1,38 @@
+id: choppy-range
+title: Choppy Range
+asset: ETH-USD
+window:
+  start: '2026-01-01T00:00:00.000Z'
+  end: '2026-01-01T00:03:19.000Z'
+tick_interval_ms: 1000
+duration_ticks: 200
+starting_cash_usd: 10000
+starting_position: 0
+scoring:
+  primary: sortino_ratio
+  secondary:
+    - max_drawdown_pct
+    - total_return_pct
+    - win_rate
+slippage:
+  base_bps: 5
+  impact_coeff: 8
+content_hash: '0xc851d1c20a41f064f5334eb836a294d98a4fc50732269fe9b78268c965bebc28'
+visibility: public
+budgets:
+  llm_completions_per_tick: 2
+  tool_calls_per_tick: 5
+  wall_clock_ms_per_tick: 30000
+kind: synthetic
+difficulty: 2
+tags:
+  - range-bound
+  - anti-overtrading
+description: |
+  A synthetic 200-tick range-bound scenario: ETH trades sideways in a tight
+  ±0.3% band around $3,500 for the entire run. Designed to expose agents
+  that confuse noise for signal.
+tests: |
+  - Sitting still when there is no edge
+  - Recognising that slippage + spread make small frequent trades a losing
+    strategy

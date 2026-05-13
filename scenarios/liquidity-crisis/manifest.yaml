@@ -1,0 +1,40 @@
+id: liquidity-crisis
+title: Liquidity Crisis
+asset: ETH-USD
+window:
+  start: '2026-01-01T00:00:00.000Z'
+  end: '2026-01-01T00:03:19.000Z'
+tick_interval_ms: 1000
+duration_ticks: 200
+starting_cash_usd: 10000
+starting_position: 0
+scoring:
+  primary: sortino_ratio
+  secondary:
+    - max_drawdown_pct
+    - total_return_pct
+    - win_rate
+slippage:
+  base_bps: 5
+  impact_coeff: 25
+content_hash: '0xa52eb1e9f1209ada2548e5db355c31d14980cd1bd66feee22e15fad4520992b1'
+visibility: public
+budgets:
+  llm_completions_per_tick: 3
+  tool_calls_per_tick: 8
+  wall_clock_ms_per_tick: 30000
+kind: synthetic
+difficulty: 4
+tags:
+  - microstructure
+  - slippage
+  - depth-shock
+description: |
+  A 200-tick synthetic scenario where price drifts -2% over the run while
+  orderbook depth thins out at t=80, modeled via a higher slippage impact
+  coefficient. The lesson: large market orders into a thin book pay
+  ferocious prices.
+tests: |
+  - Position sizing relative to available depth
+  - Scaling out earlier rather than dumping into a thin book
+  - Waiting for depth to return before adding risk
