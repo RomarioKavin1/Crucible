@@ -7,6 +7,8 @@ dist/
 coverage/
 .turbo/
 runs/
+# Allow API route directories named 'runs' inside the Next.js app
+!apps/local/app/api/runs/
 *.tsbuildinfo
 contracts/.env
 contracts/cache/
