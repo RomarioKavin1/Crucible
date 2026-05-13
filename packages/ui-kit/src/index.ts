@@ -7,5 +7,6 @@ export * from "./ScenarioReplay";
 export * from "./AgentReasoningStream";
 export * from "./PnLPanel";
 export * from "./TradesTable";
+export * from "./EquityCurve";
 export * from "./CoachingReport";
 export * from "./RecipeDiff";

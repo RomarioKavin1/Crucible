@@ -7,16 +7,22 @@ export interface AgentReasoningStreamProps {
   /** Reverse chronological order — newest at top. Default false. */
   newestFirst?: boolean;
   maxHeight?: number;
+  /** Strip outer bg/border/padding so the component can be embedded in a parent panel. */
+  bare?: boolean;
 }
 
 export function AgentReasoningStream({
-  entries, highlightTick, newestFirst = false, maxHeight = 600,
+  entries, highlightTick, newestFirst = false, maxHeight = 600, bare = false,
 }: AgentReasoningStreamProps) {
   const ordered = newestFirst ? [...entries].reverse() : entries;
   return (
     <div
       style={{ maxHeight, overflowY: "auto" }}
-      className="space-y-2 font-mono text-xs bg-[#0f1623] border border-[#1f2a3d] rounded p-3"
+      className={
+        bare
+          ? "space-y-2 font-mono text-xs p-3"
+          : "space-y-2 font-mono text-xs bg-[#0f1623] border border-[#1f2a3d] rounded p-3"
+      }
     >
       {ordered.map((e) => {
         const isHighlight = e.tick === highlightTick;
