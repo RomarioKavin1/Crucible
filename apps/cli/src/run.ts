@@ -14,11 +14,26 @@ export interface RunOpts {
   publish?: { agentId: bigint; network: "galileo" | "mainnet"; privateKey: string };
 }
 
+/**
+ * Resolve a path argument against the user's original working directory, not
+ * the (potentially `cd`-ed) cwd of the spawned Node process. pnpm sets INIT_CWD
+ * to the dir where the pnpm command was invoked, which is what users expect for
+ * relative-path args.
+ */
+function resolveUserPath(p: string): string {
+  if (path.isAbsolute(p)) return p;
+  const base = process.env["INIT_CWD"] ?? process.cwd();
+  return path.resolve(base, p);
+}
+
 export async function runCommand(opts: RunOpts): Promise<void> {
-  const scenario = await loadScenario(opts.scenario);
-  const recipe = await loadRecipe(opts.agent);
+  const scenarioPath = resolveUserPath(opts.scenario);
+  const agentPath = resolveUserPath(opts.agent);
+  const outDirAbs = resolveUserPath(opts.outDir);
+  const scenario = await loadScenario(scenarioPath);
+  const recipe = await loadRecipe(agentPath);
   const runDir = path.join(
-    opts.outDir,
+    outDirAbs,
     `${recipe.name}_${scenario.manifest.id}_${Date.now()}`
   );
   await mkdir(runDir, { recursive: true });
@@ -55,7 +70,7 @@ export async function runCommand(opts: RunOpts): Promise<void> {
   console.log(`  Win rate:          ${(result.scorecard.winRate * 100).toFixed(1)}%`);
 
   if (opts.publish) {
-    const recipeBytes = await readFile(opts.agent);
+    const recipeBytes = await readFile(agentPath);
     const recipeHash = "0x" + createHash("sha256").update(recipeBytes).digest("hex");
     console.log(`Publishing to 0G ${opts.publish.network}...`);
     const { runId, txHash } = await publishRun({
