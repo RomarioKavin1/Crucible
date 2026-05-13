@@ -14,9 +14,14 @@ export default async function ReplayPage({ params }: { params: { id: string } })
   const scenario = await loadScenario(path.resolve(DEFAULT_SCENARIOS_DIR, scorecard.scenario));
   const fills: Fill[] = entries.flatMap((e) => e.fills);
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Replay <code>{params.id}</code></h2>
-      <ScenarioReplay ticks={scenario.ticks} fills={fills} height={500} />
+    <div className="space-y-6">
+      <div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#5e6b80] mb-1">Replay</div>
+        <h1 className="font-mono text-2xl font-bold tracking-tight text-[#e5e9f0] truncate">{params.id}</h1>
+      </div>
+      <div className="bg-[#0f1623] border border-[#1f2a3d] rounded p-3">
+        <ScenarioReplay ticks={scenario.ticks} fills={fills} height={500} />
+      </div>
       <AgentReasoningStream entries={entries} maxHeight={600} />
     </div>
   );
