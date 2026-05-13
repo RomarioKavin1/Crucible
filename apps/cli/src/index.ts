@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { runCommand, type RunOpts } from "./run.js";
+import { coachCommand } from "./coach.js";
 
 const program = new Command();
 program.name("crucible").description("Crucible — AI trading agent benchmark").version("0.1.0");
@@ -27,6 +28,15 @@ program
       };
     }
     await runCommand({ scenario: opts.scenario, agent: opts.agent, outDir: opts.outDir, publish });
+  });
+
+program
+  .command("coach")
+  .description("Analyze a run directory and produce a coach-report.md")
+  .requiredOption("-r, --run-dir <path>", "Path to a run directory (containing trace.jsonl + scorecard.json)")
+  .option("-p, --system-prompt <text>", "Optional: the agent's system prompt for richer suggestions")
+  .action(async (opts) => {
+    await coachCommand({ runDir: opts.runDir, systemPrompt: opts.systemPrompt });
   });
 
 program.parseAsync(process.argv).catch((err) => {

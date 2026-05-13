@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@crucible/coach": "workspace:*",
     "@crucible/core": "workspace:*",
     "@crucible/og-client": "workspace:*",
     "@crucible/skills": "workspace:*",

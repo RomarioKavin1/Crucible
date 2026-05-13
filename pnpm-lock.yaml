@@ -38,6 +38,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.27.0
         version: 0.27.3
+      '@crucible/coach':
+        specifier: workspace:*
+        version: link:../../packages/coach
       '@crucible/core':
         specifier: workspace:*
         version: link:../../packages/core
