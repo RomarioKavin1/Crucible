@@ -14,8 +14,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           tagline="Proving Ground"
           network="GALILEO  chain 16602"
           nav={[
-            { label: "Leaderboard", href: "/" },
-            { label: "Built on 0G", href: "https://docs.0g.ai" },
+            { label: "Scenarios", href: "/scenarios" },
+            { label: "Leaderboard", href: "/leaderboard" },
+            { label: "Community", href: "/community" },
+            { label: "GitHub", href: "https://github.com/" },
           ]}
         />
         <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
