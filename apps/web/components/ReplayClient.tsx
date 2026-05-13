@@ -1,9 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
-import { ScenarioReplay, AgentReasoningStream, PnLPanel } from "@crucible/ui-kit";
+import { useEffect, useState, type ReactNode } from "react";
+import { ScenarioReplay, AgentReasoningStream, PnLPanel, TradesTable } from "@crucible/ui-kit";
 import type { TraceEntry, Tick } from "@crucible/core";
 
-export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; scenarioId: string }) {
+export function ReplayClient({
+  traceHash,
+  scenarioId,
+  proof,
+}: {
+  traceHash: string;
+  scenarioId: string;
+  proof?: ReactNode;
+}) {
   const [entries, setEntries] = useState<TraceEntry[] | null>(null);
   const [ticks, setTicks] = useState<Tick[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,9 +35,19 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
     })();
   }, [traceHash, scenarioId]);
 
-  if (error) return <div className="bg-[#0f1623] border border-[#ef4444] rounded p-4 text-[#ef4444] font-mono text-sm">Failed to load trace: {error}</div>;
+  if (error) {
+    return (
+      <div className="bg-[#0f1623] border border-[#ef4444] rounded p-4 text-[#ef4444] font-mono text-sm">
+        Failed to load trace: {error}
+      </div>
+    );
+  }
   if (!entries || !ticks) {
-    return <div className="bg-[#0f1623] border border-[#1f2a3d] rounded p-12 text-center font-mono text-sm text-[#5e6b80]">Loading replay from 0G Storage...</div>;
+    return (
+      <div className="bg-[#0f1623] border border-[#1f2a3d] rounded p-12 text-center font-mono text-sm text-[#5e6b80]">
+        Loading replay from 0G Storage...
+      </div>
+    );
   }
 
   const fills = entries.flatMap((e) => e.fills);
@@ -37,22 +55,30 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
   const lastPrice = ticks[ticks.length - 1]?.last ?? 1;
 
   return (
-    <div className="space-y-4">
-      <div className="bg-[#0f1623] border border-[#1f2a3d] rounded">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-[#1f2a3d]">
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80] flex items-center gap-3">
-            <span className="text-[#e5e9f0]">{scenarioId}</span>
-            <span>·</span>
-            <span>{ticks.length} ticks recorded</span>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-[#0f1623] border border-[#1f2a3d] rounded">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-[#1f2a3d]">
+            <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80] flex items-center gap-3">
+              <span className="text-[#e5e9f0]">{scenarioId}</span>
+              <span className="text-[#3a4456]">·</span>
+              <span>{ticks.length} ticks</span>
+              <span className="text-[#3a4456]">·</span>
+              <span>{fills.length} fills</span>
+            </div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#22d3ee]">▶ replay</div>
           </div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#22d3ee]">▶ playback</div>
+          <div className="p-3">
+            <ScenarioReplay ticks={ticks} fills={fills} height={420} />
+          </div>
         </div>
-        <div className="p-3">
-          <ScenarioReplay ticks={ticks} fills={fills} height={360} />
-        </div>
+        <div>{proof}</div>
       </div>
 
-      {lastPortfolio && <PnLPanel portfolio={lastPortfolio} currentPrice={lastPrice} />}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TradesTable fills={fills} maxHeight={360} />
+        {lastPortfolio && <PnLPanel portfolio={lastPortfolio} currentPrice={lastPrice} />}
+      </div>
 
       <div>
         <h3 className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80] mb-2">Agent reasoning</h3>

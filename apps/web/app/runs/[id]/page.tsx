@@ -63,11 +63,10 @@ export default async function RunPage({ params }: { params: { id: string } }) {
         <MetricCard label="Attested" value="✓" accent="cyan" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <ReplayClient traceHash={run.traceHash} scenarioId={scenarioId} />
-        </div>
-        <div>
+      <ReplayClient
+        traceHash={run.traceHash}
+        scenarioId={scenarioId}
+        proof={
           <OnChainProofPanel
             network={NETWORK}
             runId={params.id}
@@ -75,8 +74,8 @@ export default async function RunPage({ params }: { params: { id: string } }) {
             recipeHash={run.recipeHash}
             traceHash={run.traceHash}
           />
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

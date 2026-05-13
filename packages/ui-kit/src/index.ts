@@ -6,5 +6,6 @@ export * from "./OnChainProofPanel";
 export * from "./ScenarioReplay";
 export * from "./AgentReasoningStream";
 export * from "./PnLPanel";
+export * from "./TradesTable";
 export * from "./CoachingReport";
 export * from "./RecipeDiff";

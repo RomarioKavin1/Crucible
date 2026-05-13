@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function ScenarioFilterTabs({ scenarios, activeId }: { scenarios: string[]; activeId?: string }) {
   return (
-    <div className="flex gap-1 border-b border-[#1f2a3d] mb-6 overflow-x-auto">
+    <div className="flex flex-wrap gap-1 border-b border-[#1f2a3d] mb-6">
       <Tab href="/" active={!activeId}>Overall</Tab>
       {scenarios.map((id) => (
         <Tab key={id} href={`/scenarios/${id}`} active={activeId === id}>

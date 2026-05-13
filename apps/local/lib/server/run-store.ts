@@ -10,6 +10,7 @@ export const WORKSPACE_ROOT =
 
 export const DEFAULT_RUNS_DIR = path.join(WORKSPACE_ROOT, "runs");
 export const DEFAULT_SCENARIOS_DIR = path.join(WORKSPACE_ROOT, "scenarios");
+export const DEFAULT_RECIPES_DIR = path.join(WORKSPACE_ROOT, "apps/cli/test/fixtures");
 
 export interface RunSummary {
   id: string;
