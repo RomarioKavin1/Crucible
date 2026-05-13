@@ -145,5 +145,5 @@ Same trading-terminal language, framed as "lab":
 
 - **Component count growth**: 4 new shared components + 4 updated. ~3-4 hours of focused implementation.
 - **Font loading**: Google Fonts adds 2 network requests. Fallback to system mono if it fails.
-- **Sparkline data**: requires deriving equity curves per agent from their runs. For v1, render a simple placeholder pattern if computation is expensive — the ASCII-art mockup quality is "good enough" with a deterministic generated sine.
+- **Sparkline data**: per-agent sparklines plot the agent's Sortino values across their runs (already loaded with `fetchAllRuns`). If an agent has only 1 run, render a flat line at y=value. No expensive recomputation needed.
 - **Coach side-drawer in apps/web**: if the web-side coach endpoint isn't trivial to wire (the trace lives on 0G Storage, not local disk), defer with a "view this run in the local lab" link.

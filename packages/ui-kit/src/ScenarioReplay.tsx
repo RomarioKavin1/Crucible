@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useRef } from "react";
 import { createChart, type IChartApi, type ISeriesApi, type CandlestickData, type Time } from "lightweight-charts";
 import type { Tick, Fill } from "@crucible/core";
