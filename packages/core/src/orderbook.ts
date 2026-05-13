@@ -1,4 +1,4 @@
-import type { Fill, Order, OrderSide, Tick } from "./types.js";
+import type { Fill, Order, OrderSide, Tick } from "./types";
 
 export interface SlippageInputs {
   side: OrderSide;

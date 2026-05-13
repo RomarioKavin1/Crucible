@@ -5,7 +5,8 @@ import { ScenarioFilterTabs } from "@/components/ScenarioFilterTabs";
 export const revalidate = 60;
 
 export default async function ScenarioPage({ params }: { params: { id: string } }) {
-  const [runs, scenarios] = await Promise.all([fetchAllRuns(), listScenarios()]);
+  const runs = await fetchAllRuns();
+  const scenarios = await listScenarios(runs);
   const filtered = filterByScenario(runs, params.id);
   return (
     <div>

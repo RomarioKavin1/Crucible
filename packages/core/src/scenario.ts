@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { loadManifest, type Manifest } from "./manifest.js";
-import type { Tick, NewsItem } from "./types.js";
+import { loadManifest, type Manifest } from "./manifest";
+import type { Tick, NewsItem } from "./types";
 
 export interface StartingState {
   cash: number;

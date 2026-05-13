@@ -1,11 +1,11 @@
-import { loadRun } from "./trace-reader.js";
-import { computeTradeCritiques } from "./trade-critique.js";
-import { detectPatterns } from "./pattern-detect.js";
-import { selectDecisionPoints, critiqueDecisionPoints } from "./decision-critique.js";
-import { synthesize } from "./synthesis.js";
-import { renderReport } from "./render.js";
-import { loadOgLlmFromEnv, type OgLlmClient } from "./og-llm-client.js";
-import type { CoachReport } from "./types.js";
+import { loadRun } from "./trace-reader";
+import { computeTradeCritiques } from "./trade-critique";
+import { detectPatterns } from "./pattern-detect";
+import { selectDecisionPoints, critiqueDecisionPoints } from "./decision-critique";
+import { synthesize } from "./synthesis";
+import { renderReport } from "./render";
+import { loadOgLlmFromEnv, type OgLlmClient } from "./og-llm-client";
+import type { CoachReport } from "./types";
 
 export interface CoachOpts {
   runDir: string;

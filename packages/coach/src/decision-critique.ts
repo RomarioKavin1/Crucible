@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { TraceEntry } from "@crucible/core";
-import type { OgLlmClient } from "./og-llm-client.js";
-import type { DecisionPoint, DecisionCritique } from "./types.js";
+import type { OgLlmClient } from "./og-llm-client";
+import type { DecisionPoint, DecisionCritique } from "./types";
 
 /** Pick the 5-10 most consequential ticks by absolute PnL delta */
 export function selectDecisionPoints(entries: TraceEntry[], k = 8): DecisionPoint[] {

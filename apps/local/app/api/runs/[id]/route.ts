@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { getActiveRun } from "@/lib/server/run-store";
+import { getActiveRun, DEFAULT_RUNS_DIR } from "@/lib/server/run-store";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const active = getActiveRun(params.id);
@@ -18,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       ticks: active.ticks,
     });
   }
-  const dir = path.resolve("./runs", params.id);
+  const dir = path.resolve(DEFAULT_RUNS_DIR, params.id);
   try {
     const trace = await readFile(path.join(dir, "trace.jsonl"), "utf8");
     const entries = trace.split("\n").filter(Boolean).map((l) => JSON.parse(l) as unknown);

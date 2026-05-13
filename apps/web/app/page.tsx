@@ -5,7 +5,8 @@ import { ScenarioFilterTabs } from "@/components/ScenarioFilterTabs";
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [runs, scenarios] = await Promise.all([fetchAllRuns(), listScenarios()]);
+  const runs = await fetchAllRuns();
+  const scenarios = await listScenarios(runs);
   const aggregated = aggregateByAgent(runs);
   return (
     <div>

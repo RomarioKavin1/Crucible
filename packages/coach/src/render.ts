@@ -1,4 +1,4 @@
-import type { CoachReport } from "./types.js";
+import type { CoachReport } from "./types";
 
 export function renderReport(r: CoachReport): string {
   const lines: string[] = [];

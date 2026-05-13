@@ -2,6 +2,15 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { Tick, TraceEntry } from "@crucible/core";
 
+/** Workspace root — where the canonical `runs/` and `scenarios/` directories live.
+ *  In dev, Next runs cwd=apps/local so we walk up two levels. INIT_CWD (set by pnpm)
+ *  is more reliable than relative pathing. */
+export const WORKSPACE_ROOT =
+  process.env["INIT_CWD"] ?? path.resolve(process.cwd(), "..", "..");
+
+export const DEFAULT_RUNS_DIR = path.join(WORKSPACE_ROOT, "runs");
+export const DEFAULT_SCENARIOS_DIR = path.join(WORKSPACE_ROOT, "scenarios");
+
 export interface RunSummary {
   id: string;
   scenario: string;

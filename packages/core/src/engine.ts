@@ -9,12 +9,12 @@ import type {
   OrderSide,
   Tick,
   TraceEntry,
-} from "./types.js";
-import { LocalOrderBook, computeMarketFillPrice } from "./orderbook.js";
-import { PortfolioAccount } from "./portfolio.js";
-import type { Scenario } from "./scenario.js";
-import type { RunRecorder } from "./recorder.js";
-import { computeScorecard, type Scorecard } from "./scoring.js";
+} from "./types";
+import { LocalOrderBook, computeMarketFillPrice } from "./orderbook";
+import { PortfolioAccount } from "./portfolio";
+import type { Scenario } from "./scenario";
+import type { RunRecorder } from "./recorder";
+import { computeScorecard, type Scorecard } from "./scoring";
 
 // The agent's per-tick step. The engine drives the loop and the caller wires
 // the SkillRuntime (from @crucible/skills) over the EngineHandle exposed by

@@ -1,10 +1,10 @@
 import { ethers } from "ethers";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { uploadBytes } from "./storage.js";
-import { loadChainConfig } from "./chain-config.js";
-import { AgentRegistryClient } from "./agent-registry.js";
-import { RunRegistryClient } from "./run-registry.js";
+import { uploadBytes } from "./storage";
+import { loadChainConfig } from "./chain-config";
+import { AgentRegistryClient } from "./agent-registry";
+import { RunRegistryClient } from "./run-registry";
 
 export interface PublishRunOpts {
   runDir: string;

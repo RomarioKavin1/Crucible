@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
-import { RUN_REGISTRY_ABI } from "./abis.js";
-import type { ChainConfig } from "./chain-config.js";
+import { RUN_REGISTRY_ABI } from "./abis";
+import type { ChainConfig } from "./chain-config";
 
 export interface RecordRunArgs {
   agentId: bigint;

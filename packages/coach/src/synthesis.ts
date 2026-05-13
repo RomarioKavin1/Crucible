@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { OgLlmClient } from "./og-llm-client.js";
-import type { TradeCritique, DecisionCritique, PatternDetection, CoachSuggestion } from "./types.js";
+import type { OgLlmClient } from "./og-llm-client";
+import type { TradeCritique, DecisionCritique, PatternDetection, CoachSuggestion } from "./types";
 
 const SuggestionSchema = z.object({
   rank: z.number().int().min(1),

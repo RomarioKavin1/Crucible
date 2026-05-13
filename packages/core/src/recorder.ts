@@ -1,5 +1,5 @@
 import { open, type FileHandle } from "node:fs/promises";
-import type { TraceEntry } from "./types.js";
+import type { TraceEntry } from "./types";
 
 export interface RunRecorder {
   append(entry: TraceEntry): Promise<void>;

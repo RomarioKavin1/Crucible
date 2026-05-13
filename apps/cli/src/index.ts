@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { runCommand, type RunOpts } from "./run.js";
-import { coachCommand } from "./coach.js";
+import { runCommand, type RunOpts } from "./run";
+import { coachCommand } from "./coach";
 
 const program = new Command();
 program.name("crucible").description("Crucible — AI trading agent benchmark").version("0.1.0");

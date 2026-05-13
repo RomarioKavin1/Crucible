@@ -1,6 +1,6 @@
 import type { TraceEntry } from "@crucible/core";
-import { PATTERN_LIBRARY } from "./pattern-library.js";
-import type { PatternDetection } from "./types.js";
+import { PATTERN_LIBRARY } from "./pattern-library";
+import type { PatternDetection } from "./types";
 
 export function detectPatterns(entries: TraceEntry[]): PatternDetection[] {
   const detections: PatternDetection[] = [];

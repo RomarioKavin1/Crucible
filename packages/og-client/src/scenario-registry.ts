@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
-import { SCENARIO_REGISTRY_ABI } from "./abis.js";
-import type { ChainConfig } from "./chain-config.js";
+import { SCENARIO_REGISTRY_ABI } from "./abis";
+import type { ChainConfig } from "./chain-config";
 
 export class ScenarioRegistryClient {
   private contract: ethers.Contract;

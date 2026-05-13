@@ -1,5 +1,5 @@
-import { getRunRegistry, getScenarioRegistry } from "./chain.js";
-import { fromE6 } from "./format.js";
+import { getRunRegistry, getScenarioRegistry } from "./chain";
+import { fromE6 } from "./format";
 import { ethers } from "ethers";
 
 export interface LeaderboardRow {
@@ -82,7 +82,15 @@ export function filterByScenario(runs: LeaderboardRow[], scenarioId: string): Le
   return runs.filter((r) => r.scenarioId === scenarioId).sort((a, b) => b.sortino - a.sortino);
 }
 
-export async function listScenarios(): Promise<string[]> {
+/** Union of (registered scenarios in ScenarioRegistry) + (scenario IDs actually referenced by runs in RunRegistry). */
+export async function listScenarios(runs?: LeaderboardRow[]): Promise<string[]> {
   const reg = await getScenarioRegistry();
-  return reg.listIds();
+  let registered: string[] = [];
+  try {
+    registered = await reg.listIds();
+  } catch {
+    /* contract may not be deployed yet */
+  }
+  const referenced = runs ? Array.from(new Set(runs.map((r) => r.scenarioId))) : [];
+  return Array.from(new Set([...registered, ...referenced])).sort();
 }

@@ -4,8 +4,8 @@ import path from "node:path";
 import { JsonlFileRecorder, ScenarioEngine, loadScenario } from "@crucible/core";
 import { SkillRuntime } from "@crucible/skills";
 import { publishRun } from "@crucible/og-client";
-import { loadRecipe } from "./recipe.js";
-import { makeAnthropicAgent } from "./agent.js";
+import { loadRecipe } from "./recipe";
+import { makeAnthropicAgent } from "./agent";
 
 export interface RunOpts {
   scenario: string;

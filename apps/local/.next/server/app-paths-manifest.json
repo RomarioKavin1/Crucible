@@ -1,0 +1,6 @@
+{
+  "/page": "app/page.js",
+  "/runs/[id]/page": "app/runs/[id]/page.js",
+  "/api/runs/[id]/route": "app/api/runs/[id]/route.js",
+  "/api/runs/[id]/stream/route": "app/api/runs/[id]/stream/route.js"
+}

@@ -1,5 +1,5 @@
 import type { TraceEntry, Fill } from "@crucible/core";
-import type { TradeCritique } from "./types.js";
+import type { TradeCritique } from "./types";
 
 export function computeTradeCritiques(entries: TraceEntry[]): TradeCritique[] {
   const critiques: TradeCritique[] = [];

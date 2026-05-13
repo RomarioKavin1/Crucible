@@ -1,4 +1,4 @@
-import type { Fill, Portfolio } from "./types.js";
+import type { Fill, Portfolio } from "./types";
 
 interface InitialState {
   cash: number;

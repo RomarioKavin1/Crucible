@@ -6,7 +6,7 @@ import type {
   MarketSnapshot,
 } from "@crucible/core";
 import { SKILL_DEFINITIONS, type SkillRuntime } from "@crucible/skills";
-import type { Recipe } from "./recipe.js";
+import type { Recipe } from "./recipe";
 
 export function makeAnthropicAgent(recipe: Recipe) {
   const apiKey = process.env[recipe.model.api_key_env];

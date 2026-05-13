@@ -1,0 +1,7 @@
+{
+  "/page": "app/page.js",
+  "/scenarios/[id]/page": "app/scenarios/[id]/page.js",
+  "/runs/[id]/page": "app/runs/[id]/page.js",
+  "/api/trace/[hash]/route": "app/api/trace/[hash]/route.js",
+  "/api/scenario/[id]/ticks/route": "app/api/scenario/[id]/ticks/route.js"
+}

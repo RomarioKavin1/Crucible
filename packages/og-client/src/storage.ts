@@ -10,7 +10,11 @@ export interface StorageConfig {
   privateKey: string;
 }
 
-function defaultConfig(network: "galileo" | "mainnet", privateKeyOverride?: string): StorageConfig {
+function defaultConfig(
+  network: "galileo" | "mainnet",
+  privateKeyOverride?: string,
+  requirePrivateKey = true
+): StorageConfig {
   const indexerUrl =
     network === "galileo"
       ? process.env["OG_GALILEO_INDEXER"] ?? "https://indexer-storage-testnet-turbo.0g.ai"
@@ -20,7 +24,9 @@ function defaultConfig(network: "galileo" | "mainnet", privateKeyOverride?: stri
       ? process.env["OG_GALILEO_RPC"] ?? "https://evmrpc-testnet.0g.ai"
       : process.env["OG_MAINNET_RPC"] ?? "https://evmrpc.0g.ai";
   const privateKey = privateKeyOverride ?? process.env["DEPLOYER_PRIVATE_KEY"] ?? "";
-  if (!privateKey) throw new Error("Missing private key for storage uploads (pass explicitly or set DEPLOYER_PRIVATE_KEY)");
+  if (requirePrivateKey && !privateKey) {
+    throw new Error("Missing private key for storage uploads (pass explicitly or set DEPLOYER_PRIVATE_KEY)");
+  }
   return { indexerUrl, rpcUrl, privateKey };
 }
 
@@ -52,12 +58,12 @@ export async function uploadBytes(
   };
 }
 
-/** Download by root hash. Uses Node fs internally (not browser-safe). */
+/** Download by root hash. Public read — no signer required. Uses Node fs internally (not browser-safe). */
 export async function downloadBytes(
   rootHash: string,
   network: "galileo" | "mainnet" = "galileo"
 ): Promise<Uint8Array> {
-  const cfg = defaultConfig(network);
+  const cfg = defaultConfig(network, undefined, /* requirePrivateKey */ false);
   const tmp = await mkdtemp(path.join(tmpdir(), "og-download-"));
   const fp = path.join(tmp, "blob.bin");
   try {

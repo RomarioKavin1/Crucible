@@ -6,7 +6,7 @@ import { JsonlFileRecorder, ScenarioEngine, loadScenario, type TraceEntry } from
 import { SkillRuntime, SKILL_DEFINITIONS } from "@crucible/skills";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentCompletion, AgentStepRecord, AgentToolCall, MarketSnapshot } from "@crucible/core";
-import { registerActiveRun, emitActiveRunUpdate, getActiveRun } from "./run-store.js";
+import { registerActiveRun, emitActiveRunUpdate, getActiveRun } from "./run-store";
 
 // Inlined recipe schema (avoids cross-app import dependency on @crucible/cli)
 const RecipeSchema = z.object({

@@ -1,2 +1,2 @@
-export * from "./definitions.js";
-export * from "./runtime.js";
+export * from "./definitions";
+export * from "./runtime";

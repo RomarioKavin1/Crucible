@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { listRunsFromDisk } from "@/lib/server/run-store";
+import { listRunsFromDisk, DEFAULT_RUNS_DIR } from "@/lib/server/run-store";
 
 export default async function Home() {
-  const runs = await listRunsFromDisk("./runs");
+  const runs = await listRunsFromDisk(DEFAULT_RUNS_DIR);
   return (
     <div>
       <div className="flex items-center justify-between mb-6">

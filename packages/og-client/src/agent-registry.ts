@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
-import { AGENT_REGISTRY_ABI } from "./abis.js";
-import type { ChainConfig } from "./chain-config.js";
+import { AGENT_REGISTRY_ABI } from "./abis";
+import type { ChainConfig } from "./chain-config";
 
 type AgentContract = ethers.Contract & {
   mintAgent: (metadataURI: string) => Promise<ethers.TransactionResponse>;
