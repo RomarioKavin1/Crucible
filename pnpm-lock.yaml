@@ -8,12 +8,18 @@ importers:
 
   .:
     devDependencies:
+      '@crucible/og-client':
+        specifier: workspace:^
+        version: link:packages/og-client
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.19
       '@types/tar':
         specifier: ^7.0.87
         version: 7.0.87
+      ethers:
+        specifier: ^6.13.0
+        version: 6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       tar:
         specifier: ^7.5.15
         version: 7.5.15
