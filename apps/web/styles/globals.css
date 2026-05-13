@@ -1,5 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body { background: #0f172a; color: #e2e8f0; }
+:root {
+  --bg-deep: #070b14;
+  --bg-surface: #0f1623;
+  --border-hairline: #1f2a3d;
+  --text-primary: #e5e9f0;
+  --text-muted: #5e6b80;
+  --accent-cyan: #22d3ee;
+  --accent-amber: #fbbf24;
+  --chart-up: #10b981;
+  --chart-down: #ef4444;
+}
+
+html, body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono, code, pre {
+  font-family: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle scanline / grid background on the page body for trading-terminal vibe. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, #1f2a3d 1px, transparent 1px),
+    linear-gradient(to bottom, #1f2a3d 1px, transparent 1px);
+  background-size: 64px 64px;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+/* Tabular nums everywhere by default for digit-heavy app. */
+* {
+  font-variant-numeric: tabular-nums;
+}

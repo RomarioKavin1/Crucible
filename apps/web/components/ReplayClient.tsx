@@ -27,22 +27,36 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
     })();
   }, [traceHash, scenarioId]);
 
-  if (error) return <p className="text-red-400">Failed to load: {error}</p>;
-  if (!entries || !ticks) return <p className="text-slate-400">Loading replay...</p>;
+  if (error) return <div className="bg-[#0f1623] border border-[#ef4444] rounded p-4 text-[#ef4444] font-mono text-sm">Failed to load trace: {error}</div>;
+  if (!entries || !ticks) {
+    return <div className="bg-[#0f1623] border border-[#1f2a3d] rounded p-12 text-center font-mono text-sm text-[#5e6b80]">Loading replay from 0G Storage...</div>;
+  }
 
   const fills = entries.flatMap((e) => e.fills);
   const lastPortfolio = entries[entries.length - 1]?.portfolio;
+  const lastPrice = ticks[ticks.length - 1]?.last ?? 1;
+
   return (
-    <div className="space-y-6">
-      <div className="grid lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <ScenarioReplay ticks={ticks} fills={fills} height={400} />
+    <div className="space-y-4">
+      <div className="bg-[#0f1623] border border-[#1f2a3d] rounded">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-[#1f2a3d]">
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80] flex items-center gap-3">
+            <span className="text-[#e5e9f0]">{scenarioId}</span>
+            <span>·</span>
+            <span>{ticks.length} ticks recorded</span>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#22d3ee]">▶ playback</div>
         </div>
-        <div>{lastPortfolio && <PnLPanel portfolio={lastPortfolio} />}</div>
+        <div className="p-3">
+          <ScenarioReplay ticks={ticks} fills={fills} height={360} />
+        </div>
       </div>
+
+      {lastPortfolio && <PnLPanel portfolio={lastPortfolio} currentPrice={lastPrice} />}
+
       <div>
-        <h3 className="text-lg font-semibold mb-2">Agent reasoning</h3>
-        <AgentReasoningStream entries={entries} maxHeight={600} />
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80] mb-2">Agent reasoning</h3>
+        <AgentReasoningStream entries={entries} maxHeight={520} />
       </div>
     </div>
   );

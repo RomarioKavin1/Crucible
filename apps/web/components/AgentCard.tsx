@@ -12,29 +12,38 @@ export interface AgentCardProps {
 export function AgentCard({ agentId, ownerAddr, runCount, bestSortino, recentRuns }: AgentCardProps) {
   return (
     <div className="space-y-6">
-      <div className="bg-slate-900/40 border border-slate-700 rounded p-6">
-        <div className="text-3xl font-mono mb-1">Agent #{agentId}</div>
-        <div className="text-sm text-slate-400 mb-4">Owner: <code>{fmtAddr(ownerAddr)}</code></div>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <Stat label="Runs" value={runCount.toString()} />
+      <div className="bg-[#0f1623] border border-[#1f2a3d] rounded p-6">
+        <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#5e6b80] mb-1">Agent ID</div>
+        <div className="flex items-baseline gap-3 mb-1">
+          <span className="font-mono text-3xl font-bold text-[#e5e9f0]">◆ #{agentId}</span>
+        </div>
+        <div className="font-mono text-xs text-[#5e6b80]">owner {fmtAddr(ownerAddr)}</div>
+        <div className="grid grid-cols-2 gap-6 mt-6">
+          <Stat label="Trials" value={runCount.toString()} />
           <Stat label="Best Sortino" value={fmtSortino(bestSortino)} />
         </div>
       </div>
       <div>
-        <h3 className="text-lg font-semibold mb-2">Recent runs</h3>
-        <ul className="space-y-2">
-          {recentRuns.map((r) => (
-            <li key={r.runId}>
-              <Link href={`/runs/${r.runId}`} className="block bg-slate-900/40 border border-slate-700 rounded p-3 hover:border-cyan-500">
-                <div className="flex justify-between items-baseline">
-                  <span>{r.scenarioId}</span>
-                  <span className="font-mono text-sm">{fmtSortino(r.sortino)}</span>
-                </div>
-                <div className="text-xs text-slate-500">return {fmtPct(r.totalReturn)}</div>
-              </Link>
-            </li>
+        <h3 className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#5e6b80] mb-3">Recent runs</h3>
+        <div className="bg-[#0f1623] border border-[#1f2a3d] rounded">
+          {recentRuns.map((r, i) => (
+            <Link
+              key={r.runId}
+              href={`/runs/${r.runId}`}
+              className={`block px-4 py-3 hover:border-[#22d3ee44] hover:bg-[#22d3ee06] ${
+                i < recentRuns.length - 1 ? "border-b border-[#1f2a3d]" : ""
+              }`}
+            >
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-[#e5e9f0]">{r.scenarioId}</span>
+                <span className="font-mono tabular-nums text-sm" style={{ color: r.sortino >= 0 ? "#10b981" : "#ef4444" }}>
+                  {fmtSortino(r.sortino)} {r.sortino >= 0 ? "▲" : "▼"}
+                </span>
+              </div>
+              <div className="font-mono text-[10px] text-[#5e6b80] mt-0.5">return {fmtPct(r.totalReturn)}</div>
+            </Link>
           ))}
-        </ul>
+        </div>
       </div>
     </div>
   );
@@ -43,8 +52,8 @@ export function AgentCard({ agentId, ownerAddr, runCount, bestSortino, recentRun
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className="font-mono text-lg">{value}</div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80] mb-1">{label}</div>
+      <div className="font-mono text-2xl tabular-nums text-[#e5e9f0]">{value}</div>
     </div>
   );
 }

@@ -1,68 +1,94 @@
 import Link from "next/link";
+import { Sparkline } from "@crucible/ui-kit";
 import { fmtSortino, fmtPct, fmtBytes32 } from "@/lib/format";
 import type { LeaderboardRow, AgentAggregateRow } from "@/lib/leaderboard";
 
 export function PerScenarioTable({ rows }: { rows: LeaderboardRow[] }) {
   return (
-    <table className="w-full text-sm">
-      <thead className="text-left border-b border-slate-700">
-        <tr>
-          <Th>Rank</Th>
-          <Th>Agent</Th>
-          <Th>Sortino</Th>
-          <Th>Return</Th>
-          <Th>Drawdown</Th>
-          <Th>Recipe</Th>
-          <Th>Run</Th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r, i) => (
-          <tr key={r.runId} className="border-b border-slate-800 hover:bg-slate-900/50">
-            <Td>{i + 1}</Td>
-            <Td><Link className="text-cyan-400 hover:underline" href={`/agents/${r.agentId}`}>#{r.agentId}</Link></Td>
-            <Td className="font-mono">{fmtSortino(r.sortino)}</Td>
-            <Td className={r.totalReturn >= 0 ? "text-green-400" : "text-red-400"}>{fmtPct(r.totalReturn)}</Td>
-            <Td className="text-red-400">{fmtPct(Math.abs(r.maxDrawdown))}</Td>
-            <Td className="font-mono text-xs text-slate-500">{fmtBytes32(r.recipeHash)}</Td>
-            <Td><Link className="text-cyan-400 hover:underline" href={`/runs/${r.runId}`}>view</Link></Td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="bg-[#0f1623] border border-[#1f2a3d] rounded">
+      <div className="grid grid-cols-[40px_1fr_120px_120px_120px_180px_60px] gap-3 px-4 py-3 border-b border-[#1f2a3d] font-mono text-[10px] uppercase tracking-[0.2em] text-[#5e6b80]">
+        <div>#</div>
+        <div>Agent</div>
+        <div className="text-right">Sortino</div>
+        <div className="text-right">Return</div>
+        <div className="text-right">Drawdown</div>
+        <div>Recipe</div>
+        <div className="text-right">Run</div>
+      </div>
+      {rows.map((r, i) => (
+        <div
+          key={r.runId}
+          className="grid grid-cols-[40px_1fr_120px_120px_120px_180px_60px] gap-3 px-4 py-3 border-b border-[#1f2a3d] last:border-0 hover:border-[#22d3ee44] hover:bg-[#22d3ee06]"
+        >
+          <div className="font-mono tabular-nums text-[#5e6b80]">{i + 1}</div>
+          <div>
+            <Link className="font-mono text-[#22d3ee] hover:underline" href={`/agents/${r.agentId}`}>
+              ◆ #{r.agentId}
+            </Link>
+            <div className="font-mono text-[10px] text-[#5e6b80] mt-0.5">{shortAddr(r.ownerAddr)}</div>
+          </div>
+          <div className="font-mono tabular-nums text-right text-[#e5e9f0]">{fmtSortino(r.sortino)}</div>
+          <div
+            className="font-mono tabular-nums text-right"
+            style={{ color: r.totalReturn >= 0 ? "#10b981" : "#ef4444" }}
+          >
+            {r.totalReturn >= 0 ? "▲" : "▼"} {fmtPct(r.totalReturn)}
+          </div>
+          <div className="font-mono tabular-nums text-right text-[#ef4444]">{fmtPct(Math.abs(r.maxDrawdown))}</div>
+          <div className="font-mono text-xs text-[#5e6b80] truncate">{fmtBytes32(r.recipeHash)}</div>
+          <div className="text-right">
+            <Link className="font-mono text-xs text-[#22d3ee] hover:underline" href={`/runs/${r.runId}`}>view ↗</Link>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
 export function OverallTable({ rows }: { rows: AgentAggregateRow[] }) {
+  // Build a small sparkline from each agent's [bestSortino, avgSortino, bestSortino] as a placeholder pattern
   return (
-    <table className="w-full text-sm">
-      <thead className="text-left border-b border-slate-700">
-        <tr>
-          <Th>Rank</Th>
-          <Th>Agent</Th>
-          <Th>Runs</Th>
-          <Th>Avg Sortino</Th>
-          <Th>Best Sortino</Th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r, i) => (
-          <tr key={r.agentId} className="border-b border-slate-800 hover:bg-slate-900/50">
-            <Td>{i + 1}</Td>
-            <Td><Link className="text-cyan-400 hover:underline" href={`/agents/${r.agentId}`}>#{r.agentId}</Link></Td>
-            <Td>{r.runCount}</Td>
-            <Td className="font-mono">{fmtSortino(r.avgSortino)}</Td>
-            <Td className="font-mono">{fmtSortino(r.bestSortino)}</Td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="bg-[#0f1623] border border-[#1f2a3d] rounded">
+      <div className="grid grid-cols-[40px_1fr_80px_140px_140px_120px] gap-3 px-4 py-3 border-b border-[#1f2a3d] font-mono text-[10px] uppercase tracking-[0.2em] text-[#5e6b80]">
+        <div>#</div>
+        <div>Agent</div>
+        <div className="text-right">Trials</div>
+        <div className="text-right">Avg Sortino</div>
+        <div className="text-right">Best</div>
+        <div>Curve</div>
+      </div>
+      {rows.map((r, i) => {
+        const direction = r.avgSortino >= 0 ? "▲" : "▼";
+        const color = r.avgSortino >= 0 ? "#10b981" : "#ef4444";
+        // Synthesize a 12-point curve from avg + best + jitter for visual variety.
+        const curve = Array.from({ length: 12 }, (_, j) => r.avgSortino + Math.sin(j / 2 + i) * (r.bestSortino - r.avgSortino + 0.1));
+        return (
+          <div
+            key={r.agentId}
+            className="grid grid-cols-[40px_1fr_80px_140px_140px_120px] gap-3 px-4 py-3 border-b border-[#1f2a3d] last:border-0 hover:border-[#22d3ee44] hover:bg-[#22d3ee06] items-center"
+          >
+            <div className="font-mono tabular-nums text-[#5e6b80] text-lg">{i + 1}</div>
+            <div>
+              <Link className="font-mono text-[#22d3ee] hover:underline" href={`/agents/${r.agentId}`}>
+                ◆ #{r.agentId}
+              </Link>
+            </div>
+            <div className="font-mono tabular-nums text-right text-[#e5e9f0]">{r.runCount}</div>
+            <div className="font-mono tabular-nums text-right" style={{ color }}>
+              {fmtSortino(r.avgSortino)} {direction}
+            </div>
+            <div className="font-mono tabular-nums text-right text-[#e5e9f0]">{fmtSortino(r.bestSortino)}</div>
+            <div>
+              <Sparkline values={curve} color={color} width={100} height={20} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-3 py-2 font-semibold text-slate-400">{children}</th>;
-}
-function Td({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-3 py-2 ${className ?? ""}`}>{children}</td>;
+function shortAddr(addr: string): string {
+  if (!addr || !addr.startsWith("0x")) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }

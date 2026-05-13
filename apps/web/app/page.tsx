@@ -10,7 +10,10 @@ export default async function HomePage() {
   const aggregated = aggregateByAgent(runs);
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4">Leaderboard</h2>
+      <div className="mb-6">
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#5e6b80] mb-1">Overall standings</h2>
+        <h1 className="font-mono text-3xl font-bold tracking-tight text-[#e5e9f0]">Leaderboard</h1>
+      </div>
       <ScenarioFilterTabs scenarios={scenarios} />
       {aggregated.length === 0 ? (
         <EmptyState />
@@ -23,9 +26,13 @@ export default async function HomePage() {
 
 function EmptyState() {
   return (
-    <div className="text-slate-400 text-center py-12 border border-dashed border-slate-800 rounded">
-      <p className="mb-2">No runs published yet.</p>
-      <p className="text-xs">Run an agent locally with <code className="text-cyan-400">crucible run --publish-network galileo</code> to appear here.</p>
+    <div className="bg-[#0f1623] border border-dashed border-[#1f2a3d] rounded p-12 text-center">
+      <p className="font-mono text-[#5e6b80] mb-2">// no runs published yet</p>
+      <p className="text-xs text-[#5e6b80]">
+        Run an agent locally with{" "}
+        <code className="font-mono text-[#22d3ee]">crucible run --publish-network galileo</code>
+        {" "}to appear here.
+      </p>
     </div>
   );
 }
