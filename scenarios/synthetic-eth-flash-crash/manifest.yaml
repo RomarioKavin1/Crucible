@@ -20,3 +20,16 @@ budgets:
   llm_completions_per_tick: 5
   tool_calls_per_tick: 20
   wall_clock_ms_per_tick: 30000
+
+kind: synthetic
+difficulty: 3
+tags: [news-driven, flash-crash, bearish-shock]
+description: |
+  A synthetic 100-tick scenario simulating ETH reacting to a bearish geopolitical news
+  shock. Price holds near $3,500 for the first 30 seconds, then a tariff headline lands
+  and the market crashes 15% over the next minute before a partial recovery.
+tests: |
+  - Reading bearish news and reducing exposure
+  - Avoiding the temptation to "buy the dip" too aggressively
+  - Closing flat by the final tick for clean realized PnL
+news_source: hand-curated
