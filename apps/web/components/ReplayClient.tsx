@@ -111,10 +111,11 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
 
   return (
     <div className="space-y-6">
-      {/* PRICE TAPE + REASONING FOCUS — side by side so they stay visible together */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-6 items-stretch">
+      {/* PRICE TAPE + REASONING FOCUS — side by side, row height pinned so the
+          reasoning card never resizes as per-tick content length changes. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-6 lg:h-[560px]">
         {/* Chart card */}
-        <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated flex flex-col">
+        <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated flex flex-col h-full">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[#1c2538]">
             <div className="flex items-center gap-2.5">
               <span className="text-[13px] font-medium text-[#e6e9f0]">Price tape</span>
@@ -146,8 +147,9 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
           />
         </div>
 
-        {/* Reasoning focus card */}
-        <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated flex flex-col">
+        {/* Reasoning focus card — flex-col with h-full so the body region
+            (flex-1 + overflow-y-auto) absorbs any size variance. */}
+        <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated flex flex-col h-full min-h-0">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[#1c2538]">
             <div className="flex items-center gap-2.5">
               <span className="text-[13px] font-medium text-[#e6e9f0]">Reasoning</span>

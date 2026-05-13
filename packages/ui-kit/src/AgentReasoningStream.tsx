@@ -41,7 +41,7 @@ export function AgentReasoningStream({
   return (
     <div
       ref={containerRef}
-      style={{ maxHeight, overflowY: "auto" }}
+      style={bare ? { height: "100%", overflowY: "auto" } : { maxHeight, overflowY: "auto" }}
       className={
         bare
           ? "space-y-3 text-[13px] px-4 py-3"
