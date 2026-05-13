@@ -1,2 +1,3 @@
 export * from "./types.js";
 export * from "./trace-reader.js";
+export * from "./trade-critique.js";
