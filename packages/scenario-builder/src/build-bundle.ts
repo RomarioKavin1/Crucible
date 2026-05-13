@@ -34,4 +34,12 @@ export async function writeBundle(dir: string, input: WriteBundleInput): Promise
     input.news.map((n) => JSON.stringify(n)).join("\n") + (input.news.length ? "\n" : ""),
     "utf8",
   );
+  // starting_state.json is read separately by the scenario loader; mirror manifest values.
+  const cash = input.manifest["starting_cash_usd"];
+  const position = input.manifest["starting_position"];
+  await writeFile(
+    path.join(dir, "starting_state.json"),
+    JSON.stringify({ cash, position }) + "\n",
+    "utf8",
+  );
 }
