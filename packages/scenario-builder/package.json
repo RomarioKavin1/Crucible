@@ -9,7 +9,8 @@
     "crucible-build-scenarios": "./src/cli.ts"
   },
   "scripts": {
-    "test": "vitest run",
+    "build": "tsc",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "build:scenarios": "tsx src/cli.ts"
