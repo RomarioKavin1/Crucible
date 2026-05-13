@@ -11,3 +11,5 @@ export * from "./EquityCurve";
 export * from "./PlaybackControls";
 export * from "./CoachingReport";
 export * from "./RecipeDiff";
+export * from "./DifficultyStars";
+export * from "./CopyableCommand";
