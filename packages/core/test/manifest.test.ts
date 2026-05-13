@@ -5,6 +5,50 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+describe("ManifestSchema – new optional fields", () => {
+  it("accepts kind/difficulty/tags/description/tests", () => {
+    const result = ManifestSchema.safeParse(baseManifest({
+      kind: "historical",
+      difficulty: 3,
+      tags: ["news-driven"],
+      description: "Some markdown.",
+      tests: "Tests stuff.",
+      data_source: { provider: "binance", symbol: "ETHUSDT", interval: "1m", fetched_at: "2026-05-13T00:00:00Z" },
+      news_source: "hand-curated",
+    }));
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("historical");
+      expect(result.data.difficulty).toBe(3);
+      expect(result.data.tags).toEqual(["news-driven"]);
+    }
+  });
+
+  it("still accepts manifest without the new fields (backward compatible)", () => {
+    const result = ManifestSchema.safeParse(baseManifest({}));
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects difficulty out of 1..5", () => {
+    const result = ManifestSchema.safeParse(baseManifest({ difficulty: 9 }));
+    expect(result.success).toBe(false);
+  });
+});
+
+function baseManifest(extra: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: "x", title: "X", asset: "ETH-USD",
+    window: { start: "2024-01-01T00:00:00Z", end: "2024-01-01T01:00:00Z" },
+    tick_interval_ms: 1000, duration_ticks: 100, starting_cash_usd: 10000, starting_position: 0,
+    scoring: { primary: "sortino_ratio", secondary: [] },
+    slippage: { base_bps: 1, impact_coeff: 5 },
+    content_hash: "0x" + "0".repeat(64),
+    visibility: "public",
+    budgets: { llm_completions_per_tick: 5, tool_calls_per_tick: 20, wall_clock_ms_per_tick: 30000 },
+    ...extra,
+  };
+}
+
 describe("manifest loader", () => {
   it("loads and parses a valid manifest", async () => {
     const m = await loadManifest(

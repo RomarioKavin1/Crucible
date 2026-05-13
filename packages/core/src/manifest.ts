@@ -31,6 +31,18 @@ export const ManifestSchema = z.object({
     tool_calls_per_tick: z.number().int().positive(),
     wall_clock_ms_per_tick: z.number().int().positive(),
   }),
+  kind: z.enum(["historical", "synthetic"]).optional(),
+  difficulty: z.number().int().min(1).max(5).optional(),
+  tags: z.array(z.string()).optional(),
+  description: z.string().optional(),
+  tests: z.string().optional(),
+  data_source: z.object({
+    provider: z.string(),
+    symbol: z.string(),
+    interval: z.string(),
+    fetched_at: z.string(),
+  }).optional(),
+  news_source: z.string().optional(),
 });
 
 export type Manifest = z.infer<typeof ManifestSchema>;
