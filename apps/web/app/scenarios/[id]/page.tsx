@@ -1,28 +1,37 @@
-import { fetchAllRuns, filterByScenario, listScenarios } from "@/lib/leaderboard";
-import { PerScenarioTable } from "@/components/LeaderboardTable";
-import { ScenarioFilterTabs } from "@/components/ScenarioFilterTabs";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ScenarioHero } from "@crucible/ui-kit";
+import { getScenarioDetail } from "@/lib/scenarios";
+import { ScenarioDetailClient } from "./ScenarioDetailClient";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
-export default async function ScenarioPage({ params }: { params: { id: string } }) {
-  const runs = await fetchAllRuns();
-  const scenarios = await listScenarios(runs);
-  const filtered = filterByScenario(runs, params.id);
+function dateLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+export default async function ScenarioDetailPage({ params }: { params: { id: string } }) {
+  const scenario = await getScenarioDetail(params.id);
+  if (!scenario) notFound();
+
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#5e6b80] mb-1">Scenario</h2>
-        <h1 className="font-mono text-3xl font-bold tracking-tight text-[#e5e9f0]">{params.id}</h1>
-        <p className="font-mono text-xs text-[#5e6b80] mt-1">
-          {filtered.length} run{filtered.length === 1 ? "" : "s"} attested on this scenario
-        </p>
-      </div>
-      <ScenarioFilterTabs scenarios={scenarios} activeId={params.id} />
-      {filtered.length === 0 ? (
-        <p className="font-mono text-[#5e6b80] text-sm">// no runs yet for this scenario</p>
-      ) : (
-        <PerScenarioTable rows={filtered} />
-      )}
+    <div className="space-y-6">
+      <Link href="/scenarios" className="text-[12px] text-[#6b7691] hover:text-[#22d3ee] inline-flex items-center gap-1.5">
+        <span aria-hidden>←</span> Back to scenarios
+      </Link>
+
+      <ScenarioHero
+        title={scenario.title}
+        asset={scenario.asset}
+        kind={scenario.kind}
+        difficulty={scenario.difficulty}
+        durationTicks={scenario.durationTicks}
+        tickIntervalMs={scenario.tickIntervalMs}
+        recordedDateLabel={scenario.kind === "historical" ? dateLabel(scenario.windowStart) : "Synthetic"}
+        tags={scenario.tags}
+      />
+
+      <ScenarioDetailClient scenario={scenario} />
     </div>
   );
 }
