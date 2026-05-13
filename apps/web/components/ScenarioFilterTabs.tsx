@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function ScenarioFilterTabs({ scenarios, activeId }: { scenarios: string[]; activeId?: string }) {
   return (
-    <div className="flex flex-wrap gap-1 border-b border-[#1f2a3d] mb-6">
+    <div className="flex flex-wrap gap-1 border-b border-[#1c2538]">
       <Tab href="/" active={!activeId}>Overall</Tab>
       {scenarios.map((id) => (
         <Tab key={id} href={`/scenarios/${id}`} active={activeId === id}>
@@ -17,10 +17,10 @@ function Tab({ href, active, children }: { href: string; active: boolean; childr
   return (
     <Link
       href={href}
-      className={`px-4 py-2 font-mono text-[11px] uppercase tracking-[0.2em] whitespace-nowrap border-b-2 -mb-px ${
+      className={`px-4 py-2.5 text-[12px] font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
         active
-          ? "border-[#22d3ee] text-[#e5e9f0]"
-          : "border-transparent text-[#5e6b80] hover:text-[#e5e9f0]"
+          ? "border-[#22d3ee] text-[#e6e9f0]"
+          : "border-transparent text-[#6b7691] hover:text-[#e6e9f0]"
       }`}
     >
       {children}

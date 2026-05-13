@@ -5,8 +5,8 @@ import type { LeaderboardRow, AgentAggregateRow } from "@/lib/leaderboard";
 
 export function PerScenarioTable({ rows }: { rows: LeaderboardRow[] }) {
   return (
-    <div className="bg-[#0f1623] border border-[#1f2a3d] rounded">
-      <div className="grid grid-cols-[40px_1fr_120px_120px_120px_180px_60px] gap-3 px-4 py-3 border-b border-[#1f2a3d] font-mono text-[10px] uppercase tracking-[0.2em] text-[#5e6b80]">
+    <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
+      <div className="grid grid-cols-[40px_1fr_120px_120px_120px_180px_60px] gap-3 px-5 py-3 border-b border-[#1c2538] text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium">
         <div>#</div>
         <div>Agent</div>
         <div className="text-right">Sortino</div>
@@ -18,26 +18,27 @@ export function PerScenarioTable({ rows }: { rows: LeaderboardRow[] }) {
       {rows.map((r, i) => (
         <div
           key={r.runId}
-          className="grid grid-cols-[40px_1fr_120px_120px_120px_180px_60px] gap-3 px-4 py-3 border-b border-[#1f2a3d] last:border-0 hover:border-[#22d3ee44] hover:bg-[#22d3ee06]"
+          className="grid grid-cols-[40px_1fr_120px_120px_120px_180px_60px] gap-3 px-5 py-3 border-b border-[#1c253855] last:border-0 hover:bg-[#ffffff03] transition-colors"
         >
-          <div className="font-mono tabular-nums text-[#5e6b80]">{i + 1}</div>
+          <div className="font-mono text-[#6b7691]">{i + 1}</div>
           <div>
-            <Link className="font-mono text-[#22d3ee] hover:underline" href={`/agents/${r.agentId}`}>
-              ◆ #{r.agentId}
+            <Link className="text-[14px] font-medium text-[#22d3ee] hover:underline inline-flex items-center gap-1.5" href={`/agents/${r.agentId}`}>
+              <span>◆</span>
+              <span>#{r.agentId}</span>
             </Link>
-            <div className="font-mono text-[10px] text-[#5e6b80] mt-0.5">{shortAddr(r.ownerAddr)}</div>
+            <div className="font-mono text-[11px] text-[#6b7691] mt-0.5">{shortAddr(r.ownerAddr)}</div>
           </div>
-          <div className="font-mono tabular-nums text-right text-[#e5e9f0]">{fmtSortino(r.sortino)}</div>
+          <div className="font-mono text-right text-[#e6e9f0] self-center">{fmtSortino(r.sortino)}</div>
           <div
-            className="font-mono tabular-nums text-right"
+            className="font-mono text-right self-center"
             style={{ color: r.totalReturn >= 0 ? "#10b981" : "#ef4444" }}
           >
-            {r.totalReturn >= 0 ? "▲" : "▼"} {fmtPct(r.totalReturn)}
+            <span className="text-[10px] mr-1">{r.totalReturn >= 0 ? "▲" : "▼"}</span>{fmtPct(r.totalReturn)}
           </div>
-          <div className="font-mono tabular-nums text-right text-[#ef4444]">{fmtPct(Math.abs(r.maxDrawdown))}</div>
-          <div className="font-mono text-xs text-[#5e6b80] truncate">{fmtBytes32(r.recipeHash)}</div>
-          <div className="text-right">
-            <Link className="font-mono text-xs text-[#22d3ee] hover:underline" href={`/runs/${r.runId}`}>view ↗</Link>
+          <div className="font-mono text-right text-[#ef4444] self-center">{fmtPct(Math.abs(r.maxDrawdown))}</div>
+          <div className="font-mono text-[12px] text-[#6b7691] truncate self-center">{fmtBytes32(r.recipeHash)}</div>
+          <div className="text-right self-center">
+            <Link className="text-[12px] text-[#22d3ee] hover:underline" href={`/runs/${r.runId}`}>View ↗</Link>
           </div>
         </div>
       ))}
@@ -46,40 +47,39 @@ export function PerScenarioTable({ rows }: { rows: LeaderboardRow[] }) {
 }
 
 export function OverallTable({ rows }: { rows: AgentAggregateRow[] }) {
-  // Build a small sparkline from each agent's [bestSortino, avgSortino, bestSortino] as a placeholder pattern
   return (
-    <div className="bg-[#0f1623] border border-[#1f2a3d] rounded">
-      <div className="grid grid-cols-[40px_1fr_80px_140px_140px_120px] gap-3 px-4 py-3 border-b border-[#1f2a3d] font-mono text-[10px] uppercase tracking-[0.2em] text-[#5e6b80]">
-        <div>#</div>
+    <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
+      <div className="grid grid-cols-[40px_1fr_80px_140px_140px_120px] gap-3 px-5 py-3 border-b border-[#1c2538] text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium">
+        <div>Rank</div>
         <div>Agent</div>
         <div className="text-right">Trials</div>
         <div className="text-right">Avg Sortino</div>
         <div className="text-right">Best</div>
-        <div>Curve</div>
+        <div>Trend</div>
       </div>
       {rows.map((r, i) => {
         const direction = r.avgSortino >= 0 ? "▲" : "▼";
         const color = r.avgSortino >= 0 ? "#10b981" : "#ef4444";
-        // Synthesize a 12-point curve from avg + best + jitter for visual variety.
         const curve = Array.from({ length: 12 }, (_, j) => r.avgSortino + Math.sin(j / 2 + i) * (r.bestSortino - r.avgSortino + 0.1));
         return (
           <div
             key={r.agentId}
-            className="grid grid-cols-[40px_1fr_80px_140px_140px_120px] gap-3 px-4 py-3 border-b border-[#1f2a3d] last:border-0 hover:border-[#22d3ee44] hover:bg-[#22d3ee06] items-center"
+            className="grid grid-cols-[40px_1fr_80px_140px_140px_120px] gap-3 px-5 py-3.5 border-b border-[#1c253855] last:border-0 hover:bg-[#ffffff03] transition-colors items-center"
           >
-            <div className="font-mono tabular-nums text-[#5e6b80] text-lg">{i + 1}</div>
+            <div className="font-mono text-[#6b7691]">#{i + 1}</div>
             <div>
-              <Link className="font-mono text-[#22d3ee] hover:underline" href={`/agents/${r.agentId}`}>
-                ◆ #{r.agentId}
+              <Link className="text-[14px] font-medium text-[#22d3ee] hover:underline inline-flex items-center gap-1.5" href={`/agents/${r.agentId}`}>
+                <span>◆</span>
+                <span>#{r.agentId}</span>
               </Link>
             </div>
-            <div className="font-mono tabular-nums text-right text-[#e5e9f0]">{r.runCount}</div>
-            <div className="font-mono tabular-nums text-right" style={{ color }}>
-              {fmtSortino(r.avgSortino)} {direction}
+            <div className="font-mono text-right text-[#e6e9f0]">{r.runCount}</div>
+            <div className="font-mono text-right" style={{ color }}>
+              <span className="text-[10px] mr-1">{direction}</span>{fmtSortino(r.avgSortino)}
             </div>
-            <div className="font-mono tabular-nums text-right text-[#e5e9f0]">{fmtSortino(r.bestSortino)}</div>
+            <div className="font-mono text-right text-[#e6e9f0]">{fmtSortino(r.bestSortino)}</div>
             <div>
-              <Sparkline values={curve} color={color} width={100} height={20} />
+              <Sparkline values={curve} color={color} width={100} height={22} />
             </div>
           </div>
         );

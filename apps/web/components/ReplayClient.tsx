@@ -29,14 +29,14 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
 
   if (error) {
     return (
-      <div className="bg-[#0f1623] border border-[#ef4444] rounded p-4 text-[#ef4444] font-mono text-sm">
+      <div className="bg-[#0f1623] border border-[#ef444466] rounded-2xl p-4 text-[#ef4444] text-[13px]">
         Failed to load trace: {error}
       </div>
     );
   }
   if (!entries || !ticks) {
     return (
-      <div className="bg-[#0f1623] border border-[#1f2a3d] rounded p-12 text-center font-mono text-sm text-[#5e6b80]">
+      <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl p-12 text-center text-[13px] text-[#6b7691] card-elevated">
         Loading replay from 0G Storage…
       </div>
     );
@@ -51,18 +51,21 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
   const equityColor = equityChange >= 0 ? "#10b981" : "#ef4444";
 
   return (
-    <div className="space-y-5">
-      {/* PRICE TAPE — full width */}
-      <div className="bg-[#0f1623] border border-[#1f2a3d] rounded-lg overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-[#1f2a3d]">
-          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80] flex items-center gap-3">
-            <span className="text-[#e5e9f0]">Price tape</span>
-            <span className="text-[#3a4456]">·</span>
-            <span><span className="text-[#e5e9f0] tabular-nums">{ticks.length}</span> ticks</span>
-            <span className="text-[#3a4456]">·</span>
-            <span><span className="text-[#e5e9f0] tabular-nums">{fills.length}</span> fills</span>
+    <div className="space-y-6">
+      {/* PRICE TAPE */}
+      <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#1c2538]">
+          <div className="flex items-center gap-2.5">
+            <span className="text-[13px] font-medium text-[#e6e9f0]">Price tape</span>
+            <span className="h-3 w-px bg-[#232d44]" />
+            <span className="text-[11px] text-[#aab2c5]">
+              <span className="font-mono text-[#e6e9f0]">{ticks.length}</span> ticks · <span className="font-mono text-[#e6e9f0]">{fills.length}</span> fills
+            </span>
           </div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#22d3ee]">▶ replay</div>
+          <div className="flex items-center gap-1.5 text-[11px] text-[#22d3ee]">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#22d3ee] shadow-[0_0_8px_#22d3ee]" />
+            Replay
+          </div>
         </div>
         <div className="p-3">
           <ScenarioReplay ticks={ticks} fills={fills} height={420} />
@@ -71,25 +74,24 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
 
       {/* EQUITY + POSITION strip */}
       {portfolio && (
-        <div className="bg-[#0f1623] border border-[#1f2a3d] rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] divide-y md:divide-y-0 md:divide-x divide-[#1f2a3d]">
-            {/* Equity hero with curve */}
+        <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl card-elevated overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr_1fr_1fr_1fr] divide-y md:divide-y-0 md:divide-x divide-[#1c2538]">
             <div className="px-5 py-4">
               <div className="flex items-baseline justify-between mb-1">
-                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80]">Equity</span>
-                <span className="font-mono text-[10px] tabular-nums" style={{ color: equityColor }}>
+                <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium">Equity</span>
+                <span className="text-[11px] font-mono" style={{ color: equityColor }}>
                   {equityChange >= 0 ? "+" : ""}{(equityChange * 100).toFixed(2)}%
                 </span>
               </div>
-              <div className="font-mono text-2xl tabular-nums text-[#e5e9f0]">
+              <div className="font-mono text-[24px] text-[#e6e9f0] leading-tight">
                 ${equity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
-              <div className="mt-2 h-12">
-                <EquityCurve entries={entries} ticks={ticks} height={48} />
+              <div className="mt-3">
+                <EquityCurve entries={entries} ticks={ticks} height={42} />
               </div>
-              <div className="mt-1 flex items-center justify-between font-mono text-[9px] text-[#5e6b80] uppercase tracking-[0.18em]">
-                <span>start $10,000</span>
-                <span>end ${equity.toFixed(0)}</span>
+              <div className="mt-1.5 flex items-center justify-between text-[10px] text-[#6b7691]">
+                <span>Start <span className="font-mono text-[#aab2c5]">$10,000</span></span>
+                <span>End <span className="font-mono text-[#aab2c5]">${equity.toFixed(0)}</span></span>
               </div>
             </div>
             <SmallStat label="Position" value={portfolio.position.toString()} />
@@ -108,19 +110,19 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
         </div>
       )}
 
-      {/* TRADES + REASONING — equal-height side-by-side columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-5 items-stretch">
-        <div className="flex flex-col">
-          <TradesTable fills={fills} maxHeight={460} />
-        </div>
-        <div className="bg-[#0f1623] border border-[#1f2a3d] rounded-lg overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-[#1f2a3d]">
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80]">
-              <span className="text-[#e5e9f0]">Reasoning</span>
-              <span className="text-[#3a4456] mx-2">·</span>
-              <span>{entries.length} ticks recorded</span>
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#5e6b80]">scroll</span>
+      {/* TRADES + REASONING */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-6 items-stretch">
+        <TradesTable fills={fills} maxHeight={460} />
+        <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden flex flex-col card-elevated">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1c2538]">
+            <div className="flex items-center gap-2.5">
+              <span className="text-[13px] font-medium text-[#e6e9f0]">Reasoning</span>
+              <span className="h-3 w-px bg-[#232d44]" />
+              <span className="text-[11px] text-[#aab2c5]">
+                <span className="font-mono text-[#e6e9f0]">{entries.length}</span> ticks recorded
+              </span>
+            </div>
+            <span className="text-[11px] text-[#6b7691]">Scroll for full trace</span>
           </div>
           <div className="flex-1 min-h-0">
             <AgentReasoningStream entries={entries} maxHeight={510} bare />
@@ -133,9 +135,9 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
 
 function SmallStat({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="px-5 py-4">
-      <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5e6b80] mb-1">{label}</div>
-      <div className="font-mono text-lg tabular-nums" style={{ color: color ?? "#e5e9f0" }}>{value}</div>
+    <div className="px-5 py-4 flex flex-col justify-between">
+      <div className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] mb-2 font-medium">{label}</div>
+      <div className="font-mono text-[18px]" style={{ color: color ?? "#e6e9f0" }}>{value}</div>
     </div>
   );
 }
