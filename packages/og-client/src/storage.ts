@@ -10,7 +10,7 @@ export interface StorageConfig {
   privateKey: string;
 }
 
-function defaultConfig(network: "galileo" | "mainnet"): StorageConfig {
+function defaultConfig(network: "galileo" | "mainnet", privateKeyOverride?: string): StorageConfig {
   const indexerUrl =
     network === "galileo"
       ? process.env["OG_GALILEO_INDEXER"] ?? "https://indexer-storage-testnet-turbo.0g.ai"
@@ -19,17 +19,18 @@ function defaultConfig(network: "galileo" | "mainnet"): StorageConfig {
     network === "galileo"
       ? process.env["OG_GALILEO_RPC"] ?? "https://evmrpc-testnet.0g.ai"
       : process.env["OG_MAINNET_RPC"] ?? "https://evmrpc.0g.ai";
-  const privateKey = process.env["DEPLOYER_PRIVATE_KEY"] ?? "";
-  if (!privateKey) throw new Error("Missing DEPLOYER_PRIVATE_KEY for storage uploads");
+  const privateKey = privateKeyOverride ?? process.env["DEPLOYER_PRIVATE_KEY"] ?? "";
+  if (!privateKey) throw new Error("Missing private key for storage uploads (pass explicitly or set DEPLOYER_PRIVATE_KEY)");
   return { indexerUrl, rpcUrl, privateKey };
 }
 
 /** Upload an in-memory byte buffer to 0G Storage. Returns the Merkle root hash and the on-chain tx hash. */
 export async function uploadBytes(
   data: Uint8Array,
-  network: "galileo" | "mainnet" = "galileo"
+  network: "galileo" | "mainnet" = "galileo",
+  privateKey?: string
 ): Promise<{ rootHash: string; txHash: string }> {
-  const cfg = defaultConfig(network);
+  const cfg = defaultConfig(network, privateKey);
   const indexer = new Indexer(cfg.indexerUrl);
   const provider = new ethers.JsonRpcProvider(cfg.rpcUrl);
   const signer = new ethers.Wallet(cfg.privateKey, provider);

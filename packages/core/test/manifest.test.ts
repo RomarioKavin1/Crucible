@@ -53,4 +53,19 @@ describe("manifest loader", () => {
   it("loadManifest wraps errors with the file path", async () => {
     await expect(loadManifest("/nonexistent/path/manifest.yaml")).rejects.toThrow();
   });
+
+  it("rejects scenario id longer than 31 chars", () => {
+    const bad = {
+      id: "this-scenario-id-is-way-too-long-for-bytes32",
+      title: "x", asset: "X-USD",
+      window: { start: "2025-01-01T00:00:00Z", end: "2025-01-01T00:01:00Z" },
+      tick_interval_ms: 1000, duration_ticks: 60,
+      starting_cash_usd: 100, starting_position: 0,
+      scoring: { primary: "sortino_ratio", secondary: [] },
+      slippage: { base_bps: 1, impact_coeff: 5 },
+      content_hash: "0x00", visibility: "public",
+      budgets: { llm_completions_per_tick: 1, tool_calls_per_tick: 1, wall_clock_ms_per_tick: 1000 },
+    };
+    expect(() => ManifestSchema.parse(bad)).toThrow();
+  });
 });

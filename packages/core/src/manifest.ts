@@ -3,7 +3,7 @@ import yaml from "js-yaml";
 import { z } from "zod";
 
 export const ManifestSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().min(1).max(31, "scenario id must be ≤31 chars (bytes32 limit for on-chain registry)"),
   title: z.string().min(1),
   asset: z.string().min(1),
   window: z.object({

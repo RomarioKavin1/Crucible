@@ -29,7 +29,7 @@ export async function publishRun(opts: PublishRunOpts) {
 
   // 2. Upload trace to 0G Storage
   console.log("Uploading trace to 0G Storage...");
-  const { rootHash: traceHash, txHash: storageTx } = await uploadBytes(trace, opts.network);
+  const { rootHash: traceHash, txHash: storageTx } = await uploadBytes(trace, opts.network, opts.privateKey);
   console.log(`  trace rootHash: ${traceHash} (tx ${storageTx})`);
 
   // 3. Lock recipe on-chain (only if it's not already the current recipe)
