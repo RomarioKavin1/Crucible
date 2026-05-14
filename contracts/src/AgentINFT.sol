@@ -17,6 +17,7 @@ contract AgentINFT {
     mapping(uint256 => address) private _owners;
     mapping(address => uint256) private _balances;
     mapping(uint256 => IntelligentData) private _data;
+    mapping(address => uint256[]) private _ownedTokens;
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
     event AgentMinted(uint256 indexed tokenId, address indexed owner, string dataDescription, bytes32 dataHash);
@@ -27,9 +28,14 @@ contract AgentINFT {
         tokenId = _nextId++;
         _owners[tokenId] = msg.sender;
         _balances[msg.sender] += 1;
+        _ownedTokens[msg.sender].push(tokenId);
         _data[tokenId] = IntelligentData(dataDescription, dataHash);
         emit Transfer(address(0), msg.sender, tokenId);
         emit AgentMinted(tokenId, msg.sender, dataDescription, dataHash);
+    }
+
+    function tokensOf(address owner_) external view returns (uint256[] memory) {
+        return _ownedTokens[owner_];
     }
 
     function ownerOf(uint256 tokenId) public view returns (address) {

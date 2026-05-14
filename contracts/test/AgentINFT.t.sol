@@ -124,4 +124,27 @@ contract AgentINFTTest is Test {
         inft.delegateAccess(id, address(uint160(0x9999)));
         vm.stopPrank();
     }
+
+    function test_TokensOfReturnsAllOwned() public {
+        vm.startPrank(alice);
+        uint256 a = inft.mint("a", bytes32(0));
+        uint256 b = inft.mint("b", bytes32(0));
+        uint256 c = inft.mint("c", bytes32(0));
+        vm.stopPrank();
+        vm.prank(bob);
+        uint256 d = inft.mint("d", bytes32(0));
+
+        uint256[] memory aliceTokens = inft.tokensOf(alice);
+        assertEq(aliceTokens.length, 3);
+        assertEq(aliceTokens[0], a);
+        assertEq(aliceTokens[1], b);
+        assertEq(aliceTokens[2], c);
+
+        uint256[] memory bobTokens = inft.tokensOf(bob);
+        assertEq(bobTokens.length, 1);
+        assertEq(bobTokens[0], d);
+
+        uint256[] memory none = inft.tokensOf(address(0xDEAD));
+        assertEq(none.length, 0);
+    }
 }
