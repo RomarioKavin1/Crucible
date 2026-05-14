@@ -9,9 +9,11 @@ export interface TerminalHeaderProps {
   nav?: { label: string; href: string }[];
   /** Path of the currently-active nav item, used to underline. */
   activePath?: string;
+  /** Optional slot rendered to the right of the network indicator (e.g. wallet connect button). */
+  rightSlot?: React.ReactNode;
 }
 
-export function TerminalHeader({ tagline, network, nav = [], activePath }: TerminalHeaderProps) {
+export function TerminalHeader({ tagline, network, nav = [], activePath, rightSlot }: TerminalHeaderProps) {
   return (
     <header className="border-b border-[#1c2538] bg-[#0a0e17]/95 backdrop-blur sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-6 py-4">
@@ -25,12 +27,15 @@ export function TerminalHeader({ tagline, network, nav = [], activePath }: Termi
               {tagline}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-[#aab2c5]">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-[#22d3ee] opacity-75 animate-ping" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#22d3ee] shadow-[0_0_8px_#22d3eeaa]" />
-            </span>
-            <span className="font-mono">{network}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-[11px] text-[#aab2c5]">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#22d3ee] opacity-75 animate-ping" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#22d3ee] shadow-[0_0_8px_#22d3eeaa]" />
+              </span>
+              <span className="font-mono">{network}</span>
+            </div>
+            {rightSlot}
           </div>
         </div>
         {nav.length > 0 && (
