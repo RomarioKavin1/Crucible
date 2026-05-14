@@ -24,8 +24,20 @@ export interface RunRecord {
   recordedBy: string;
 }
 
+type RegistryV2Contract = ethers.Contract & {
+  publish: (
+    tokenId: bigint, scenarioId: string, traceRoot: string, scorecardHash: string,
+    scoreSortinoE6: bigint, totalReturnE6: bigint, maxDrawdownE6: bigint,
+  ) => Promise<ethers.TransactionResponse>;
+  totalRuns: () => Promise<bigint>;
+  getRun: (runId: bigint) => Promise<ethers.Result>;
+  getRunsByToken: (tokenId: bigint) => Promise<ethers.Result>;
+  getRunsByScenario: (scenarioId: string) => Promise<ethers.Result>;
+  agentINFT: () => Promise<string>;
+};
+
 export class RunRegistryV2Client {
-  private contract: ethers.Contract;
+  private contract: RegistryV2Contract;
 
   constructor(cfg: ChainConfig, signerOrProvider: ethers.Signer | ethers.Provider) {
     // TODO(Task 9): RunRegistryV2 will be added to ChainConfig.contracts; remove this cast then.
@@ -33,7 +45,7 @@ export class RunRegistryV2Client {
       (cfg.contracts as Record<string, string>)["RunRegistryV2"]!,
       RUN_REGISTRY_V2_ABI,
       signerOrProvider,
-    );
+    ) as RegistryV2Contract;
   }
 
   static __forTest(contract: any): RunRegistryV2Client {
