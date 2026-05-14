@@ -126,17 +126,19 @@ The trace uploads to 0G Storage, the recipe hash locks on AgentRegistry, and the
 
 ---
 
-## Deployed contracts
+## Deployed contracts (v1 — active)
 
-### Galileo testnet (chain ID 16602)
+> **Note:** Crucible v2 — ERC-7857 INFT identity + hosted MCP server + signed-action verification — is in design on the [`feat/inft-mcp`](https://github.com/RomarioKavin1/Crucible/tree/feat/inft-mcp) branch. When v2 ships, the contracts below move to a **Deprecated v1** section and the leaderboard restarts under the new INFT contract. The v1 contracts and their on-chain history (Runs #1–#8 under Agent #1) remain queryable on Galileo permanently.
 
-- **ScenarioRegistry:** [`0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F`](https://chainscan-galileo.0g.ai/address/0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F)
-- **AgentRegistry:** [`0x0763d1622D1C1E611b4c6a69a9cbB308B44464fB`](https://chainscan-galileo.0g.ai/address/0x0763d1622D1C1E611b4c6a69a9cbB308B44464fB)
-- **RunRegistry:** [`0xc514347126590cd2b228fb33047f35389e5de1A7`](https://chainscan-galileo.0g.ai/address/0xc514347126590cd2b228fb33047f35389e5de1A7)
+### Galileo testnet (chain ID 16602) — v1
+
+- **ScenarioRegistry:** [`0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F`](https://chainscan-galileo.0g.ai/address/0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F) — 7 scenarios registered
+- **AgentRegistry:** [`0x0763d1622D1C1E611b4c6a69a9cbB308B44464fB`](https://chainscan-galileo.0g.ai/address/0x0763d1622D1C1E611b4c6a69a9cbB308B44464fB) — placeholder ERC-721, 1 agent minted (Agent #1, baseline)
+- **RunRegistry:** [`0xc514347126590cd2b228fb33047f35389e5de1A7`](https://chainscan-galileo.0g.ai/address/0xc514347126590cd2b228fb33047f35389e5de1A7) — 8 runs published (Run #1–#8, all under Agent #1)
 
 ### Mainnet (chain ID 16661)
 
-*Deployment pending. Will appear here after Plan 3 Task 12.*
+v1 was not deployed to mainnet — the architecture redesign supersedes it. v2 will ship directly to Galileo, then mainnet after stabilization.
 
 ---
 
