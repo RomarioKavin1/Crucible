@@ -47,4 +47,51 @@ contract AgentINFT {
         IntelligentData memory d = _data[tokenId];
         return (d.dataDescription, d.dataHash);
     }
+
+    // ─── Delegation (hot/cold key separation) ────────────────────────────────
+
+    uint256 public constant MAX_DELEGATIONS = 100;
+
+    mapping(uint256 => address[]) private _delegations;
+    mapping(uint256 => mapping(address => bool)) private _isDelegated;
+
+    event AccessDelegated(uint256 indexed tokenId, address indexed assistant);
+    event AccessRevoked(uint256 indexed tokenId, address indexed assistant);
+
+    error NotOwner();
+    error DelegationCapReached();
+
+    function delegateAccess(uint256 tokenId, address assistant) external {
+        if (_owners[tokenId] != msg.sender) revert NotOwner();
+        if (_isDelegated[tokenId][assistant]) return; // idempotent
+        if (_delegations[tokenId].length >= MAX_DELEGATIONS) revert DelegationCapReached();
+        _delegations[tokenId].push(assistant);
+        _isDelegated[tokenId][assistant] = true;
+        emit AccessDelegated(tokenId, assistant);
+    }
+
+    function revokeAccess(uint256 tokenId, address assistant) external {
+        if (_owners[tokenId] != msg.sender) revert NotOwner();
+        if (!_isDelegated[tokenId][assistant]) return; // idempotent
+        address[] storage list = _delegations[tokenId];
+        for (uint256 i = 0; i < list.length; i++) {
+            if (list[i] == assistant) {
+                list[i] = list[list.length - 1];
+                list.pop();
+                break;
+            }
+        }
+        _isDelegated[tokenId][assistant] = false;
+        emit AccessRevoked(tokenId, assistant);
+    }
+
+    function isAuthorized(uint256 tokenId, address signer) external view returns (bool) {
+        if (_owners[tokenId] == address(0)) return false;
+        if (_owners[tokenId] == signer) return true;
+        return _isDelegated[tokenId][signer];
+    }
+
+    function getDelegations(uint256 tokenId) external view returns (address[] memory) {
+        return _delegations[tokenId];
+    }
 }

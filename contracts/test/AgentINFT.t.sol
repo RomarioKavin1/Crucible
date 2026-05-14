@@ -47,4 +47,64 @@ contract AgentINFTTest is Test {
         vm.expectRevert(AgentINFT.TokenDoesNotExist.selector);
         inft.intelligentData(999);
     }
+
+    function test_OwnerCanDelegate() public {
+        vm.prank(alice);
+        uint256 id = inft.mint("a", bytes32(0));
+        address hot = address(0xC0FFEE);
+
+        vm.prank(alice);
+        inft.delegateAccess(id, hot);
+
+        assertTrue(inft.isAuthorized(id, alice));   // owner always authorized
+        assertTrue(inft.isAuthorized(id, hot));     // delegated assistant authorized
+        assertFalse(inft.isAuthorized(id, bob));    // unrelated address not authorized
+
+        address[] memory dels = inft.getDelegations(id);
+        assertEq(dels.length, 1);
+        assertEq(dels[0], hot);
+    }
+
+    function test_NonOwnerCannotDelegate() public {
+        vm.prank(alice);
+        uint256 id = inft.mint("a", bytes32(0));
+        vm.prank(bob);
+        vm.expectRevert(AgentINFT.NotOwner.selector);
+        inft.delegateAccess(id, address(0xC0FFEE));
+    }
+
+    function test_RevokeRemovesAuthorization() public {
+        vm.startPrank(alice);
+        uint256 id = inft.mint("a", bytes32(0));
+        address hot = address(0xC0FFEE);
+        inft.delegateAccess(id, hot);
+        inft.revokeAccess(id, hot);
+        vm.stopPrank();
+
+        assertFalse(inft.isAuthorized(id, hot));
+        address[] memory dels = inft.getDelegations(id);
+        assertEq(dels.length, 0);
+    }
+
+    function test_DuplicateDelegationIsNoop() public {
+        vm.startPrank(alice);
+        uint256 id = inft.mint("a", bytes32(0));
+        address hot = address(0xC0FFEE);
+        inft.delegateAccess(id, hot);
+        inft.delegateAccess(id, hot);  // duplicate — should not double-add
+        vm.stopPrank();
+        address[] memory dels = inft.getDelegations(id);
+        assertEq(dels.length, 1);
+    }
+
+    function test_DelegationCapEnforced() public {
+        vm.startPrank(alice);
+        uint256 id = inft.mint("a", bytes32(0));
+        for (uint256 i = 0; i < 100; i++) {
+            inft.delegateAccess(id, address(uint160(0x1000 + i)));
+        }
+        vm.expectRevert(AgentINFT.DelegationCapReached.selector);
+        inft.delegateAccess(id, address(uint160(0x9999)));
+        vm.stopPrank();
+    }
 }
