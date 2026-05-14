@@ -5,3 +5,4 @@ export * from "./scenario-registry";
 export * from "./agent-registry";
 export * from "./run-registry";
 export * from "./publisher";
+export * from "./agent-inft";

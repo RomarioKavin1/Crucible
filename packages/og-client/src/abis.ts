@@ -26,3 +26,24 @@ export const RUN_REGISTRY_ABI = [
   "function setTrustedAttester(address a, bool allowed) external",
   "event RunRecorded(uint256 indexed runId, uint256 indexed agentId, bytes32 indexed scenarioId, bytes32 recipeHash, bytes32 traceHash, int256 scoreSortinoE6)",
 ] as const;
+
+export const AGENT_INFT_ABI = [
+  // events
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+  "event AgentMinted(uint256 indexed tokenId, address indexed owner, string dataDescription, bytes32 dataHash)",
+  "event AccessDelegated(uint256 indexed tokenId, address indexed assistant)",
+  "event AccessRevoked(uint256 indexed tokenId, address indexed assistant)",
+  // reads
+  "function ownerOf(uint256 tokenId) view returns (address)",
+  "function balanceOf(address owner) view returns (uint256)",
+  "function intelligentData(uint256 tokenId) view returns (string, bytes32)",
+  "function isAuthorized(uint256 tokenId, address signer) view returns (bool)",
+  "function getDelegations(uint256 tokenId) view returns (address[])",
+  "function tokensOf(address owner) view returns (uint256[])",
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  // writes
+  "function mint(string dataDescription, bytes32 dataHash) returns (uint256)",
+  "function delegateAccess(uint256 tokenId, address assistant)",
+  "function revokeAccess(uint256 tokenId, address assistant)",
+] as const;
