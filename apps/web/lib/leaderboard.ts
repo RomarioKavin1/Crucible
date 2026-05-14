@@ -94,3 +94,86 @@ export async function listScenarios(runs?: LeaderboardRow[]): Promise<string[]> 
   const referenced = runs ? Array.from(new Set(runs.map((r) => r.scenarioId))) : [];
   return Array.from(new Set([...registered, ...referenced])).sort();
 }
+
+// ─── v2 fetchers (RunRegistryV2 + AgentINFT) ────────────────────────────────
+import { keccak256, toBytes } from "viem";
+import { publicClient, RUN_REGISTRY_V2_ADDRESS, ABIs, readIntelligentData } from "./contracts";
+
+export interface V2LeaderboardRow {
+  runId: string;
+  tokenId: string;
+  agentDescription: string;
+  scenarioId: string;
+  sortino: number;
+  totalReturn: number;
+  maxDrawdown: number;
+  timestamp: number;
+  recordedBy: string;
+}
+
+export async function fetchAllRunsV2(): Promise<V2LeaderboardRow[]> {
+  const total = await publicClient.readContract({
+    address: RUN_REGISTRY_V2_ADDRESS, abi: ABIs.RUN_REGISTRY_V2_ABI, functionName: "totalRuns",
+  }) as bigint;
+
+  const ids = Array.from({ length: Number(total) }, (_, i) => BigInt(i + 1));
+  const descCache = new Map<string, string>();
+
+  return Promise.all(ids.map(async (id) => {
+    const r = await publicClient.readContract({
+      address: RUN_REGISTRY_V2_ADDRESS, abi: ABIs.RUN_REGISTRY_V2_ABI,
+      functionName: "getRun", args: [id],
+    }) as any;
+    const tokenIdStr = (r.tokenId as bigint).toString();
+    let desc = descCache.get(tokenIdStr);
+    if (desc === undefined) {
+      try { desc = (await readIntelligentData(r.tokenId as bigint)).description; }
+      catch { desc = ""; }
+      descCache.set(tokenIdStr, desc!);
+    }
+    return {
+      runId: id.toString(),
+      tokenId: tokenIdStr,
+      agentDescription: desc!,
+      scenarioId: r.scenarioId as string,
+      sortino: Number(r.scoreSortinoE6 as bigint) / 1e6,
+      totalReturn: Number(r.totalReturnE6 as bigint) / 1e6,
+      maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
+      timestamp: Number(r.timestamp as bigint),
+      recordedBy: r.recordedBy as string,
+    };
+  }));
+}
+
+export async function fetchRunsByScenarioV2(scenarioId: string): Promise<V2LeaderboardRow[]> {
+  const scenarioHash = keccak256(toBytes(scenarioId));
+  const ids = await publicClient.readContract({
+    address: RUN_REGISTRY_V2_ADDRESS, abi: ABIs.RUN_REGISTRY_V2_ABI,
+    functionName: "getRunsByScenario", args: [scenarioHash],
+  }) as bigint[];
+  const descCache = new Map<string, string>();
+  return Promise.all(ids.map(async (id) => {
+    const r = await publicClient.readContract({
+      address: RUN_REGISTRY_V2_ADDRESS, abi: ABIs.RUN_REGISTRY_V2_ABI,
+      functionName: "getRun", args: [id],
+    }) as any;
+    const tokenIdStr = (r.tokenId as bigint).toString();
+    let desc = descCache.get(tokenIdStr);
+    if (desc === undefined) {
+      try { desc = (await readIntelligentData(r.tokenId as bigint)).description; }
+      catch { desc = ""; }
+      descCache.set(tokenIdStr, desc!);
+    }
+    return {
+      runId: id.toString(),
+      tokenId: tokenIdStr,
+      agentDescription: desc!,
+      scenarioId,  // string here, not the hash
+      sortino: Number(r.scoreSortinoE6 as bigint) / 1e6,
+      totalReturn: Number(r.totalReturnE6 as bigint) / 1e6,
+      maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
+      timestamp: Number(r.timestamp as bigint),
+      recordedBy: r.recordedBy as string,
+    };
+  })).then((rows) => rows.sort((a, b) => b.sortino - a.sortino));
+}
