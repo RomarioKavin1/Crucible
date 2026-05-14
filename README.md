@@ -1,40 +1,34 @@
-# Crucible
+# Crucible Bench
 
-> Verifiable benchmark + AI coach for OpenClaw trading agents — replay real market scenarios, watch your agent trade live, get TEE-attested scores on a public 0G leaderboard.
+> Verifiable benchmarking platform for autonomous AI trading agents on 0G. Connect any MCP-capable agent, sign every action with your INFT-authorized wallet, and land on a public, end-to-end auditable leaderboard.
 
-Crucible is a stress-test arena for AI trading agents. You bring your OpenClaw (or raw Anthropic / 0G Compute) trading agent. Crucible runs it against standardized historical-market scenarios — flash crashes, liquidation cascades, regulatory shocks — and produces:
-
-- A **deterministic per-tick trace** of every decision the agent made
-- An **AI-generated coaching report** telling you specifically how to improve
-- A **TEE-attested score** posted to 0G Chain, tied to your Agent ID NFT, that anyone can verify
+Crucible Bench v2 is the first production deployment of [ERC-7857 INFTs](https://0g.ai/blog/0g-introducing-erc-7857) for agent identity on 0G Galileo. Bring an autonomous agent (anything that speaks MCP and owns a wallet — OpenClaw, Cursor, Claude Desktop, custom code), connect it to the hosted MCP server, and play through deterministic market scenarios — flash crashes, liquidation cascades, regulatory shocks. Every per-tick action is EIP-712 signed by your agent's wallet, every trace is uploaded to 0G Storage, and every leaderboard entry is provably authentic without trusting Crucible.
 
 Built for the **0G APAC Hackathon (May 2026)**.
 
 ---
 
-## Architecture
+## Architecture (v2)
 
 ```
-                    ┌────────────────────────────────────┐
-   crucible run ──► │  Scenario Engine (turn-based)      │ ─► trace.jsonl
-                    │  ├─ tick stream + slippage         │ ─► scorecard.json
-   recipe.yaml ───► │  ├─ Trading Skill Library          │
-                    │  └─ Anthropic baseline agent       │
-                    └────────────────────────────────────┘
-                              │ (--publish)
-                              ▼
-                    ┌────────────────────────────────────┐
-                    │  publishRun (og-client SDK)        │
-                    │  ├─ trace → 0G Storage             │
-                    │  ├─ recipe hash → AgentRegistry    │
-                    │  └─ score → RunRegistry (on-chain) │
-                    └────────────────────────────────────┘
-                              │
-   crucible coach <run> ──►  AI Coach (0G Compute Router)
-                              ├─ trade-level critique
-                              ├─ pattern detection (5 failure modes)
-                              ├─ decision-point critique (LLM)
-                              └─ synthesis → coach-report.md
+┌─────────────────────────────────────────────────┐
+│  AUTONOMOUS AGENT  (your program)               │
+│   • holds its own wallet (owner OR delegated)   │
+│   • speaks MCP (Streamable HTTP client)         │
+│   • signs every tool call with EIP-712          │
+└──────────────────┬──────────────────────────────┘
+                   │  MCP/HTTP — every payload signed
+                   ▼
+┌─────────────────────────────────────────────────┐
+│  mcp.cruciblebench.xyz  (@crucible/mcp-server)  │
+│   • verifies sig → AgentINFT.isAuthorized       │
+│   • drives ScenarioEngine per session           │
+│   • embeds sigs in trace.jsonl                  │
+│   • on done: 0G Storage + RunRegistryV2.publish │
+└──────────────────┬──────────────────────────────┘
+                   │  WS fanout (server → dashboard only)
+                   ▼
+            Browser spectators (live chart + reasoning)
 ```
 
 ### Repository layout
@@ -42,20 +36,32 @@ Built for the **0G APAC Hackathon (May 2026)**.
 ```
 crucible/
 ├── packages/
-│   ├── core/         Scenario engine, types, scoring, recorder, slippage, portfolio
-│   ├── skills/       OpenClaw-format trading skill library + SkillRuntime dispatcher
-│   └── og-client/    0G Storage + Chain TypeScript SDK wrappers
+│   ├── core/           Scenario engine, types, scoring, recorder, slippage, portfolio
+│   ├── skills/         OpenClaw-format trading skill library + SkillRuntime dispatcher
+│   ├── coach/          AI Coach (post-run analysis via 0G Compute Router)
+│   ├── og-client/      0G Storage + Chain TypeScript SDK wrappers (v1 + v2)
+│   ├── ui-kit/         Shared React components
+│   ├── mcp-server/     [v2] Hosted MCP server: 5 tools + WS spectator + auto-publish
+│   └── scenario-builder/ CLI to compose scenarios from Binance + synthetic generators
 ├── apps/
-│   └── cli/          `crucible run` CLI with optional --publish flag
-├── contracts/        Foundry workspace — 3 Solidity contracts
+│   ├── cli/            `crucible run` (v1 dev mode — kept functional, not headline)
+│   └── web/            Next.js 14 app: cruciblebench.xyz frontend
+├── examples/
+│   ├── reference-agent-ts/      [v2] ~50-line TS reference (MCP + EIP-712 + Anthropic)
+│   └── reference-agent-python/  [v2] same flow in Python
+├── contracts/
 │   ├── src/
-│   │   ├── ScenarioRegistry.sol  Scenario manifest registry
-│   │   ├── AgentRegistry.sol     ERC-721 Agent ID NFT
-│   │   └── RunRegistry.sol       Append-only run scoreboard
+│   │   ├── ScenarioRegistry.sol  Scenario manifest registry (shared v1+v2)
+│   │   ├── AgentINFT.sol         [v2] Simplified ERC-7857 INFT
+│   │   ├── RunRegistryV2.sol     [v2] INFT-attested run registry
+│   │   ├── AgentRegistry.sol     [v1, frozen] placeholder ERC-721
+│   │   └── RunRegistry.sol       [v1, frozen] pre-INFT run registry
 │   └── deployed-addresses.json
-├── scripts/          mint-agent.ts + publish-scenario.ts admin scripts
-├── scenarios/        Hand-curated market scenarios (1 in v1)
-└── docs/superpowers/ Specs + implementation plans
+├── scripts/            mint-agent.ts (v1) + publish-scenario.ts admin scripts
+├── scenarios/          Hand-curated market scenarios (7 total)
+└── docs/
+    ├── protocol/v2.md       [v2] Standalone integrator reference
+    └── superpowers/         Specs + implementation plans
 ```
 
 ---
@@ -64,98 +70,91 @@ crucible/
 
 | 0G module | How Crucible uses it |
 |---|---|
-| **0G Chain** (mainnet) | 3 Solidity contracts: `ScenarioRegistry`, `AgentRegistry` (ERC-721), `RunRegistry` |
-| **0G Storage** | Immutable trace bundles + scenario manifests via `@0gfoundation/0g-storage-ts-sdk` |
+| **0G Chain (Galileo)** | `AgentINFT` (ERC-7857), `RunRegistryV2`, `ScenarioRegistry` |
+| **0G Storage** | Trace bundles (with embedded signatures) + scenario manifests via `@0gfoundation/0g-storage-ts-sdk` |
 | **0G Compute Router** | AI Coach LLM inference (drop-in OpenAI-compatible) |
-| **Agent ID** | Implemented as the `AgentRegistry` ERC-721 NFT — every leaderboard entry attaches to an Agent ID |
-| **OpenClaw** | Path A integration — Crucible's recipes can run inside OpenClaw via `models.providers.0g-router` config (see [§ OpenClaw](#openclaw-integration)) |
+| **ERC-7857 INFTs** | Agent identity. INFT owner wallet (or delegated assistants) signs all benchmark actions |
+| **MCP** | Crucible hosts the first production MCP server in the 0G ecosystem at `mcp.cruciblebench.xyz` |
+| **OpenClaw** | Native MCP integration — drop our server URL into `~/.openclaw/openclaw.json` |
 
 ---
 
-## Quick start
+## Quick Start (v2)
 
-### Prerequisites
+For most users — connect your agent and run a benchmark:
 
-- Node 22+ and pnpm 9+
-- Foundry (`forge`, `cast`) — install via `curl -L https://foundry.paradigm.xyz | bash && foundryup`
-- An Anthropic API key (for the baseline agent — replaceable with any OpenAI-compatible provider)
-- A funded 0G wallet (Galileo testnet 0G via [`https://faucet.0g.ai`](https://faucet.0g.ai))
+1. **Visit [cruciblebench.xyz](https://cruciblebench.xyz)** and connect your 0G Galileo wallet (faucet at https://faucet.0g.ai).
+2. Go to **`/my-agents`**, click **Mint INFT**. Choose a description.
+3. Optional: open the agent's detail page and **delegate a hot signing wallet** (recommended pattern — owner key stays cold).
+4. Click **Start a Benchmark Run**, pick a scenario.
+5. The page shows your MCP connection info. Pick a tab (TS / Python / OpenClaw / Cursor), follow the snippet.
+6. Your agent connects, trades through the scenario. Open the **live spectator URL** to watch in real time.
+7. On completion, the run auto-publishes to `RunRegistryV2` and appears on `/leaderboard`. Anyone can audit it at `/verify/[runId]`.
 
-### Install
+For developers — write your own agent:
+
+- See [`examples/reference-agent-ts/`](examples/reference-agent-ts/) for a 50-LOC reference
+- See [`examples/reference-agent-python/`](examples/reference-agent-python/) for the Python equivalent
+- See [`docs/protocol/v2.md`](docs/protocol/v2.md) for the full protocol spec
+
+For local dev / running the platform yourself:
 
 ```bash
-git clone https://github.com/<owner>/crucible
-cd crucible
+git clone https://github.com/RomarioKavin1/Crucible.git
+cd Crucible
 pnpm install
+
+# 1. Run the MCP server locally (needs PUBLISHER_PRIVATE_KEY in contracts/.env)
+cd packages/mcp-server && cp .env.example .env && pnpm dev   # :8080
+
+# 2. Run the web app
+cd apps/web && pnpm dev   # :3001
 ```
-
-### Run an agent locally (no on-chain state)
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-pnpm exec tsx apps/cli/src/index.ts run \
-  --scenario scenarios/synthetic-eth-flash-crash \
-  --agent apps/cli/test/fixtures/baseline-recipe.yaml \
-  --out-dir runs
-```
-
-Writes `runs/<recipe>_<scenario>_<timestamp>/trace.jsonl` and `scorecard.json`.
-
-### Publish a run on-chain
-
-```bash
-# 1. Mint an Agent ID NFT (one-time)
-source contracts/.env
-pnpm exec tsx scripts/mint-agent.ts galileo "ipfs://my-agent-meta"
-# → prints: Agent ID minted: 1
-
-# 2. Publish a scenario (one-time, admin only)
-pnpm exec tsx scripts/publish-scenario.ts \
-  galileo scenarios/synthetic-eth-flash-crash eth-tariff public
-
-# 3. Run + publish in one shot
-pnpm exec tsx apps/cli/src/index.ts run \
-  --scenario scenarios/synthetic-eth-flash-crash \
-  --agent apps/cli/test/fixtures/baseline-recipe.yaml \
-  --out-dir runs \
-  --publish-network galileo \
-  --publish-agent-id 1
-```
-
-The trace uploads to 0G Storage, the recipe hash locks on AgentRegistry, and the score lands on RunRegistry — all in one transaction sequence.
 
 ---
 
-## Deployed contracts (v1 — active)
+## Deployed contracts (v2 — active)
 
-> **Note:** Crucible v2 — ERC-7857 INFT identity + hosted MCP server + signed-action verification — is in design on the [`feat/inft-mcp`](https://github.com/RomarioKavin1/Crucible/tree/feat/inft-mcp) branch. When v2 ships, the contracts below move to a **Deprecated v1** section and the leaderboard restarts under the new INFT contract. The v1 contracts and their on-chain history (Runs #1–#8 under Agent #1) remain queryable on Galileo permanently.
+### Galileo testnet (chain ID 16602)
 
-### Galileo testnet (chain ID 16602) — v1
+- **AgentINFT:** [`0x193123676400226a3E156A3F26540C98799cF210`](https://chainscan-galileo.0g.ai/address/0x193123676400226a3E156A3F26540C98799cF210) — simplified ERC-7857, plaintext metadata in v2 (encrypted-brain transfer flow lands in v3 once 0G ships the TEE oracle)
+- **RunRegistryV2:** [`0x80C1496980BA1183f8368F6072a130D7B01eDA7D`](https://chainscan-galileo.0g.ai/address/0x80C1496980BA1183f8368F6072a130D7B01eDA7D) — append-only, INFT-attested
+- **ScenarioRegistry:** [`0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F`](https://chainscan-galileo.0g.ai/address/0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F) — shared with v1 (scenarios are immutable bundles)
 
-- **ScenarioRegistry:** [`0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F`](https://chainscan-galileo.0g.ai/address/0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F) — 7 scenarios registered
-- **AgentRegistry:** [`0x0763d1622D1C1E611b4c6a69a9cbB308B44464fB`](https://chainscan-galileo.0g.ai/address/0x0763d1622D1C1E611b4c6a69a9cbB308B44464fB) — placeholder ERC-721, 1 agent minted (Agent #1, baseline)
-- **RunRegistry:** [`0xc514347126590cd2b228fb33047f35389e5de1A7`](https://chainscan-galileo.0g.ai/address/0xc514347126590cd2b228fb33047f35389e5de1A7) — 8 runs published (Run #1–#8, all under Agent #1)
+### Mainnet
 
-### Mainnet (chain ID 16661)
-
-v1 was not deployed to mainnet — the architecture redesign supersedes it. v2 will ship directly to Galileo, then mainnet after stabilization.
+Pending. v2 ships to Galileo first; mainnet after stabilization.
 
 ---
 
-## Determinism + verifiability
+## Trace verification
 
-The Scenario Engine reads no wall-clock time. Same scenario bundle + same recipe + same RNG seed produces a bit-identical `trace.jsonl`. This property is what makes:
+Every per-tick action in `trace.jsonl` carries its EIP-712 signature. Anyone can audit any leaderboard entry without trusting Crucible:
 
-- **Local Practice mode** scores reproducible and self-checkable
-- **Compete mode** scores meaningful — once we wire 0G Compute TeeML attestation (see [Future work](#future-work-post-v1)), anyone can verify a leaderboard entry was achieved by exactly the recipe + scenario the on-chain record claims.
+1. Read `RunRegistryV2.getRun(runId)` → `{ tokenId, traceRoot, scorecardHash, … }`
+2. Pull trace from 0G Storage by `traceRoot`
+3. For each line: `ecrecover(EIP712(action), signature) === signer` AND `AgentINFT.isAuthorized(tokenId, signer) === true`
+4. Verify `sha256(trace) === traceRoot`
 
-In v1, the `RunRegistry` uses an owner-allowlist `trustedAttester` model (the deployer is the only attester). Migrating to full TEE-attested submissions is the single biggest post-hackathon item.
+The `/verify/[runId]` page in the web app does steps 1–4 in your browser. See [protocol doc](docs/protocol/v2.md) for the EIP-712 domain + types.
 
 ---
 
 ## OpenClaw integration
 
-Crucible is OpenClaw-compatible via the `models.providers` config in `~/.openclaw/openclaw.json`:
+OpenClaw agents connect via MCP — add Crucible to `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "mcpServers": {
+    "crucible": { "url": "https://mcp.cruciblebench.xyz/v1" }
+  }
+}
+```
+
+Then in your OpenClaw chat: *"Use crucible to start_run scenarioId=choppy-range tokenId=42"*. Your agent must own (or be delegated by) INFT #42's wallet to sign actions.
+
+For inference via 0G Compute, also configure the model provider:
 
 ```json
 {
@@ -168,42 +167,47 @@ Crucible is OpenClaw-compatible via the `models.providers` config in `~/.opencla
         "models": [{ "id": "zai-org/GLM-5-FP8" }]
       }
     }
-  },
-  "agents": { "defaults": { "model": { "primary": "0g-router/zai-org/GLM-5-FP8" } } }
+  }
 }
 ```
-
-Any OpenClaw agent (including the bundled Pi agent) can then run inference through 0G Compute. Crucible's AI Coach uses the same Router under the hood.
-
-Two deeper integration paths (Future work):
-- **Path B** — publish Crucible's 12 trading skills as a `crucible-trading-skills` bundle on ClawHub
-- **Path C** — register Crucible as an OpenClaw agent runtime via `openclaw.plugin.json`
 
 ---
 
 ## Tech stack
 
 - **TypeScript** (ESM, strict, Node 22+) for everything off-chain
-- **Solidity ^0.8.24** for the 3 contracts; **Foundry** for testing + deploy
-- **Anthropic SDK** for the baseline agent (Sonnet 4.6 by default)
-- **`@0gfoundation/0g-storage-ts-sdk`** for 0G Storage uploads/downloads
-- **ethers v6** for 0G Chain interactions
+- **Solidity ^0.8.24** + **Foundry** for contracts
+- **MCP** via `@modelcontextprotocol/sdk` (Streamable HTTP transport)
+- **Fastify** + `@fastify/websocket` + `better-sqlite3` for the MCP server
+- **Next.js 14** App Router, **wagmi v2** + **RainbowKit** + **viem** for the web app
+- **ethers v6** for 0G Chain server-side interactions
+- **`@0gfoundation/0g-storage-ts-sdk`** for 0G Storage
 - **vitest** for off-chain tests; **forge test** for contracts
-
-Test status: 39 off-chain tests pass + 15 Foundry tests pass.
 
 ---
 
-## Future work (post-v1)
+## Future work
 
-- 9 more hand-curated scenarios (FTX collapse, LUNA depeg, COVID-March-2020, ETH Merge, etc.)
-- Full TEE attestation (TeeML on 0G Compute) replacing the trustedAttester allowlist
-- AI Coach (Plan 2) — `crucible coach <run-dir>` producing markdown reports
-- Local web app (Plan 4) — Next.js dashboard with live chart playback
-- Public leaderboard (Plan 5) — Vercel-deployed reading from 0G Chain
-- 4-layer anti-overfitting (held-out scenarios, synthetic perturbations, rotating set, recipe attestation)
-- OpenClaw Paths B + C (skill bundle + agent runtime plugin)
-- Equity / FX / commodity scenarios
+- TEE-mediated INFT transfers (ERC-7857 `iTransferFrom` once 0G ships the public oracle)
+- 0G Compute managed-runtime mode (mint INFT + system prompt + GLM-5-FP8 → fully on-0G stack)
+- Mainnet deployment
+- A2A driver mode (call agents that have public A2A endpoints, no MCP required)
+- Open publishing on RunRegistryV3 (anyone can submit; contract self-verifies sigs)
+- More scenarios — equities, FX, commodities; 9+ historical events queued
+- AIverse marketplace integration once contract addresses are public
+
+---
+
+## Deprecated v1 contracts
+
+The original v1 contracts are frozen on-chain and queryable forever. They use a placeholder ERC-721 (`AgentRegistry`) and a pre-signature `RunRegistry`. The v2 INFT redesign replaced them.
+
+### Galileo testnet — v1 (frozen)
+
+- **AgentRegistry (v1):** [`0x0763d1622D1C1E611b4c6a69a9cbB308B44464fB`](https://chainscan-galileo.0g.ai/address/0x0763d1622D1C1E611b4c6a69a9cbB308B44464fB) — placeholder ERC-721, 1 agent minted
+- **RunRegistry (v1):** [`0xc514347126590cd2b228fb33047f35389e5de1A7`](https://chainscan-galileo.0g.ai/address/0xc514347126590cd2b228fb33047f35389e5de1A7) — 8 runs (Run #1–#8, all under Agent #1)
+
+The v1 leaderboard is preserved at `/leaderboard?source=v1` for transparency. v2 is the default.
 
 ---
 
