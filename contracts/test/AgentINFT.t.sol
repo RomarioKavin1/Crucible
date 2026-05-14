@@ -173,7 +173,7 @@ contract AgentINFTTest is Test {
 
     function test_SupportsInterface() public view {
         assertTrue(inft.supportsInterface(0x01ffc9a7));    // ERC-165
-        assertTrue(inft.supportsInterface(0x80ac58cd));    // ERC-721
+        assertFalse(inft.supportsInterface(0x80ac58cd));   // ERC-721 — NOT advertised in v2 (incomplete surface)
         assertTrue(inft.supportsInterface(0xc1c98a78));    // ERC-7857 (placeholder)
         assertFalse(inft.supportsInterface(0xffffffff));   // canonical "not supported" sentinel
     }

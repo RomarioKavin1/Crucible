@@ -127,13 +127,15 @@ contract AgentINFT {
     // ─── ERC-165 supportsInterface ────────────────────────────────────────────
 
     // ERC-165 interface IDs (compile-time constants)
-    bytes4 private constant _INTERFACE_ID_ERC165 = 0x01ffc9a7;
-    bytes4 private constant _INTERFACE_ID_ERC721 = 0x80ac58cd;
-    bytes4 private constant _INTERFACE_ID_ERC7857 = 0xc1c98a78;  // ERC-7857 marker (placeholder; revisit if 0G publishes a canonical id)
+    bytes4 private constant _INTERFACE_ID_ERC165  = 0x01ffc9a7;
+    /// @dev ERC-721 interface ID is intentionally NOT advertised: v2 implements only
+    /// the read surface (ownerOf/balanceOf), not the full standard (no approve / setApprovalForAll
+    /// / safeTransferFrom). v3 with TEE-mediated transfer will add the missing surface.
+    bytes4 private constant _INTERFACE_ID_ERC721  = 0x80ac58cd;
+    bytes4 private constant _INTERFACE_ID_ERC7857 = 0xc1c98a78;  // placeholder; revisit if 0G publishes a canonical id
 
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
         return interfaceId == _INTERFACE_ID_ERC165
-            || interfaceId == _INTERFACE_ID_ERC721
             || interfaceId == _INTERFACE_ID_ERC7857;
     }
 }
