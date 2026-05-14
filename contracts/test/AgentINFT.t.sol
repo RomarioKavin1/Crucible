@@ -147,4 +147,34 @@ contract AgentINFTTest is Test {
         uint256[] memory none = inft.tokensOf(address(0xDEAD));
         assertEq(none.length, 0);
     }
+
+    // ─── Task 4: ERC-7857 transfer stubs + ERC-165 ───────────────────────────
+
+    function test_TransferFromReverts() public {
+        vm.prank(alice);
+        uint256 id = inft.mint("a", bytes32(0));
+        vm.prank(alice);
+        vm.expectRevert(AgentINFT.TransfersDisabledV2.selector);
+        inft.transferFrom(alice, bob, id);
+    }
+
+    function test_ITransferFromReverts() public {
+        vm.prank(alice);
+        uint256 id = inft.mint("a", bytes32(0));
+        AgentINFT.TransferValidityProof[] memory proofs = new AgentINFT.TransferValidityProof[](0);
+        vm.prank(alice);
+        vm.expectRevert(AgentINFT.TransfersDisabledV2.selector);
+        inft.iTransferFrom(alice, bob, id, proofs);
+    }
+
+    function test_VerifierIsZeroInV2() public view {
+        assertEq(inft.verifier(), address(0));
+    }
+
+    function test_SupportsInterface() public view {
+        assertTrue(inft.supportsInterface(0x01ffc9a7));    // ERC-165
+        assertTrue(inft.supportsInterface(0x80ac58cd));    // ERC-721
+        assertTrue(inft.supportsInterface(0xc1c98a78));    // ERC-7857 (placeholder)
+        assertFalse(inft.supportsInterface(0xffffffff));   // canonical "not supported" sentinel
+    }
 }

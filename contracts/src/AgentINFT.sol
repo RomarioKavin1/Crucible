@@ -102,4 +102,38 @@ contract AgentINFT {
     function getDelegations(uint256 tokenId) external view returns (address[] memory) {
         return _delegations[tokenId];
     }
+
+    // ─── ERC-7857 transfer stubs (non-transferable in v2) ────────────────────
+
+    /// @dev ERC-7857 TransferValidityProof shape — stubbed in v2.
+    struct TransferValidityProof {
+        bytes data;
+    }
+
+    error TransfersDisabledV2();
+
+    function transferFrom(address, address, uint256) external pure {
+        revert TransfersDisabledV2();
+    }
+
+    function iTransferFrom(address, address, uint256, TransferValidityProof[] calldata) external pure {
+        revert TransfersDisabledV2();
+    }
+
+    function verifier() external pure returns (address) {
+        return address(0);
+    }
+
+    // ─── ERC-165 supportsInterface ────────────────────────────────────────────
+
+    // ERC-165 interface IDs (compile-time constants)
+    bytes4 private constant _INTERFACE_ID_ERC165 = 0x01ffc9a7;
+    bytes4 private constant _INTERFACE_ID_ERC721 = 0x80ac58cd;
+    bytes4 private constant _INTERFACE_ID_ERC7857 = 0xc1c98a78;  // ERC-7857 marker (placeholder; revisit if 0G publishes a canonical id)
+
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == _INTERFACE_ID_ERC165
+            || interfaceId == _INTERFACE_ID_ERC721
+            || interfaceId == _INTERFACE_ID_ERC7857;
+    }
 }
