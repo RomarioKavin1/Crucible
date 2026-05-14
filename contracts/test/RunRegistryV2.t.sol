@@ -15,9 +15,10 @@ contract RunRegistryV2Test is Test {
         reg = new RunRegistryV2(address(inft));
         reg.setTrustedAttester(publisher, true);
 
-        // Mint tokens used across tests so ownerOf checks pass.
-        // tokenId 1 is intentionally NOT minted — test_UntrustedCannotPublish must
-        // revert on UntrustedAttester (before ownerOf), confirming guard order.
+        // Mint a generous block of tokenIds (1..42) so every publish() call below has
+        // a real INFT to reference. The UntrustedCannotPublish test still proves guard
+        // order — UntrustedAttester fires before agentINFT.ownerOf() is called, so the
+        // test would pass even with no INFTs minted.
         for (uint256 i = 0; i < 9; i++) {
             inft.mint("agent", bytes32(i));
         }

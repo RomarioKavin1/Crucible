@@ -42,7 +42,6 @@ contract RunRegistryV2 {
 
     error NotOwner();
     error UntrustedAttester();
-    error UnknownToken();
 
     constructor(address agentInftAddr) {
         agentINFT = IAgentINFT(agentInftAddr);
@@ -60,6 +59,7 @@ contract RunRegistryV2 {
         emit TrustedAttesterSet(a, allowed);
     }
 
+    /// @dev runIds are 1-indexed (1, 2, 3, …); getRun(0) reverts.
     function publish(
         uint256 tokenId,
         bytes32 scenarioId,
@@ -95,6 +95,7 @@ contract RunRegistryV2 {
         return _runs.length;
     }
 
+    /// @dev runIds are 1-indexed (1, 2, 3, …); getRun(0) reverts.
     function getRun(uint256 runId) external view returns (Run memory) {
         return _runs[runId - 1];
     }
