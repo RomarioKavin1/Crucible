@@ -40,9 +40,8 @@ export class RunRegistryV2Client {
   private contract: RegistryV2Contract;
 
   constructor(cfg: ChainConfig, signerOrProvider: ethers.Signer | ethers.Provider) {
-    // TODO(Task 9): RunRegistryV2 will be added to ChainConfig.contracts; remove this cast then.
     this.contract = new ethers.Contract(
-      (cfg.contracts as Record<string, string>)["RunRegistryV2"]!,
+      cfg.contracts.RunRegistryV2,
       RUN_REGISTRY_V2_ABI,
       signerOrProvider,
     ) as RegistryV2Contract;

@@ -18,9 +18,8 @@ export class AgentINFTClient {
   private contract: InftContract;
 
   constructor(cfg: ChainConfig, signerOrProvider: ethers.Signer | ethers.Provider) {
-    // TODO(Task 9): AgentINFT will be added to ChainConfig.contracts; remove this cast then.
     this.contract = new ethers.Contract(
-      (cfg.contracts as Record<string, string>)["AgentINFT"] ?? "",
+      cfg.contracts.AgentINFT,
       AGENT_INFT_ABI,
       signerOrProvider,
     ) as InftContract;
