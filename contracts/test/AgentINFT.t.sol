@@ -7,7 +7,7 @@ import {AgentINFT} from "../src/AgentINFT.sol";
 contract AgentINFTTest is Test {
     AgentINFT inft;
     address alice = address(0xA11CE);
-    address bob   = address(0xB0B);
+    address bob   = address(0xB0B); // used in Tasks 2-4 delegation tests
 
     function setUp() public {
         inft = new AgentINFT();
@@ -41,5 +41,10 @@ contract AgentINFTTest is Test {
     function test_OwnerOfRevertsForUnknownToken() public {
         vm.expectRevert(AgentINFT.TokenDoesNotExist.selector);
         inft.ownerOf(999);
+    }
+
+    function test_IntelligentDataRevertsForUnknownToken() public {
+        vm.expectRevert(AgentINFT.TokenDoesNotExist.selector);
+        inft.intelligentData(999);
     }
 }
