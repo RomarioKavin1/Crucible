@@ -1,0 +1,19 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.env
+.env.local
+coverage/
+.turbo/
+runs/
+# Allow API route directories named 'runs' inside the Next.js app
+!apps/local/app/api/runs/
+!apps/local/app/runs/
+!apps/web/app/runs/
+*.tsbuildinfo
+contracts/.env
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+.next/

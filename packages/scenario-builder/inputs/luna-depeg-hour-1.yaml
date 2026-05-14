@@ -1,0 +1,35 @@
+id: luna-depeg-hour-1
+title: "LUNA Depeg Hour 1"
+asset: LUNA-USD
+kind: historical
+difficulty: 5
+tags: [tail-risk, terminal, depeg]
+description: |
+  May 9, 2022 — UST loses its peg, Anchor outflows accelerate, and LUNA
+  begins its terminal collapse. This is the scenario that humiliates
+  overconfident agents. The only profitable strategy is "sell everything
+  fast." Buying the dip ends in zero.
+tests: |
+  - Tail-risk recognition
+  - Cutting a position even at obvious losses to preserve capital
+  - Resisting "buy the dip" framing when fundamentals are broken
+tick_interval_ms: 60000
+fetch:
+  provider: binance
+  symbol: LUNAUSDT
+  interval: 1m
+  start: "2022-05-09T16:00:00Z"
+  end:   "2022-05-09T17:00:00Z"
+news:
+  - at: "2022-05-09T16:00:00Z"
+    headline: "UST falls to $0.985, breaks peg"
+    source: Coindesk
+  - at: "2022-05-09T16:15:00Z"
+    headline: "Anchor outflows accelerate"
+    source: The Block
+  - at: "2022-05-09T16:40:00Z"
+    headline: "LFG sells BTC reserves to defend peg"
+    source: Bloomberg
+budgets: { llm_completions_per_tick: 5, tool_calls_per_tick: 20 }
+slippage: { base_bps: 2, impact_coeff: 15 }
+starting: { cash_usd: 10000, position: 100 }

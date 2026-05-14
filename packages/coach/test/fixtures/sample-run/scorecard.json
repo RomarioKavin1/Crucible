@@ -1,0 +1,6 @@
+{
+  "scenario": "synthetic-eth-flash-crash",
+  "recipe": "baseline-claude",
+  "scorecard": { "sortino": 0.31, "maxDrawdownPct": -0.184, "totalReturnPct": -0.121, "winRate": 0.4 },
+  "ticksProcessed": 5
+}

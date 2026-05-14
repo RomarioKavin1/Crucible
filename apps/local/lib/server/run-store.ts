@@ -1,0 +1,72 @@
+import { readdir, readFile, stat } from "node:fs/promises";
+import path from "node:path";
+import type { Tick, TraceEntry } from "@crucible/core";
+
+/** Workspace root — where the canonical `runs/` and `scenarios/` directories live.
+ *  In dev, Next runs cwd=apps/local so we walk up two levels. INIT_CWD (set by pnpm)
+ *  is more reliable than relative pathing. */
+export const WORKSPACE_ROOT =
+  process.env["INIT_CWD"] ?? path.resolve(process.cwd(), "..", "..");
+
+export const DEFAULT_RUNS_DIR = path.join(WORKSPACE_ROOT, "runs");
+export const DEFAULT_SCENARIOS_DIR = path.join(WORKSPACE_ROOT, "scenarios");
+export const DEFAULT_RECIPES_DIR = path.join(WORKSPACE_ROOT, "apps/cli/test/fixtures");
+
+export interface RunSummary {
+  id: string;
+  scenario: string;
+  recipe: string;
+  createdAt: number;
+}
+
+export async function listRunsFromDisk(outDir: string): Promise<RunSummary[]> {
+  let entries: string[];
+  try {
+    entries = await readdir(outDir);
+  } catch {
+    return [];
+  }
+  const summaries: RunSummary[] = [];
+  for (const id of entries) {
+    const dir = path.join(outDir, id);
+    try {
+      const s = await stat(dir);
+      if (!s.isDirectory()) continue;
+      const scoreRaw = await readFile(path.join(dir, "scorecard.json"), "utf8");
+      const sc = JSON.parse(scoreRaw) as { scenario: string; recipe: string };
+      summaries.push({ id, scenario: sc.scenario, recipe: sc.recipe, createdAt: s.mtimeMs });
+    } catch {
+      // skip dirs without a scorecard
+    }
+  }
+  return summaries.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** In-memory active-run registry (keyed by runId) — used by the SSE bridge */
+type ActiveRun = {
+  ticks: Tick[];
+  entries: TraceEntry[];
+  state: "running" | "complete" | "error";
+  error?: string;
+  scenarioId: string;
+  recipeName: string;
+};
+
+const active = new Map<string, ActiveRun>();
+type Listener = (snapshot: ActiveRun) => void;
+const listeners = new Map<string, Set<Listener>>();
+
+export function registerActiveRun(id: string, run: ActiveRun) {
+  active.set(id, run);
+}
+export function getActiveRun(id: string): ActiveRun | undefined { return active.get(id); }
+export function emitActiveRunUpdate(id: string) {
+  const run = active.get(id);
+  if (!run) return;
+  for (const fn of listeners.get(id) ?? []) fn(run);
+}
+export function subscribeActiveRun(id: string, fn: Listener) {
+  if (!listeners.has(id)) listeners.set(id, new Set());
+  listeners.get(id)!.add(fn);
+  return () => listeners.get(id)!.delete(fn);
+}
