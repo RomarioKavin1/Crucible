@@ -18,6 +18,7 @@ export class AgentINFTClient {
   private contract: InftContract;
 
   constructor(cfg: ChainConfig, signerOrProvider: ethers.Signer | ethers.Provider) {
+    // TODO(Task 9): AgentINFT will be added to ChainConfig.contracts; remove this cast then.
     this.contract = new ethers.Contract(
       (cfg.contracts as Record<string, string>)["AgentINFT"] ?? "",
       AGENT_INFT_ABI,
@@ -57,12 +58,14 @@ export class AgentINFTClient {
     return this.contract.isAuthorized(tokenId, signer);
   }
 
-  getDelegations(tokenId: bigint): Promise<string[]> {
-    return this.contract.getDelegations(tokenId);
+  async getDelegations(tokenId: bigint): Promise<string[]> {
+    const r = await this.contract.getDelegations(tokenId);
+    return (typeof (r as any).toArray === "function" ? (r as any).toArray() : r) as string[];
   }
 
-  tokensOf(owner: string): Promise<bigint[]> {
-    return this.contract.tokensOf(owner);
+  async tokensOf(owner: string): Promise<bigint[]> {
+    const r = await this.contract.tokensOf(owner);
+    return (typeof (r as any).toArray === "function" ? (r as any).toArray() : r) as bigint[];
   }
 
   async delegateAccess(tokenId: bigint, assistant: string): Promise<string> {
