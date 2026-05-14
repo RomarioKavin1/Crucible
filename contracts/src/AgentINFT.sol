@@ -60,9 +60,11 @@ contract AgentINFT {
 
     error NotOwner();
     error DelegationCapReached();
+    error InvalidAssistant();
 
     function delegateAccess(uint256 tokenId, address assistant) external {
         if (_owners[tokenId] != msg.sender) revert NotOwner();
+        if (assistant == address(0)) revert InvalidAssistant();
         if (_isDelegated[tokenId][assistant]) return; // idempotent
         if (_delegations[tokenId].length >= MAX_DELEGATIONS) revert DelegationCapReached();
         _delegations[tokenId].push(assistant);

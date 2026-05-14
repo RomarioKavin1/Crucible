@@ -97,6 +97,23 @@ contract AgentINFTTest is Test {
         assertEq(dels.length, 1);
     }
 
+    function test_CannotDelegateZeroAddress() public {
+        vm.prank(alice);
+        uint256 id = inft.mint("a", bytes32(0));
+        vm.prank(alice);
+        vm.expectRevert(AgentINFT.InvalidAssistant.selector);
+        inft.delegateAccess(id, address(0));
+    }
+
+    function test_RevokeNonDelegateIsNoop() public {
+        vm.prank(alice);
+        uint256 id = inft.mint("a", bytes32(0));
+        vm.prank(alice);
+        inft.revokeAccess(id, address(0xC0FFEE)); // never delegated — must not revert
+        address[] memory dels = inft.getDelegations(id);
+        assertEq(dels.length, 0);
+    }
+
     function test_DelegationCapEnforced() public {
         vm.startPrank(alice);
         uint256 id = inft.mint("a", bytes32(0));
