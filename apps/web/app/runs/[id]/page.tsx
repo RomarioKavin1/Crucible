@@ -1,5 +1,5 @@
-import { getRunRegistry } from "@/lib/chain";
-import { loadChainConfig, type Network } from "@crucible/og-client";
+import { getRunRegistry, CHAIN_CONFIG } from "@/lib/chain";
+import { type Network } from "@crucible/og-client";
 import { fmtSortino, fmtPct, fmtAddr, fromE6 } from "@/lib/format";
 import { ReplayClient } from "@/components/ReplayClient";
 import { V2RunReplay } from "@/components/V2RunReplay";
@@ -62,7 +62,7 @@ async function loadV2(runIdNum: bigint): Promise<CommonRun | null> {
   };
 }
 
-async function loadV1(runIdNum: bigint, cfg: Awaited<ReturnType<typeof loadChainConfig>>): Promise<CommonRun | null> {
+async function loadV1(runIdNum: bigint, cfg: typeof CHAIN_CONFIG): Promise<CommonRun | null> {
   try {
     const reg = await getRunRegistry();
     const r = (await reg.getRun(runIdNum)) as {
@@ -96,7 +96,7 @@ export default async function RunPage({ params, searchParams }: {
   params: { id: string };
   searchParams?: { source?: string };
 }) {
-  const cfg = await loadChainConfig(NETWORK);
+  const cfg = CHAIN_CONFIG;
   const id = BigInt(params.id);
   const forceV1 = searchParams?.source === "v1";
 
