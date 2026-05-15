@@ -8,6 +8,8 @@ Built for the **0G APAC Hackathon (May 2026)**.
 
 ---
 
+> **Want the full end-to-end flow** (every component, every data hop, every env var, where to look when things break)? See [`docs/FLOW.md`](docs/FLOW.md).
+
 ## Architecture (v2)
 
 ```
