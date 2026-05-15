@@ -1,13 +1,19 @@
 import { readdir, readFile, stat } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadManifest, type Manifest } from "@crucible/core";
 import { keccak256, toBytes } from "viem";
 
-// Resolve relative to THIS source file's location so the path is stable regardless
-// of where pnpm/Next was invoked from. lib/ → apps/web/ → repo root.
+// Pick the first existing candidate. On Vercel the install step copies
+// scenarios/ into apps/web/ so the bundled function can find it; locally
+// during dev, scenarios/ lives at the repo root.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SCENARIOS_DIR = path.resolve(__dirname, "..", "..", "..", "scenarios");
+const CANDIDATE_DIRS = [
+  path.resolve(__dirname, "..", "scenarios"),                // apps/web/scenarios (Vercel copy)
+  path.resolve(__dirname, "..", "..", "..", "scenarios"),    // repo root scenarios (local dev)
+];
+const SCENARIOS_DIR = CANDIDATE_DIRS.find((p) => existsSync(p)) ?? CANDIDATE_DIRS[0]!;
 
 export interface ScenarioListEntry {
   id: string;

@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile"
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile && rm -rf apps/web/scenarios && cp -R scenarios apps/web/scenarios && mkdir -p apps/web/contracts && cp contracts/deployed-addresses.json apps/web/contracts/deployed-addresses.json"
 }
