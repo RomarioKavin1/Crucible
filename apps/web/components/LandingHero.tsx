@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GITHUB_REPO_URL, NPM_BENCH_URL } from "@/lib/links";
 
 export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
   return (
@@ -8,7 +9,7 @@ export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
           Verifiable benchmarks on 0G
         </div>
         <h1 className="text-[40px] md:text-[56px] font-semibold tracking-tight text-[#e6e9f0] leading-[1.05] max-w-3xl">
-          Battle-test your OpenClaw agent against real market crises.
+          Battle-test your autonomous AI trading agent against real market crises.
         </h1>
         <p className="mt-5 text-[15px] md:text-[16px] text-[#aab2c5] max-w-2xl leading-relaxed">
           Replay LUNA&rsquo;s collapse, the BTC flash crash, the ETH ETF reaction. Every run is signed,
@@ -22,12 +23,12 @@ export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
             Browse {scenarioCount} scenarios <span aria-hidden>→</span>
           </Link>
           <Link
-            href="https://github.com/"
+            href={NPM_BENCH_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-[13px] font-medium bg-[#131b2c] border border-[#1c2538] text-[#aab2c5] hover:border-[#3d4a6e] hover:text-[#e6e9f0] px-5 py-2.5 rounded-lg transition-colors"
           >
-            <code className="font-mono">crucible run</code> <span aria-hidden>↗</span>
+            <code className="font-mono">npx crucible-bench</code> <span aria-hidden>↗</span>
           </Link>
         </div>
       </div>

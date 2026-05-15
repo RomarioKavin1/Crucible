@@ -6,6 +6,7 @@ import { V2RunReplay } from "@/components/V2RunReplay";
 import { publicClient, RUN_REGISTRY_V2_ADDRESS, AGENT_INFT_ADDRESS, ABIs, readIntelligentData } from "@/lib/contracts";
 import { ethers } from "ethers";
 import Link from "next/link";
+import { decodeScenarioHash } from "@/lib/scenarios";
 
 export const revalidate = 30;
 
@@ -42,13 +43,15 @@ async function loadV2(runIdNum: bigint): Promise<CommonRun | null> {
     const data = await readIntelligentData(r.tokenId);
     if (data.description) agentLabel = `Agent #${r.tokenId.toString()} — ${data.description}`;
   } catch {}
+  // Attempt to decode the bytes32 scenario hash back to a human-readable scenario id
+  const decodedScenario = await decodeScenarioHash(r.scenarioId).catch(() => null);
   return {
     source: "v2",
     runId: runIdNum.toString(),
     agentLabel,
     agentLink: `/agents/${r.tokenId.toString()}`,
-    scenarioId: r.scenarioId,                   // bytes32 (we hash scenario IDs in v2)
-    scenarioLink: undefined,                    // can't reverse a hash to scenario name
+    scenarioId: decodedScenario ?? r.scenarioId,
+    scenarioLink: decodedScenario ? `/scenarios/${decodedScenario}` : undefined,
     traceHash: r.traceRoot,
     sortino: Number(r.scoreSortinoE6) / 1e6,
     totalReturn: Number(r.totalReturnE6) / 1e6,
@@ -140,7 +143,11 @@ export default async function RunPage({ params, searchParams }: {
               {run.scenarioLink ? (
                 <Link href={run.scenarioLink} className="text-[#22d3ee] hover:underline">{run.scenarioId}</Link>
               ) : (
-                <span className="font-mono">{run.scenarioId.slice(0, 14)}…</span>
+                <span className="font-mono">
+                  {run.scenarioId.startsWith("0x")
+                    ? `${run.scenarioId.slice(0, 14)}…`
+                    : run.scenarioId}
+                </span>
               )}
               <span className="text-[#3a4456]">·</span>
               <Link href={run.agentLink} className="text-[#22d3ee] hover:underline">{run.agentLabel}</Link>

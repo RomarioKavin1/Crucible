@@ -2,6 +2,7 @@ import "../styles/globals.css";
 import { TerminalHeader } from "@crucible/ui-kit";
 import { Providers } from "@/components/Providers";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { GITHUB_REPO_URL } from "@/lib/links";
 
 export const metadata = {
   title: "Crucible — Proving Ground",
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               { label: "My Agents", href: "/my-agents" },
               { label: "Leaderboard", href: "/leaderboard" },
               { label: "Community", href: "/community" },
-              { label: "GitHub", href: "https://github.com/" },
+              { label: "GitHub", href: GITHUB_REPO_URL },
             ]}
             rightSlot={<WalletConnectButton />}
           />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { fetchAllRunsV2, fetchAllRuns, aggregateByAgent, listScenarios } from "@/lib/leaderboard";
 import { OverallTable } from "@/components/LeaderboardTable";
 import { ScenarioFilterTabs } from "@/components/ScenarioFilterTabs";
+import { buildScenarioHashMap, listScenarios as listLocalScenarios } from "@/lib/scenarios";
 
 export const revalidate = 30;
 
@@ -24,7 +25,11 @@ export default async function LeaderboardPage({ searchParams }: { searchParams?:
     );
   }
 
-  const runs = await fetchAllRunsV2();
+  const [runs, localScenarios] = await Promise.all([
+    fetchAllRunsV2(),
+    listLocalScenarios(),
+  ]);
+  const scenarioHashMap = buildScenarioHashMap(localScenarios.map((s) => s.id));
   const lastRun = runs.length ? runs.reduce((a, b) => (a.timestamp > b.timestamp ? a : b)) : null;
   const uniqueTokens = new Set(runs.map((r) => r.tokenId)).size;
   const uniqueScenarios = new Set(runs.map((r) => r.scenarioId)).size;
@@ -37,7 +42,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams?:
       {runs.length === 0 ? (
         <EmptyState />
       ) : (
-        <V2RunsTable rows={runs} />
+        <V2RunsTable rows={runs} scenarioHashMap={scenarioHashMap} />
       )}
     </div>
   );
@@ -103,7 +108,10 @@ function EmptyState() {
   );
 }
 
-function V2RunsTable({ rows }: { rows: { runId: string; tokenId: string; agentDescription: string; scenarioId: string; sortino: number; totalReturn: number; maxDrawdown: number }[] }) {
+function V2RunsTable({ rows, scenarioHashMap }: {
+  rows: { runId: string; tokenId: string; agentDescription: string; scenarioId: string; sortino: number; totalReturn: number; maxDrawdown: number }[];
+  scenarioHashMap: Map<string, string>;
+}) {
   return (
     <div className="overflow-x-auto bg-[#0f1623] border border-[#1c2538] rounded-2xl card-elevated">
       <table className="w-full text-sm">
@@ -119,27 +127,37 @@ function V2RunsTable({ rows }: { rows: { runId: string; tokenId: string; agentDe
           </tr>
         </thead>
         <tbody className="text-[#e6e9f0]">
-          {rows.map((r) => (
-            <tr key={r.runId} className="border-t border-[#1c253855] hover:bg-[#ffffff03] transition-colors">
-              <td className="px-5 py-3 font-mono text-[#6b7691] text-xs">#{r.runId}</td>
-              <td className="px-5 py-3">
-                <Link href={`/agents/${r.tokenId}`} className="text-[#22d3ee] hover:underline inline-flex items-center gap-1.5">
-                  <span>◆</span>
-                  <span>#{r.tokenId}</span>
-                </Link>
-                {r.agentDescription && <div className="text-[11px] text-[#6b7691] mt-0.5 truncate max-w-[160px]">{r.agentDescription}</div>}
-              </td>
-              <td className="px-5 py-3 font-mono text-[#6b7691] text-xs">{r.scenarioId.slice(0, 14)}…</td>
-              <td className="px-5 py-3 text-right font-mono tabular-nums">{r.sortino.toFixed(3)}</td>
-              <td className="px-5 py-3 text-right font-mono tabular-nums" style={{ color: r.totalReturn >= 0 ? "#10b981" : "#ef4444" }}>
-                <span className="text-[10px] mr-1">{r.totalReturn >= 0 ? "▲" : "▼"}</span>{Math.abs(r.totalReturn).toFixed(2)}%
-              </td>
-              <td className="px-5 py-3 text-right font-mono tabular-nums text-[#ef4444]">{Math.abs(r.maxDrawdown).toFixed(2)}%</td>
-              <td className="px-5 py-3 text-right">
-                <Link href={`/verify/${r.runId}`} className="text-xs text-[#22d3ee] hover:underline">audit →</Link>
-              </td>
-            </tr>
-          ))}
+          {rows.map((r) => {
+            const scenarioName = scenarioHashMap.get(r.scenarioId.toLowerCase());
+            const scenarioLabel = scenarioName ?? `${r.scenarioId.slice(0, 12)}…`;
+            return (
+              <tr key={r.runId} className="border-t border-[#1c253855] hover:bg-[#ffffff03] transition-colors">
+                <td className="px-5 py-3 font-mono text-[#6b7691] text-xs">#{r.runId}</td>
+                <td className="px-5 py-3">
+                  <Link href={`/agents/${r.tokenId}`} className="text-[#22d3ee] hover:underline inline-flex items-center gap-1.5">
+                    <span>◆</span>
+                    <span>#{r.tokenId}</span>
+                  </Link>
+                  {r.agentDescription && <div className="text-[11px] text-[#6b7691] mt-0.5 truncate max-w-[160px]">{r.agentDescription}</div>}
+                </td>
+                <td className="px-5 py-3 font-mono text-xs">
+                  {scenarioName ? (
+                    <Link href={`/scenarios/${scenarioName}`} className="text-[#22d3ee] hover:underline">{scenarioName}</Link>
+                  ) : (
+                    <span className="text-[#6b7691]">{scenarioLabel}</span>
+                  )}
+                </td>
+                <td className="px-5 py-3 text-right font-mono tabular-nums">{r.sortino.toFixed(3)}</td>
+                <td className="px-5 py-3 text-right font-mono tabular-nums" style={{ color: r.totalReturn >= 0 ? "#10b981" : "#ef4444" }}>
+                  <span className="text-[10px] mr-1">{r.totalReturn >= 0 ? "▲" : "▼"}</span>{Math.abs(r.totalReturn).toFixed(2)}%
+                </td>
+                <td className="px-5 py-3 text-right font-mono tabular-nums text-[#ef4444]">{Math.abs(r.maxDrawdown).toFixed(2)}%</td>
+                <td className="px-5 py-3 text-right">
+                  <Link href={`/verify/${r.runId}`} className="text-xs text-[#22d3ee] hover:underline">audit →</Link>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

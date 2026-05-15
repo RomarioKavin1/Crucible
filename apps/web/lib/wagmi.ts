@@ -9,7 +9,9 @@ export { galileo };
 
 export const wagmiConfig = getDefaultConfig({
   appName: "Crucible Bench",
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_ID ?? "REPLACE_ME",
+  // Public Reown demo project ID — works without setup but should be replaced with
+  // your own NEXT_PUBLIC_WALLETCONNECT_ID for production to avoid rate limits.
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_ID ?? "c4f79cc821944d9680842e34466bfbd",
   chains: [galileo],
   ssr: true,
 });
