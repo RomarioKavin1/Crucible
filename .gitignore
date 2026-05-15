@@ -17,3 +17,8 @@ contracts/cache/
 contracts/out/
 contracts/broadcast/
 .next/
+
+# Local skill installs / Claude Code config
+.agents/
+.claude/
+skills-lock.json

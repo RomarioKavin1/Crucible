@@ -125,7 +125,7 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-[#22d3ee]">
-              <span className={`inline-block w-1.5 h-1.5 rounded-full bg-[#22d3ee] ${isPlaying ? "shadow-[0_0_8px_#22d3ee] animate-pulse" : ""}`} />
+              <span className={`inline-block w-1.5 h-1.5 rounded-full bg-[#22d3ee] ${isPlaying ? "animate-pulse" : ""}`} />
               {isPlaying ? "Playing" : currentTick >= totalTicks - 1 ? "End" : "Paused"}
             </div>
           </div>

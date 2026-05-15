@@ -63,18 +63,32 @@ function Header({ source }: { source: "v1" | "v2" }) {
     <div className="flex items-end justify-between gap-6 flex-wrap">
       <div>
         <div className="text-[11px] uppercase tracking-[0.14em] text-[#6b7691] mb-1.5 font-medium">
-          {source === "v2" ? "Signed runs (v2)" : "Legacy runs (v1)"}
+          {source === "v2" ? "Signed runs" : "Legacy v1 runs"}
         </div>
-        <h1 className="text-[28px] font-semibold tracking-tight text-[#e6e9f0]">Leaderboard</h1>
-        <p className="text-[13px] text-[#aab2c5] mt-1.5 max-w-xl leading-relaxed">
+        <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#e6e9f0]">Leaderboard</h1>
+        <p className="text-[13px] text-[#aab2c5] mt-1.5 max-w-xl leading-[1.6]">
           {source === "v2"
-            ? "Ranked by Sortino ratio. Every entry is signed by the agent's INFT-authorized wallet and verifiable on-chain."
+            ? "Ranked by Sortino ratio. Every entry is signed by the agent's INFT-authorized wallet and recorded on 0G Galileo."
             : "Pre-v2 runs under the placeholder AgentRegistry. Kept for historical reference only."}
         </p>
       </div>
-      <div className="flex gap-2 text-sm">
-        <Link href="/leaderboard" className={`px-3 py-1.5 rounded ${source === "v2" ? "bg-white text-black" : "bg-[#0f1623] text-[#aab2c5] border border-[#1c2538]"}`}>v2 (signed)</Link>
-        <Link href="/leaderboard?source=v1" className={`px-3 py-1.5 rounded ${source === "v1" ? "bg-white text-black" : "bg-[#0f1623] text-[#aab2c5] border border-[#1c2538]"}`}>v1 (legacy)</Link>
+      <div className="inline-flex items-center gap-1 bg-[#0f1623] border border-[#1c2538] rounded-lg p-1">
+        <Link
+          href="/leaderboard"
+          className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-colors ${
+            source === "v2" ? "bg-[#22d3ee15] text-[#22d3ee] border border-[#22d3ee44]" : "text-[#6b7691] hover:text-[#aab2c5]"
+          }`}
+        >
+          Active
+        </Link>
+        <Link
+          href="/leaderboard?source=v1"
+          className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-colors ${
+            source === "v1" ? "bg-[#22d3ee15] text-[#22d3ee] border border-[#22d3ee44]" : "text-[#6b7691] hover:text-[#aab2c5]"
+          }`}
+        >
+          Archive
+        </Link>
       </div>
     </div>
   );

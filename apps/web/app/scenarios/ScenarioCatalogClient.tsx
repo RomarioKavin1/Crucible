@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
-import { ScenarioCard } from "@crucible/ui-kit";
 import { ScenarioFilters, type FilterValue } from "@/components/ScenarioFilters";
+import { AnimatedScenarioGrid } from "@/components/AnimatedScenarioGrid";
 import type { ScenarioListEntry } from "@/lib/scenarios";
 
 function dateLabel(entry: ScenarioListEntry): string | undefined {
@@ -27,37 +27,32 @@ export function ScenarioCatalogClient({
     return scenarios.filter((s) => s.asset.toUpperCase().startsWith(filter));
   }, [scenarios, filter]);
 
+  const cardItems = filtered.map((s) => {
+    const st = stats[s.id] ?? { trials: 0, bestSortino: null };
+    return {
+      id: s.id,
+      title: s.title,
+      asset: s.asset,
+      kind: s.kind,
+      durationTicks: s.durationTicks,
+      tickIntervalMs: s.tickIntervalMs,
+      previewPoints: s.previewPoints,
+      netMovePct: s.netMovePct,
+      bestSortino: st.bestSortino,
+      trials: st.trials,
+      recordedDateLabel: dateLabel(s),
+    };
+  });
+
   return (
     <div className="space-y-5">
       <ScenarioFilters value={filter} onChange={setFilter} />
-      {filtered.length === 0 ? (
+      {cardItems.length === 0 ? (
         <div className="bg-[#0f1623] border border-dashed border-[#1c2538] rounded-2xl p-12 text-center text-[#6b7691] text-[13px]">
           No scenarios match this filter.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((s) => {
-            const st = stats[s.id] ?? { trials: 0, bestSortino: null };
-            return (
-              <ScenarioCard
-                key={s.id}
-                data={{
-                  id: s.id,
-                  title: s.title,
-                  asset: s.asset,
-                  kind: s.kind,
-                  durationTicks: s.durationTicks,
-                  tickIntervalMs: s.tickIntervalMs,
-                  previewPoints: s.previewPoints,
-                  netMovePct: s.netMovePct,
-                  bestSortino: st.bestSortino,
-                  trials: st.trials,
-                  recordedDateLabel: dateLabel(s),
-                }}
-              />
-            );
-          })}
-        </div>
+        <AnimatedScenarioGrid items={cardItems} />
       )}
     </div>
   );
