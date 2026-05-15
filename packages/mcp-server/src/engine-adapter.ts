@@ -13,6 +13,11 @@ export interface SessionAction {
   reasoning: string;
   signature?: string;
   signer?: string;
+  // Full signed-message context — required so the trace contains everything
+  // needed to recover the EIP-712 signer offline.
+  runId?: string;
+  tickId?: number;
+  nonce?: bigint;
 }
 
 export interface Observation {
@@ -38,7 +43,16 @@ export interface ApplyActionResult {
 interface TraceLine {
   tickId: number;
   observation: Observation;
-  action: { kind: string; qty: string; reasoning: string };
+  action: {
+    kind: string;
+    qty: string;
+    reasoning: string;
+    // Full signed-message fields. Present iff the action was signed
+    // (i.e. came from a real agent via next_tick, not from internal advance).
+    runId?: string;
+    tickId?: number;
+    nonce?: string;
+  };
   signature: string | null;
   signer: string | null;
 }
@@ -136,6 +150,9 @@ export class EngineSession {
         kind: action.kind,
         qty: action.qty.toString(),
         reasoning: action.reasoning,
+        ...(action.runId !== undefined && { runId: action.runId }),
+        ...(action.tickId !== undefined && { tickId: action.tickId }),
+        ...(action.nonce !== undefined && { nonce: action.nonce.toString() }),
       },
       signature: action.signature ?? null,
       signer: action.signer ?? null,

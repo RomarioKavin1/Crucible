@@ -57,6 +57,7 @@ export async function handleNextTick(deps: HandleNextTickDeps): Promise<NextTick
   const fill = session.engine.applyAction({
     kind: input.kind, qty: BigInt(input.qty), reasoning: input.reasoning,
     signature: input.signature, signer: input.signer,
+    runId: input.runId, tickId: input.tickId, nonce: BigInt(input.nonce),
   });
   session.engine.advance();
 
