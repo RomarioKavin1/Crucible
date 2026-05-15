@@ -3,6 +3,8 @@ import Link from "next/link";
 import useSWR from "swr";
 import { readIntelligentData, readRunsByToken, readRun, readOwnerOf } from "@/lib/contracts";
 import { DelegationManager } from "@/components/DelegationManager";
+import { useActiveSession } from "@/lib/useActiveSessions";
+import { LiveRunBanner } from "@/components/LiveRunBanner";
 
 async function loadDetail(tokenId: bigint) {
   const [data, owner, runIds] = await Promise.all([
@@ -16,12 +18,14 @@ async function loadDetail(tokenId: bigint) {
 
 export function AgentDetailClient({ tokenId }: { tokenId: bigint }) {
   const { data, error, isLoading } = useSWR(["agent", tokenId.toString()], () => loadDetail(tokenId));
+  const liveSession = useActiveSession(tokenId);
   if (isLoading) return <main className="p-12 text-center">Loading…</main>;
   if (error) return <main className="p-12 text-center text-red-600">Error: {String(error)}</main>;
   if (!data) return null;
 
   return (
     <main className="max-w-3xl mx-auto py-12 space-y-8">
+      {liveSession && <LiveRunBanner session={liveSession} />}
       <header>
         <h1 className="text-3xl font-semibold">Agent #{tokenId.toString()}</h1>
         <p className="text-zinc-700 mt-1">{data.description || "No description"}</p>

@@ -5,6 +5,34 @@ import useSWR from "swr";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { readTokensOf, readIntelligentData, readRunsByToken } from "@/lib/contracts";
 import { InftMintForm } from "@/components/InftMintForm";
+import { useActiveSession } from "@/lib/useActiveSessions";
+
+function AgentRow({ a }: { a: { id: bigint; description: string; runs: number } }) {
+  const live = useActiveSession(a.id);
+  return (
+    <Link
+      href={`/agents/${a.id}`}
+      className="block p-4 border border-[#1c2538] rounded-xl bg-[#0f1623] hover:bg-[#141d2e] transition-colors"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="font-medium text-[#e6e9f0]">
+            #{a.id.toString()} — {a.description || "Unnamed agent"}
+          </div>
+          <div className="text-sm text-[#6b7691] mt-1">
+            {a.runs} run{a.runs === 1 ? "" : "s"}
+          </div>
+        </div>
+        {live && (
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#10b98115] border border-[#10b98140] text-[10px] font-medium uppercase tracking-wider text-[#10b981]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981] animate-pulse" />
+            Live
+          </span>
+        )}
+      </div>
+    </Link>
+  );
+}
 
 async function loadAgents(owner: `0x${string}`) {
   const tokenIds = await readTokensOf(owner);
@@ -39,10 +67,7 @@ export function MyAgentsClient() {
         <h2 className="font-semibold text-lg">Owned Agents</h2>
         {agents?.length === 0 && <p className="text-zinc-500">No agents yet. Mint one above.</p>}
         {agents?.map((a) => (
-          <Link key={a.id.toString()} href={`/agents/${a.id}`} className="block p-4 border border-[#1c2538] rounded-xl bg-[#0f1623] hover:bg-[#141d2e] transition-colors">
-            <div className="font-medium text-[#e6e9f0]">#{a.id.toString()} — {a.description || "Unnamed agent"}</div>
-            <div className="text-sm text-[#6b7691] mt-1">{a.runs} run{a.runs === 1 ? "" : "s"}</div>
-          </Link>
+          <AgentRow key={a.id.toString()} a={a} />
         ))}
       </section>
     </main>

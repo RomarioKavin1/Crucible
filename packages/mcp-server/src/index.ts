@@ -60,6 +60,23 @@ async function main() {
 
   app.get("/healthz", async () => ({ ok: true, service: "crucible-mcp", version: "2.0.0" }));
 
+  app.get("/active-sessions/:tokenId", async (req, reply) => {
+    const tokenId = BigInt((req.params as any).tokenId);
+    const active = sessions.listForToken(tokenId)
+      .filter((s) => s.status === "active")
+      .map((s) => ({
+        runId: s.runId,
+        scenarioId: s.scenarioId,
+        tokenId: s.tokenId.toString(),
+        startedAt: s.createdAt,
+        lastTickAt: s.lastTickAt,
+      }));
+    reply.header("access-control-allow-origin", "*");
+    reply.header("access-control-allow-headers", "*");
+    reply.header("access-control-allow-methods", "GET");
+    return { active };
+  });
+
   registerSpectator(app, sessions);
 
   await app.listen({ port: cfg.port, host: "0.0.0.0" });
