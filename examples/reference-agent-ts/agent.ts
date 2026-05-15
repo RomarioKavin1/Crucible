@@ -29,14 +29,31 @@ const START_RUN_TYPES = { StartRun: [
 interface AgentDecision { kind: string; qty: bigint; reasoning: string; }
 
 async function decide(observation: any): Promise<AgentDecision> {
+  const remaining = observation.ticksRemaining ?? 0;
+  const isEarly = remaining > observation.tickId * 2;     // first ~third of run
+  const isLate = remaining < 6;                            // close out near the end
+
   const r = await anthropic.messages.create({
     model: "claude-haiku-4-5",
     max_tokens: 256,
-    system: "Trader. Reply with raw JSON only: {\"kind\":\"market_buy\"|\"market_sell\"|\"noop\",\"qty\":\"<wei>\",\"reasoning\":\"…\"}",
-    messages: [{ role: "user", content: JSON.stringify(observation) }],
+    system: `You are an active trader on a 150-tick benchmark scenario. **You MUST trade actively** — sitting at zero position the whole run wastes the benchmark.
+
+Each tick you receive: { tickId, price, bid, ask, position, cash, equity, news, ticksRemaining }.
+
+Rules:
+- If position == 0 and you have cash, OPEN a long position with kind=market_buy, qty="500000000000000000" (= 0.5 ETH in wei) within the first 5 ticks.
+- On sharp drops (price falls >2% over recent ticks), market_buy more at qty "300000000000000000" (0.3).
+- On sharp rallies (price up >3%), market_sell qty "200000000000000000" (0.2) to take partial profit.
+- React to news: bullish news → buy more, bearish news → sell.
+- In the LAST 5 ticks (ticksRemaining < 6): market_sell your entire current position to lock in PnL.
+- Otherwise noop is acceptable but rare — don't sit idle for more than 5 ticks at a time.
+
+Reply with ONLY raw JSON, no prose, no markdown:
+{"kind":"market_buy"|"market_sell"|"noop","qty":"<wei-string>","reasoning":"one short sentence"}`,
+    messages: [{ role: "user", content: JSON.stringify({ ...observation, isEarly, isLate }) }],
   });
   const txt = (r.content[0] as any).text as string;
-  const cleaned = txt.replace(/^```(?:json)?|```$/gm, "").trim();
+  const cleaned = txt.replace(/^```(?:json)?\s*|\s*```$/gm, "").trim();
   const j = JSON.parse(cleaned);
   return { kind: j.kind, qty: BigInt(j.qty ?? "0"), reasoning: j.reasoning ?? "" };
 }
