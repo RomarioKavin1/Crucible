@@ -21,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               { label: "Scenarios", href: "/scenarios" },
               { label: "My Agents", href: "/my-agents" },
               { label: "Leaderboard", href: "/leaderboard" },
+              { label: "Docs", href: "/docs" },
               { label: "Community", href: "/community" },
               { label: "GitHub", href: GITHUB_REPO_URL },
             ]}
