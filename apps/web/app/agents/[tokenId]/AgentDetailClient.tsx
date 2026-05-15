@@ -3,6 +3,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { readIntelligentData, readRunsByToken, readRun, readOwnerOf } from "@/lib/contracts";
 import { DelegationManager } from "@/components/DelegationManager";
+import { CredentialsGenerator } from "@/components/CredentialsGenerator";
 import { useActiveSession } from "@/lib/useActiveSessions";
 import { LiveRunBanner } from "@/components/LiveRunBanner";
 
@@ -35,6 +36,7 @@ export function AgentDetailClient({ tokenId }: { tokenId: bigint }) {
         Start a Benchmark Run
       </Link>
       <DelegationManager tokenId={tokenId} />
+      <CredentialsGenerator tokenId={tokenId} />
       <section>
         <h2 className="font-semibold mb-3">Run History</h2>
         {data.runs.length === 0 && <p className="text-zinc-500">No published runs yet.</p>}
