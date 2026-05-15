@@ -27,10 +27,10 @@ cd Crucible/examples/reference-agent-ts && pnpm install && pnpm start`;
 { "mcpServers": { "crucible": { "url": "${mcpUrl}" } } }`;
 
   return (
-    <div className="border rounded">
-      <div className="flex border-b">
+    <div className="border border-[#1c2538] rounded-xl bg-[#0f1623]">
+      <div className="flex border-b border-[#1c2538]">
         {TABS.map((t) => (
-          <button key={t} className={`px-4 py-2 text-sm ${tab === t ? "bg-zinc-100 font-medium" : "text-zinc-600"}`}
+          <button key={t} className={`px-4 py-2 text-sm ${tab === t ? "bg-[#1c2538] font-medium text-[#e6e9f0]" : "text-[#6b7691] hover:text-[#aab2c5]"} transition-colors`}
             onClick={() => setTab(t)}>{t}</button>
         ))}
       </div>

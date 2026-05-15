@@ -1,6 +1,6 @@
 // apps/web/lib/contracts.ts
 import { createPublicClient, http } from "viem";
-import { galileo } from "./wagmi";
+import { galileo } from "./chains";
 import deployedAddresses from "../../../contracts/deployed-addresses.json";
 
 const v2 = (deployedAddresses as Record<string, Record<string, string>>)["galileoV2"] ?? {};

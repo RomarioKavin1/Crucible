@@ -59,10 +59,10 @@ export async function handleNextTick(deps: HandleNextTickDeps): Promise<NextTick
     signature: input.signature, signer: input.signer,
   });
   session.engine.advance();
-  session.events.emit("tick", { tickId: input.tickId, action: input, fill });
 
   if (session.engine.isDone()) {
     const { scorecard, traceJsonl } = session.engine.finalize();
+    session.events.emit("tick", { tickId: input.tickId, action: input, fill, observation: null });
     session.events.emit("done", { scorecard, traceJsonl });
     return {
       tickId: input.tickId,
@@ -75,6 +75,8 @@ export async function handleNextTick(deps: HandleNextTickDeps): Promise<NextTick
   }
 
   const obs = session.engine.currentObservation();
+  // Include the post-advance observation so spectators can chart price + equity.
+  session.events.emit("tick", { tickId: input.tickId, action: input, fill, observation: obs });
   return {
     tickId: input.tickId,
     fill,

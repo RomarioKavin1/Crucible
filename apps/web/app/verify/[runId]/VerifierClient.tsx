@@ -80,12 +80,12 @@ export function VerifierClient({ runId }: { runId: string }) {
       <h1 className="text-3xl font-semibold">Verify Run #{runId}</h1>
       <p className="text-zinc-600">Pulls the trace from 0G Storage, verifies trace root + EIP-712 signatures + INFT authorization for every signed entry. No trust in Crucible required.</p>
       <button onClick={audit} disabled={status === "running"}
-        className="px-6 py-3 bg-black text-white rounded disabled:opacity-50">
+        className="px-6 py-3 bg-[#22d3ee] text-[#0a0e17] rounded font-medium hover:bg-[#67e8f9] disabled:opacity-50 transition-colors">
         {status === "running" ? "Auditing…" : "Run audit"}
       </button>
       {result && (
         <div className="space-y-2">
-          {result.error && <div className="p-4 border rounded bg-red-50 text-red-700">{result.error}</div>}
+          {result.error && <div className="p-4 bg-[#ef444415] border border-[#ef444440] text-[#ef4444] rounded-xl">{result.error}</div>}
           {!result.error && (
             <ul className="space-y-1 text-sm">
               <li>{result.rootMatches ? "✓" : "✗"} Trace root matches sha256(trace)</li>

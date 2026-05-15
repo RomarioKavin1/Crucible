@@ -39,9 +39,9 @@ export function MyAgentsClient() {
         <h2 className="font-semibold text-lg">Owned Agents</h2>
         {agents?.length === 0 && <p className="text-zinc-500">No agents yet. Mint one above.</p>}
         {agents?.map((a) => (
-          <Link key={a.id.toString()} href={`/agents/${a.id}`} className="block p-4 border rounded hover:bg-zinc-50">
-            <div className="font-medium">#{a.id.toString()} — {a.description || "Unnamed agent"}</div>
-            <div className="text-sm text-zinc-500 mt-1">{a.runs} run{a.runs === 1 ? "" : "s"}</div>
+          <Link key={a.id.toString()} href={`/agents/${a.id}`} className="block p-4 border border-[#1c2538] rounded-xl bg-[#0f1623] hover:bg-[#141d2e] transition-colors">
+            <div className="font-medium text-[#e6e9f0]">#{a.id.toString()} — {a.description || "Unnamed agent"}</div>
+            <div className="text-sm text-[#6b7691] mt-1">{a.runs} run{a.runs === 1 ? "" : "s"}</div>
           </Link>
         ))}
       </section>

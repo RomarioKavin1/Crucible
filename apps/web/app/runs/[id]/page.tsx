@@ -2,30 +2,116 @@ import { getRunRegistry } from "@/lib/chain";
 import { loadChainConfig, type Network } from "@crucible/og-client";
 import { fmtSortino, fmtPct, fmtAddr, fromE6 } from "@/lib/format";
 import { ReplayClient } from "@/components/ReplayClient";
+import { V2RunReplay } from "@/components/V2RunReplay";
+import { publicClient, RUN_REGISTRY_V2_ADDRESS, AGENT_INFT_ADDRESS, ABIs, readIntelligentData } from "@/lib/contracts";
 import { ethers } from "ethers";
 import Link from "next/link";
 
-export const revalidate = 300;
+export const revalidate = 30;
 
 const NETWORK: Network = (process.env["NEXT_PUBLIC_OG_NETWORK"] as Network) ?? "galileo";
 const EXPLORER = NETWORK === "mainnet" ? "https://chainscan.0g.ai" : "https://chainscan-galileo.0g.ai";
 
-export default async function RunPage({ params }: { params: { id: string } }) {
-  const reg = await getRunRegistry();
-  const run = (await reg.getRun(BigInt(params.id))) as {
-    agentId: bigint; scenarioId: string; recipeHash: string; traceHash: string;
-    scoreSortinoE6: bigint; totalReturnE6: bigint; maxDrawdownE6: bigint;
-    timestamp: bigint; teeAttestation: string; recordedBy: string;
+interface CommonRun {
+  source: "v1" | "v2";
+  runId: string;
+  agentLabel: string;
+  agentLink: string;
+  scenarioId: string;       // string (decoded for v1, hex for v2)
+  scenarioLink?: string;
+  recipeHash?: string;
+  traceHash: string;
+  sortino: number;
+  totalReturn: number;
+  maxDrawdown: number;
+  timestamp: number;
+  recordedBy: string;
+  registryAddress: string;
+}
+
+async function loadV2(runIdNum: bigint): Promise<CommonRun | null> {
+  const total = await publicClient.readContract({
+    address: RUN_REGISTRY_V2_ADDRESS, abi: ABIs.RUN_REGISTRY_V2_ABI, functionName: "totalRuns",
+  }) as bigint;
+  if (runIdNum > total || runIdNum === 0n) return null;
+  const r = await publicClient.readContract({
+    address: RUN_REGISTRY_V2_ADDRESS, abi: ABIs.RUN_REGISTRY_V2_ABI, functionName: "getRun", args: [runIdNum],
+  }) as any;
+  let agentLabel = `Agent #${r.tokenId.toString()}`;
+  try {
+    const data = await readIntelligentData(r.tokenId);
+    if (data.description) agentLabel = `Agent #${r.tokenId.toString()} — ${data.description}`;
+  } catch {}
+  return {
+    source: "v2",
+    runId: runIdNum.toString(),
+    agentLabel,
+    agentLink: `/agents/${r.tokenId.toString()}`,
+    scenarioId: r.scenarioId,                   // bytes32 (we hash scenario IDs in v2)
+    scenarioLink: undefined,                    // can't reverse a hash to scenario name
+    traceHash: r.traceRoot,
+    sortino: Number(r.scoreSortinoE6) / 1e6,
+    totalReturn: Number(r.totalReturnE6) / 1e6,
+    maxDrawdown: Number(r.maxDrawdownE6) / 1e6,
+    timestamp: Number(r.timestamp),
+    recordedBy: r.recordedBy,
+    registryAddress: RUN_REGISTRY_V2_ADDRESS,
   };
+}
+
+async function loadV1(runIdNum: bigint, cfg: Awaited<ReturnType<typeof loadChainConfig>>): Promise<CommonRun | null> {
+  try {
+    const reg = await getRunRegistry();
+    const r = (await reg.getRun(runIdNum)) as {
+      agentId: bigint; scenarioId: string; recipeHash: string; traceHash: string;
+      scoreSortinoE6: bigint; totalReturnE6: bigint; maxDrawdownE6: bigint;
+      timestamp: bigint; teeAttestation: string; recordedBy: string;
+    };
+    const scenarioId = ethers.decodeBytes32String(r.scenarioId);
+    return {
+      source: "v1",
+      runId: runIdNum.toString(),
+      agentLabel: `Agent #${r.agentId.toString()} (v1)`,
+      agentLink: `/agents/${r.agentId.toString()}?source=v1`,
+      scenarioId,
+      scenarioLink: `/scenarios/${scenarioId}`,
+      recipeHash: r.recipeHash,
+      traceHash: r.traceHash,
+      sortino: fromE6(r.scoreSortinoE6),
+      totalReturn: fromE6(r.totalReturnE6),
+      maxDrawdown: fromE6(r.maxDrawdownE6),
+      timestamp: Number(r.timestamp),
+      recordedBy: r.recordedBy,
+      registryAddress: cfg.contracts.RunRegistry,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export default async function RunPage({ params, searchParams }: {
+  params: { id: string };
+  searchParams?: { source?: string };
+}) {
   const cfg = await loadChainConfig(NETWORK);
-  const scenarioId = ethers.decodeBytes32String(run.scenarioId);
-  const sortino = fromE6(run.scoreSortinoE6);
-  const totalReturn = fromE6(run.totalReturnE6);
-  const maxDrawdown = fromE6(run.maxDrawdownE6);
+  const id = BigInt(params.id);
+  const forceV1 = searchParams?.source === "v1";
+
+  let run = forceV1 ? await loadV1(id, cfg) : await loadV2(id);
+  if (!run && !forceV1) run = await loadV1(id, cfg);  // fallback if v2 didn't have it
+
+  if (!run) {
+    return (
+      <div className="space-y-6">
+        <Link href="/leaderboard" className="text-[12px] text-[#6b7691] hover:text-[#22d3ee]">← Back to leaderboard</Link>
+        <div className="p-8 text-center text-[#6b7691]">Run #{params.id} not found in v2 or v1 registry.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <Link href="/" className="text-[12px] text-[#6b7691] hover:text-[#22d3ee] transition-colors inline-flex items-center gap-1.5">
+      <Link href="/leaderboard" className="text-[12px] text-[#6b7691] hover:text-[#22d3ee] transition-colors inline-flex items-center gap-1.5">
         <span aria-hidden>←</span> Back to leaderboard
       </Link>
 
@@ -36,79 +122,84 @@ export default async function RunPage({ params }: { params: { id: string } }) {
             <div className="flex items-center gap-3">
               <span className="text-[#22d3ee] text-2xl leading-none">◆</span>
               <h1 className="text-[28px] font-semibold tracking-tight text-[#e6e9f0] leading-none">
-                Run #{params.id}
+                Run #{run.runId}
               </h1>
-              <span className="ml-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#10b98115] border border-[#10b98140] text-[10px] font-medium uppercase tracking-[0.1em] text-[#10b981]">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]" />
-                Attested
+              <span className={`ml-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium uppercase tracking-[0.1em] ${
+                run.source === "v2"
+                  ? "bg-[#10b98115] border border-[#10b98140] text-[#10b981]"
+                  : "bg-[#6b769115] border border-[#6b769140] text-[#aab2c5]"
+              }`}>
+                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{
+                  background: run.source === "v2" ? "#10b981" : "#aab2c5",
+                  boxShadow: run.source === "v2" ? "0 0 8px #10b981" : "none",
+                }} />
+                {run.source === "v2" ? "Signed (v2)" : "Legacy (v1)"}
               </span>
             </div>
             <div className="text-[12px] text-[#6b7691] flex items-center gap-2 flex-wrap">
-              <Link href={`/scenarios/${scenarioId}`} className="text-[#22d3ee] hover:underline">{scenarioId}</Link>
+              {run.scenarioLink ? (
+                <Link href={run.scenarioLink} className="text-[#22d3ee] hover:underline">{run.scenarioId}</Link>
+              ) : (
+                <span className="font-mono">{run.scenarioId.slice(0, 14)}…</span>
+              )}
               <span className="text-[#3a4456]">·</span>
-              <Link href={`/agents/${run.agentId.toString()}`} className="text-[#22d3ee] hover:underline">Agent #{run.agentId.toString()}</Link>
+              <Link href={run.agentLink} className="text-[#22d3ee] hover:underline">{run.agentLabel}</Link>
               <span className="text-[#3a4456]">·</span>
               <span>recorded by <code className="font-mono text-[#aab2c5]">{fmtAddr(run.recordedBy)}</code></span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <a
-              href={`/api/recipe/${run.recipeHash}`}
-              download
-              className="inline-flex items-center gap-1.5 text-[12px] font-medium bg-[#22d3ee] hover:bg-[#67e8f9] text-[#0a0e17] px-3.5 py-2 rounded-lg transition-colors shadow-sm"
-            >
-              Fork recipe <span aria-hidden>↗</span>
-            </a>
-            <a
-              href={`/api/trace/${run.traceHash}`}
-              download
-              className="inline-flex items-center gap-1.5 text-[12px] font-medium bg-[#131b2c] border border-[#1c2538] hover:border-[#3d4a6e] text-[#aab2c5] hover:text-[#e6e9f0] px-3.5 py-2 rounded-lg transition-colors"
-            >
-              Download trace <span aria-hidden>↗</span>
-            </a>
-          </div>
+          {run.source === "v2" && (
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/verify/${run.runId}`}
+                className="inline-flex items-center gap-1.5 text-[12px] font-medium bg-[#22d3ee] hover:bg-[#67e8f9] text-[#0a0e17] px-3.5 py-2 rounded-lg transition-colors shadow-sm"
+              >
+                Verify run <span aria-hidden>↗</span>
+              </Link>
+            </div>
+          )}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 border-t border-[#1c2538] divide-x divide-[#1c2538]">
-          <HeroStat label="Sortino" value={fmtSortino(sortino)} accent={sortino >= 0 ? "up" : "down"} primary />
-          <HeroStat label="Total return" value={fmtPct(totalReturn)} accent={totalReturn >= 0 ? "up" : "down"} />
-          <HeroStat label="Max drawdown" value={fmtPct(Math.abs(maxDrawdown))} accent="down" />
-          <HeroStat label="Scenario ticks" value="100" sub="recorded" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 border-t border-[#1c2538] divide-x divide-[#1c2538]">
+          <HeroStat label="Sortino" value={fmtSortino(run.sortino)} accent={run.sortino >= 0 ? "up" : "down"} primary />
+          <HeroStat label="Total return" value={fmtPct(run.totalReturn)} accent={run.totalReturn >= 0 ? "up" : "down"} />
+          <HeroStat label="Max drawdown" value={fmtPct(Math.abs(run.maxDrawdown))} accent="down" />
           <HeroStat
             label="Recorded"
-            value={new Date(Number(run.timestamp) * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-            sub={new Date(Number(run.timestamp) * 1000).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+            value={new Date(run.timestamp * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            sub={new Date(run.timestamp * 1000).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
           />
         </div>
       </div>
 
-      <ReplayClient traceHash={run.traceHash} scenarioId={scenarioId} />
+      {run.source === "v1" && run.scenarioLink && <ReplayClient traceHash={run.traceHash} scenarioId={run.scenarioId} />}
+      {run.source === "v2" && <V2RunReplay traceRoot={run.traceHash} />}
 
       {/* ON-CHAIN PROOF */}
       <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
         <div className="px-5 py-3 border-b border-[#1c2538] flex items-center justify-between">
           <span className="text-[12px] font-medium text-[#e6e9f0]">On-chain proof</span>
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691]">{NETWORK}</span>
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691]">{NETWORK} · {run.source}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#1c2538]">
           <ProofCell
             label="Run record"
-            value={`runId ${params.id}`}
-            sub="RunRegistry"
-            link={`${EXPLORER}/address/${cfg.contracts.RunRegistry}`}
+            value={`runId ${run.runId}`}
+            sub={run.source === "v2" ? "RunRegistryV2" : "RunRegistry"}
+            link={`${EXPLORER}/address/${run.registryAddress}`}
             linkLabel="View contract"
           />
           <ProofCell
             label="Trace blob"
             value={shortHash(run.traceHash, 10, 6)}
             sub="0G Storage root"
-            link={`/api/trace/${run.traceHash}`}
+            link={`https://indexer-storage-testnet-turbo.0g.ai/file?root=${run.traceHash}`}
             linkLabel="Download"
           />
           <ProofCell
-            label="Recipe hash"
-            value={shortHash(run.recipeHash, 10, 6)}
-            sub="committed in AgentRegistry"
-            link={`${EXPLORER}/address/${cfg.contracts.AgentRegistry}`}
+            label={run.source === "v2" ? "INFT contract" : "Recipe hash"}
+            value={run.source === "v2" ? shortHash(AGENT_INFT_ADDRESS, 10, 6) : shortHash(run.recipeHash ?? "", 10, 6)}
+            sub={run.source === "v2" ? "AgentINFT (ERC-7857)" : "committed in AgentRegistry"}
+            link={`${EXPLORER}/address/${run.source === "v2" ? AGENT_INFT_ADDRESS : (cfg.contracts.AgentRegistry)}`}
             linkLabel="View contract"
           />
         </div>

@@ -27,7 +27,7 @@ export function AgentDetailClient({ tokenId }: { tokenId: bigint }) {
         <p className="text-zinc-700 mt-1">{data.description || "No description"}</p>
         <p className="text-xs font-mono text-zinc-500 mt-2">Owner: {data.owner}</p>
       </header>
-      <Link href={`/agents/${tokenId}/start`} className="inline-block px-6 py-3 bg-black text-white rounded">
+      <Link href={`/agents/${tokenId}/start`} className="inline-block px-6 py-3 bg-[#22d3ee] text-[#0a0e17] rounded font-medium hover:bg-[#67e8f9] transition-colors">
         Start a Benchmark Run
       </Link>
       <DelegationManager tokenId={tokenId} />
@@ -37,7 +37,7 @@ export function AgentDetailClient({ tokenId }: { tokenId: bigint }) {
         <ul className="space-y-2">
           {data.runs.map(({ id, run }) => (
             <li key={id.toString()}>
-              <Link className="block p-3 border rounded hover:bg-zinc-50" href={`/runs/${id.toString()}`}>
+              <Link className="block p-4 border border-[#1c2538] rounded-xl bg-[#0f1623] hover:bg-[#141d2e] transition-colors" href={`/runs/${id.toString()}`}>
                 Run #{id.toString()} · Sortino {(Number(run.scoreSortinoE6) / 1e6).toFixed(3)}
               </Link>
             </li>

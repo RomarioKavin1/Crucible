@@ -13,7 +13,7 @@ export default function LoginPage() {
   return (
     <main className="max-w-xl mx-auto py-24 text-center">
       <h1 className="text-3xl font-semibold mb-4">Sign in to Crucible Bench</h1>
-      <p className="text-zinc-600 mb-8">Connect a 0G Galileo wallet to manage your agents.</p>
+      <p className="text-[#aab2c5] mb-8">Connect a 0G Galileo wallet to manage your agents.</p>
       <div className="flex justify-center">
         <ConnectButton />
       </div>

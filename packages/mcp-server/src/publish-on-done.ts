@@ -36,7 +36,7 @@ export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConf
         sess.events.emit("published", {
           runId: result.runId.toString(),
           txHash: result.txHash,
-          url: `https://cruciblebench.xyz/runs/${result.runId.toString()}`,
+          url: `${cfg.webPublicUrl}/runs/${result.runId.toString()}`,
         });
         sessions.markCompleted(runId);
       } catch (err) {

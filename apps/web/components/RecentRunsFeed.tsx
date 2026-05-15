@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fetchAllRuns } from "@/lib/leaderboard";
+import { fetchAllRunsV2 } from "@/lib/leaderboard";
 import { fmtSortino } from "@/lib/format";
 
 function timeAgo(ts: number): string {
@@ -11,7 +11,7 @@ function timeAgo(ts: number): string {
 }
 
 export async function RecentRunsFeed() {
-  const runs = await fetchAllRuns();
+  const runs = await fetchAllRunsV2();
   const recent = runs.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
 
   return (
@@ -31,9 +31,11 @@ export async function RecentRunsFeed() {
           {recent.map((r) => (
             <Link key={r.runId} href={`/runs/${r.runId}`} className="flex items-center justify-between px-5 py-3 hover:bg-[#ffffff03] transition-colors">
               <div className="flex items-center gap-3 text-[13px]">
-                <span className="text-[#22d3ee] font-medium">Agent #{r.agentId}</span>
+                <span className="text-[#22d3ee] font-medium">Token #{r.tokenId}</span>
                 <span className="text-[#3a4456]">·</span>
-                <span className="text-[#aab2c5]">{r.scenarioId}</span>
+                <span className="text-[#aab2c5]">{r.agentDescription || r.scenarioId}</span>
+                <span className="text-[#3a4456]">·</span>
+                <span className="text-[#6b7691]">{r.scenarioId}</span>
               </div>
               <div className="flex items-center gap-4">
                 <span className="font-mono text-[12px]" style={{ color: r.sortino >= 0 ? "#10b981" : "#ef4444" }}>

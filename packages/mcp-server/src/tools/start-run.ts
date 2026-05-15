@@ -22,6 +22,7 @@ export interface HandleStartRunDeps {
   scenariosDir?: string;   // defaults to repo's scenarios/
   startEngine?: (scenarioDir: string) => Promise<EngineSession>;
   input: StartRunInputT;
+  webPublicUrl?: string;   // base URL of the web UI (default http://localhost:3001)
 }
 
 export interface StartRunResult {
@@ -35,6 +36,7 @@ export async function handleStartRun(deps: HandleStartRunDeps): Promise<StartRun
   const { domain, inft, registry, input } = deps;
   const scenariosDir = deps.scenariosDir ?? path.resolve(process.cwd(), "scenarios");
   const startEngine = deps.startEngine ?? ((dir: string) => EngineSession.init({ scenarioDir: dir }));
+  const webPublicUrl = deps.webPublicUrl ?? "http://localhost:3001";
 
   const tokenId = BigInt(input.tokenId);
   const nonce = BigInt(input.nonce);
@@ -53,12 +55,16 @@ export async function handleStartRun(deps: HandleStartRunDeps): Promise<StartRun
   const scenarioDir = path.join(scenariosDir, input.scenarioId);
   const engine = await startEngine(scenarioDir);
   const runId = registry.create({ tokenId, signer: recovered, scenarioId: input.scenarioId, engine });
+  // Mark the start_run nonce as consumed so the next signed call (next_tick)
+  // expects nonce+1. Without this, the agent would have to either re-use nonce 1
+  // (replay risk) or know to skip a number — both fragile.
+  registry.checkAndAdvanceNonce(runId, nonce);
   const obs = engine.currentObservation();
 
   return {
     runId,
     ticksRemaining: obs.ticksRemaining,
     observation: obs,
-    spectatorUrl: `https://cruciblebench.xyz/runs/live/${runId}`,
+    spectatorUrl: `${webPublicUrl}/runs/live/${runId}`,
   };
 }

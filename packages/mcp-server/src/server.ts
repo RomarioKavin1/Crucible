@@ -56,7 +56,8 @@ export function buildMcpServer(ctx: McpServerCtx): Server {
       case "crucible.start_run":
         return { content: [{ type: "text", text: JSON.stringify(await handleStartRun({
           domain: ctx.cfg.domain, inft: ctx.cfg.inft, registry: ctx.sessions,
-          scenariosDir: ctx.cfg.scenariosDir, input: StartRunInput.parse(args),
+          scenariosDir: ctx.cfg.scenariosDir, webPublicUrl: ctx.cfg.webPublicUrl,
+          input: StartRunInput.parse(args),
         })) }] };
       case "crucible.next_tick":
         return { content: [{ type: "text", text: JSON.stringify(await handleNextTick({
@@ -70,6 +71,7 @@ export function buildMcpServer(ctx: McpServerCtx): Server {
       case "crucible.get_my_runs":
         return { content: [{ type: "text", text: JSON.stringify(await handleGetMyRuns({
           registry: ctx.cfg.runRegistry, tokenId: BigInt((args as any).tokenId),
+          webPublicUrl: ctx.cfg.webPublicUrl,
         })) }] };
       default:
         throw new Error(`Unknown tool: ${name}`);

@@ -1,9 +1,12 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadManifest, type Manifest } from "@crucible/core";
 
-const WORKSPACE_ROOT = process.env["INIT_CWD"] ?? path.resolve(process.cwd(), "..", "..");
-const SCENARIOS_DIR = path.join(WORKSPACE_ROOT, "scenarios");
+// Resolve relative to THIS source file's location so the path is stable regardless
+// of where pnpm/Next was invoked from. lib/ → apps/web/ → repo root.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCENARIOS_DIR = path.resolve(__dirname, "..", "..", "..", "scenarios");
 
 export interface ScenarioListEntry {
   id: string;
