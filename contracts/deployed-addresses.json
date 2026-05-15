@@ -10,5 +10,17 @@
     "RunRegistryV2": "0x80C1496980BA1183f8368F6072a130D7B01eDA7D",
     "RunRegistryV3": "0xe7d44754c73C29Ef95b9b0a37aa41471c0c9731a"
   },
-  "mainnet": {}
+  "mainnet": {
+    "_comment": "Populate after running `forge script script/DeployV3Mainnet.s.sol --rpc-url mainnet --broadcast`",
+    "ScenarioRegistry": "",
+    "AgentRegistry": "",
+    "RunRegistry": ""
+  },
+  "mainnetV2": {
+    "_comment": "Populate after running `forge script script/DeployV3Mainnet.s.sol --rpc-url mainnet --broadcast`. Until populated, the frontend will refuse to switch to mainnet via NEXT_PUBLIC_OG_NETWORK=mainnet and isMainnetReady() returns false.",
+    "ScenarioRegistry": "",
+    "AgentINFT": "",
+    "RunRegistryV2": "",
+    "RunRegistryV3": ""
+  }
 }

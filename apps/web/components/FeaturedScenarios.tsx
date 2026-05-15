@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ScenarioCard } from "@crucible/ui-kit";
 import { listScenarios, buildScenarioHashMap } from "@/lib/scenarios";
 import { fetchAllRunsV3 } from "@/lib/leaderboard";
+import { AnimatedScenarioGrid } from "@/components/AnimatedScenarioGrid";
 
 const FEATURED_IDS = ["luna-depeg-hour-1", "btc-flash-crash-dec-2024", "eth-etf-approval"];
 
@@ -13,7 +13,6 @@ export async function FeaturedScenarios() {
   const byId = new Map(all.map((s) => [s.id, s]));
   const featured = FEATURED_IDS.map((id) => byId.get(id)).filter((s): s is NonNullable<typeof s> => s !== undefined);
 
-  // Resolve bytes32 hashes back to scenario ids, then aggregate
   const hashMap = buildScenarioHashMap(all.map((s) => s.id));
   const stats = new Map<string, { trials: number; bestSortino: number | null }>();
   for (const r of runs) {
@@ -25,6 +24,19 @@ export async function FeaturedScenarios() {
     stats.set(name, cur);
   }
 
+  const items = featured.map((s) => {
+    const st = stats.get(s.id) ?? { trials: 0, bestSortino: null };
+    return {
+      id: s.id, title: s.title, asset: s.asset, kind: s.kind,
+      durationTicks: s.durationTicks, tickIntervalMs: s.tickIntervalMs,
+      previewPoints: s.previewPoints,
+      netMovePct: s.netMovePct,
+      bestSortino: st.bestSortino,
+      trials: st.trials,
+      recordedDateLabel: s.kind === "historical" ? new Date(s.windowStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined,
+    };
+  });
+
   return (
     <section className="space-y-4">
       <div className="flex items-baseline justify-between">
@@ -33,25 +45,7 @@ export async function FeaturedScenarios() {
           See all {all.length} →
         </Link>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {featured.map((s) => {
-          const st = stats.get(s.id) ?? { trials: 0, bestSortino: null };
-          return (
-            <ScenarioCard
-              key={s.id}
-              data={{
-                id: s.id, title: s.title, asset: s.asset, kind: s.kind,
-                durationTicks: s.durationTicks, tickIntervalMs: s.tickIntervalMs,
-                previewPoints: s.previewPoints,
-                netMovePct: s.netMovePct,
-                bestSortino: st.bestSortino,
-                trials: st.trials,
-                recordedDateLabel: s.kind === "historical" ? new Date(s.windowStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined,
-              }}
-            />
-          );
-        })}
-      </div>
+      <AnimatedScenarioGrid items={items} />
     </section>
   );
 }

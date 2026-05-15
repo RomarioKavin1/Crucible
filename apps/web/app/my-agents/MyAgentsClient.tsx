@@ -17,7 +17,7 @@ function AgentCard({ a }: { a: { id: bigint; description: string; runs: number }
         <div className="text-[10px] uppercase tracking-[0.14em] text-[#6b7691] font-medium font-mono">Agent #{a.id.toString()}</div>
         {live && (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#10b98115] border border-[#10b98140] text-[9.5px] font-medium uppercase tracking-wider text-[#10b981]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981] animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
             Live now
           </span>
         )}

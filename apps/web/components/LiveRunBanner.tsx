@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { motion } from "motion/react";
 import type { ActiveSession } from "@/lib/useActiveSessions";
 
 export function LiveRunBanner({ session }: { session: ActiveSession | null }) {
@@ -8,23 +9,31 @@ export function LiveRunBanner({ session }: { session: ActiveSession | null }) {
   return (
     <Link
       href={`/runs/live/${session.runId}`}
-      className="block bg-[#10b98115] border border-[#10b98140] rounded-xl px-5 py-3 hover:bg-[#10b98125] transition-colors group"
+      className="block bg-[#0f1623] border border-[#10b98140] rounded-xl px-5 py-3 [@media(hover:hover)and(pointer:fine)]:hover:border-[#10b98170] transition-colors group"
     >
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="inline-block w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_10px_#10b981] animate-pulse" />
+          {/* Subtle motion pulse — opacity only, no glow */}
+          <motion.span
+            className="inline-block w-2 h-2 rounded-full bg-[#10b981]"
+            animate={{ opacity: [0.45, 1, 0.45] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          />
           <div>
-            <div className="text-[13px] font-medium text-[#10b981]">
-              LIVE — Agent #{session.tokenId} on {scenarioLabel(session.scenarioId)}
+            <div className="text-[12px] font-medium text-[#10b981]">
+              <span className="uppercase tracking-[0.12em] mr-2">Live</span>
+              <span className="text-[#e6e9f0] font-medium normal-case">
+                Agent #{session.tokenId} · {scenarioLabel(session.scenarioId)}
+              </span>
             </div>
-            <div className="text-[11px] text-[#aab2c5] mt-0.5">
-              Last tick {ageSec}s ago · runId{" "}
-              <span className="font-mono">{session.runId.slice(0, 10)}…</span>
+            <div className="text-[11px] text-[#6b7691] mt-0.5">
+              Last tick {ageSec}s ago · run{" "}
+              <span className="font-mono text-[#aab2c5]">{session.runId.slice(0, 10)}…</span>
             </div>
           </div>
         </div>
-        <span className="text-[12px] text-[#10b981] group-hover:translate-x-0.5 transition-transform">
-          Watch live →
+        <span className="text-[12px] font-medium text-[#10b981] group-hover:translate-x-0.5 transition-transform">
+          Watch →
         </span>
       </div>
     </Link>

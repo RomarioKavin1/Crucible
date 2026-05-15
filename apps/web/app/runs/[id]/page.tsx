@@ -1,17 +1,16 @@
 import { getRunRegistry, CHAIN_CONFIG } from "@/lib/chain";
-import { type Network } from "@crucible/og-client";
 import { fmtSortino, fmtPct, fmtAddr, fromE6 } from "@/lib/format";
 import { ReplayClient } from "@/components/ReplayClient";
 import { V2RunReplay } from "@/components/V2RunReplay";
-import { publicClient, RUN_REGISTRY_V2_ADDRESS, AGENT_INFT_ADDRESS, ABIs, readIntelligentData } from "@/lib/contracts";
+import { publicClient, RUN_REGISTRY_V3_ADDRESS, AGENT_INFT_ADDRESS, ABIs, readIntelligentData } from "@/lib/contracts";
 import { ethers } from "ethers";
 import Link from "next/link";
 import { decodeScenarioHash } from "@/lib/scenarios";
+import { CURRENT_NETWORK, explorerAddress, storageDownload } from "@/lib/network";
 
 export const revalidate = 30;
 
-const NETWORK: Network = (process.env["NEXT_PUBLIC_OG_NETWORK"] as Network) ?? "galileo";
-const EXPLORER = NETWORK === "mainnet" ? "https://chainscan.0g.ai" : "https://chainscan-galileo.0g.ai";
+const NETWORK = CURRENT_NETWORK.id;
 
 interface CommonRun {
   source: "v1" | "v2";
@@ -32,11 +31,11 @@ interface CommonRun {
 
 async function loadV2(runIdNum: bigint): Promise<CommonRun | null> {
   const total = await publicClient.readContract({
-    address: RUN_REGISTRY_V2_ADDRESS, abi: ABIs.RUN_REGISTRY_V2_ABI, functionName: "totalRuns",
+    address: RUN_REGISTRY_V3_ADDRESS, abi: ABIs.RUN_REGISTRY_V3_ABI, functionName: "totalRuns",
   }) as bigint;
   if (runIdNum > total || runIdNum === 0n) return null;
   const r = await publicClient.readContract({
-    address: RUN_REGISTRY_V2_ADDRESS, abi: ABIs.RUN_REGISTRY_V2_ABI, functionName: "getRun", args: [runIdNum],
+    address: RUN_REGISTRY_V3_ADDRESS, abi: ABIs.RUN_REGISTRY_V3_ABI, functionName: "getRun", args: [runIdNum],
   }) as any;
   let agentLabel = `Agent #${r.tokenId.toString()}`;
   try {
@@ -58,7 +57,7 @@ async function loadV2(runIdNum: bigint): Promise<CommonRun | null> {
     maxDrawdown: Number(r.maxDrawdownE6) / 1e6,
     timestamp: Number(r.timestamp),
     recordedBy: r.recordedBy,
-    registryAddress: RUN_REGISTRY_V2_ADDRESS,
+    registryAddress: RUN_REGISTRY_V3_ADDRESS,
   };
 }
 
@@ -134,9 +133,8 @@ export default async function RunPage({ params, searchParams }: {
               }`}>
                 <span className="inline-block w-1.5 h-1.5 rounded-full" style={{
                   background: run.source === "v2" ? "#10b981" : "#aab2c5",
-                  boxShadow: run.source === "v2" ? "0 0 8px #10b981" : "none",
                 }} />
-                {run.source === "v2" ? "Signed (v2)" : "Legacy (v1)"}
+                {run.source === "v2" ? "Signed" : "Legacy"}
               </span>
             </div>
             <div className="text-[12px] text-[#6b7691] flex items-center gap-2 flex-wrap">
@@ -191,22 +189,22 @@ export default async function RunPage({ params, searchParams }: {
           <ProofCell
             label="Run record"
             value={`runId ${run.runId}`}
-            sub={run.source === "v2" ? "RunRegistryV2" : "RunRegistry"}
-            link={`${EXPLORER}/address/${run.registryAddress}`}
+            sub={run.source === "v2" ? "RunRegistryV3 · 0G Galileo" : "RunRegistry · 0G Galileo"}
+            link={explorerAddress(run.registryAddress)}
             linkLabel="View contract"
           />
           <ProofCell
             label="Trace blob"
             value={shortHash(run.traceHash, 10, 6)}
-            sub="0G Storage root"
-            link={`https://indexer-storage-testnet-turbo.0g.ai/file?root=${run.traceHash}`}
+            sub="Stored on 0G Storage"
+            link={storageDownload(run.traceHash)}
             linkLabel="Download"
           />
           <ProofCell
             label={run.source === "v2" ? "INFT contract" : "Recipe hash"}
             value={run.source === "v2" ? shortHash(AGENT_INFT_ADDRESS, 10, 6) : shortHash(run.recipeHash ?? "", 10, 6)}
             sub={run.source === "v2" ? "AgentINFT (ERC-7857)" : "committed in AgentRegistry"}
-            link={`${EXPLORER}/address/${run.source === "v2" ? AGENT_INFT_ADDRESS : (cfg.contracts.AgentRegistry)}`}
+            link={explorerAddress(run.source === "v2" ? AGENT_INFT_ADDRESS : (cfg.contracts.AgentRegistry))}
             linkLabel="View contract"
           />
         </div>

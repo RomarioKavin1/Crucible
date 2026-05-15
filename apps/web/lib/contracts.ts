@@ -1,9 +1,14 @@
 // apps/web/lib/contracts.ts
 import { createPublicClient, http } from "viem";
-import { galileo } from "./chains";
+import { activeChain } from "./chains";
+import { CURRENT_NETWORK } from "./network";
 import deployedAddresses from "../../../contracts/deployed-addresses.json";
 
-const v2 = (deployedAddresses as Record<string, Record<string, string>>)["galileoV2"] ?? {};
+// Pick the V2-tier slot (which holds AgentINFT + RunRegistryV3) for the
+// currently-active network. Falls back to galileoV2 if mainnet isn't ready
+// (network.ts has already logged the warning at that point).
+const v2Key = CURRENT_NETWORK.id === "mainnet" ? "mainnetV2" : "galileoV2";
+const v2 = (deployedAddresses as Record<string, Record<string, string>>)[v2Key] ?? {};
 export const AGENT_INFT_ADDRESS: `0x${string}` = v2["AgentINFT"] as `0x${string}`;
 export const RUN_REGISTRY_V2_ADDRESS: `0x${string}` = v2["RunRegistryV2"] as `0x${string}`;
 export const RUN_REGISTRY_V3_ADDRESS: `0x${string}` = v2["RunRegistryV3"] as `0x${string}`;
@@ -48,7 +53,7 @@ const RUN_REGISTRY_V2_ABI = [
   },
 ] as const;
 
-export const publicClient = createPublicClient({ chain: galileo, transport: http() });
+export const publicClient = createPublicClient({ chain: activeChain, transport: http() });
 
 export async function readTokensOf(owner: `0x${string}`): Promise<bigint[]> {
   return (await publicClient.readContract({

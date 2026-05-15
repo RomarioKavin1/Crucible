@@ -5,6 +5,7 @@ import { readIntelligentData, readRunsByToken, readRun, readOwnerOf } from "@/li
 import { ConnectAgentWizard } from "@/components/ConnectAgentWizard";
 import { useActiveSession } from "@/lib/useActiveSessions";
 import { LiveRunBanner } from "@/components/LiveRunBanner";
+import { explorerAddress } from "@/lib/network";
 
 async function loadDetail(tokenId: bigint) {
   const [data, owner, runIds] = await Promise.all([
@@ -59,7 +60,7 @@ export function AgentDetailClient({ tokenId }: { tokenId: bigint }) {
           <div className="text-[11.5px] text-[#6b7691] mt-2 font-mono">
             Owned by{" "}
             <a
-              href={`https://chainscan-galileo.0g.ai/address/${data.owner}`}
+              href={explorerAddress(data.owner)}
               target="_blank" rel="noopener noreferrer"
               className="text-[#aab2c5] hover:text-[#22d3ee] transition-colors"
             >

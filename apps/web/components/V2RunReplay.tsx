@@ -4,8 +4,7 @@ import {
   ScenarioReplay, AgentReasoningStream, TradesTable, EquityCurve, PlaybackControls,
 } from "@crucible/ui-kit";
 import type { TraceEntry, Tick, Portfolio, Fill } from "@crucible/core";
-
-const STORAGE_GATEWAY = "https://indexer-storage-testnet-turbo.0g.ai/file?root=";
+import { storageDownload } from "@/lib/network";
 const DEFAULT_TICK_INTERVAL_MS = 600;
 
 interface V2TraceLine {
@@ -113,7 +112,7 @@ export function V2RunReplay({ traceRoot }: { traceRoot: string }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(STORAGE_GATEWAY + traceRoot);
+        const res = await fetch(storageDownload(traceRoot));
         if (!res.ok) throw new Error(`storage ${res.status}`);
         const text = await res.text();
         const lines = text.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l) as V2TraceLine);
@@ -211,7 +210,7 @@ export function V2RunReplay({ traceRoot }: { traceRoot: string }) {
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-[#22d3ee]">
-              <span className={`inline-block w-1.5 h-1.5 rounded-full bg-[#22d3ee] ${isPlaying ? "shadow-[0_0_8px_#22d3ee] animate-pulse" : ""}`} />
+              <span className={`inline-block w-1.5 h-1.5 rounded-full bg-[#22d3ee] ${isPlaying ? "animate-pulse" : ""}`} />
               {isPlaying ? "Playing" : currentTick >= totalTicks - 1 ? "End" : "Paused"}
             </div>
           </div>

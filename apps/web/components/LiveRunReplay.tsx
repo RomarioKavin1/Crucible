@@ -148,7 +148,7 @@ export function LiveRunReplay({ frames }: { frames: Frame[] }) {
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-[#22d3ee]">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#22d3ee] shadow-[0_0_8px_#22d3ee] animate-pulse" />
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#22d3ee] animate-pulse" />
               Live
             </div>
           </div>

@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
+import { motion } from "motion/react";
 import { RunScenarioModal } from "./RunScenarioModal";
+import { PRESS_BUTTON } from "@/lib/motion";
 
 export function RunScenarioButton({
   scenarioId, scenarioTitle, size = "default",
@@ -16,14 +18,15 @@ export function RunScenarioButton({
 
   return (
     <>
-      <button
+      <motion.button
         type="button"
         onClick={() => setOpen(true)}
-        className={`inline-flex items-center gap-2 font-medium bg-[#22d3ee] hover:bg-[#67e8f9] text-[#0a0e17] rounded-lg transition-colors shadow-sm ${sizeClass}`}
+        {...PRESS_BUTTON}
+        className={`inline-flex items-center gap-2 font-medium bg-[#22d3ee] text-[#0a0e17] rounded-lg transition-colors [@media(hover:hover)and(pointer:fine)]:hover:bg-[#67e8f9] ${sizeClass}`}
       >
         <span aria-hidden>▶</span>
         Run this scenario
-      </button>
+      </motion.button>
       <RunScenarioModal
         scenarioId={scenarioId}
         scenarioTitle={scenarioTitle}

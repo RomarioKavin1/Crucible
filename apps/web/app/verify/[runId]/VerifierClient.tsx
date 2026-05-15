@@ -2,8 +2,7 @@
 import { useState } from "react";
 import { recoverTypedDataAddress } from "viem";
 import { publicClient, AGENT_INFT_ADDRESS, RUN_REGISTRY_V2_ADDRESS, ABIs, readRun } from "@/lib/contracts";
-
-const STORAGE_GATEWAY = "https://indexer-storage-testnet-turbo.0g.ai/file?root=";
+import { CURRENT_NETWORK, storageDownload } from "@/lib/network";
 
 const ACTION_TYPES = {
   Action: [
@@ -36,7 +35,7 @@ export function VerifierClient({ runId }: { runId: string }) {
     setResult(null);
     try {
       const run = await readRun(BigInt(runId));
-      const traceText = await fetch(STORAGE_GATEWAY + run.traceRoot).then((r) => {
+      const traceText = await fetch(storageDownload(run.traceRoot)).then((r) => {
         if (!r.ok) throw new Error(`storage fetch failed: ${r.status}`);
         return r.text();
       });
@@ -48,7 +47,7 @@ export function VerifierClient({ runId }: { runId: string }) {
       const rootMatches = traceHashHex.toLowerCase() === run.traceRoot.toLowerCase();
 
       const lines = traceText.trim().split("\n").filter(Boolean);
-      const domain = { name: "CrucibleBench", version: "2", chainId: 16602, verifyingContract: RUN_REGISTRY_V2_ADDRESS };
+      const domain = { name: "CrucibleBench", version: "2", chainId: CURRENT_NETWORK.chainId, verifyingContract: RUN_REGISTRY_V2_ADDRESS };
 
       let signedLines = 0;
       let verifiableLines = 0;
@@ -127,16 +126,20 @@ export function VerifierClient({ runId }: { runId: string }) {
   }
 
   return (
-    <main className="max-w-2xl mx-auto py-12 space-y-6">
-      <h1 className="text-3xl font-semibold">Verify Run #{runId}</h1>
-      <p className="text-zinc-600">
-        Pulls the trace from 0G Storage, verifies trace root + EIP-712 signatures + INFT
-        authorization for every signed entry. No trust in Crucible required.
-      </p>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <header>
+        <div className="text-[11px] uppercase tracking-[0.14em] text-[#6b7691] mb-1.5 font-medium">Audit</div>
+        <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[#e6e9f0]">Verify Run #{runId}</h1>
+        <p className="text-[13px] text-[#aab2c5] mt-2 leading-[1.6]">
+          Pulls the trace from <span className="text-[#22d3ee]">0G Storage</span>, recomputes the trace root,
+          recovers the EIP-712 signer of every action, and confirms each signer was authorized by the agent&rsquo;s
+          INFT at run time. Nothing here trusts Crucible.
+        </p>
+      </header>
       <button
         onClick={audit}
         disabled={status === "running"}
-        className="px-6 py-3 bg-[#22d3ee] text-[#0a0e17] rounded font-medium hover:bg-[#67e8f9] disabled:opacity-50 transition-colors"
+        className="px-5 py-2.5 text-[13px] font-medium bg-[#22d3ee] text-[#0a0e17] rounded-lg [@media(hover:hover)and(pointer:fine)]:hover:bg-[#67e8f9] disabled:opacity-50 transition-colors"
       >
         {status === "running" ? "Auditing…" : "Run audit"}
       </button>
@@ -191,7 +194,7 @@ export function VerifierClient({ runId }: { runId: string }) {
           )}
         </div>
       )}
-    </main>
+    </div>
   );
 }
 
