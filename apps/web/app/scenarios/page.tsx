@@ -1,10 +1,29 @@
-import { listScenarios } from "@/lib/scenarios";
+import { listScenarios, buildScenarioHashMap } from "@/lib/scenarios";
+import { fetchAllRunsV3 } from "@/lib/leaderboard";
 import { ScenarioCatalogClient } from "./ScenarioCatalogClient";
 
 export const revalidate = 300;
 
 export default async function ScenariosPage() {
-  const scenarios = await listScenarios();
+  const [scenarios, runs] = await Promise.all([
+    listScenarios(),
+    fetchAllRunsV3().catch(() => []),  // don't break the page if chain reads fail
+  ]);
+
+  // Resolve bytes32 scenario hashes back to scenario ids, then aggregate
+  // per-scenario trial count + best Sortino.
+  const hashMap = buildScenarioHashMap(scenarios.map((s) => s.id));
+  const stats = new Map<string, { trials: number; bestSortino: number | null }>();
+  for (const r of runs) {
+    const name = hashMap.get(r.scenarioId.toLowerCase());
+    if (!name) continue;
+    const cur = stats.get(name) ?? { trials: 0, bestSortino: null };
+    cur.trials += 1;
+    cur.bestSortino = cur.bestSortino === null ? r.sortino : Math.max(cur.bestSortino, r.sortino);
+    stats.set(name, cur);
+  }
+  const statsObj = Object.fromEntries(stats);
+
   return (
     <div className="space-y-6">
       <div>
@@ -15,7 +34,7 @@ export default async function ScenariosPage() {
           market data; synthetic scenarios are designed to isolate specific skills.
         </p>
       </div>
-      <ScenarioCatalogClient scenarios={scenarios} />
+      <ScenarioCatalogClient scenarios={scenarios} stats={statsObj} />
     </div>
   );
 }

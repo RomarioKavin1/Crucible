@@ -1,13 +1,29 @@
 import Link from "next/link";
 import { ScenarioCard } from "@crucible/ui-kit";
-import { listScenarios } from "@/lib/scenarios";
+import { listScenarios, buildScenarioHashMap } from "@/lib/scenarios";
+import { fetchAllRunsV3 } from "@/lib/leaderboard";
 
 const FEATURED_IDS = ["luna-depeg-hour-1", "btc-flash-crash-dec-2024", "eth-etf-approval"];
 
 export async function FeaturedScenarios() {
-  const all = await listScenarios();
+  const [all, runs] = await Promise.all([
+    listScenarios(),
+    fetchAllRunsV3().catch(() => []),
+  ]);
   const byId = new Map(all.map((s) => [s.id, s]));
   const featured = FEATURED_IDS.map((id) => byId.get(id)).filter((s): s is NonNullable<typeof s> => s !== undefined);
+
+  // Resolve bytes32 hashes back to scenario ids, then aggregate
+  const hashMap = buildScenarioHashMap(all.map((s) => s.id));
+  const stats = new Map<string, { trials: number; bestSortino: number | null }>();
+  for (const r of runs) {
+    const name = hashMap.get(r.scenarioId.toLowerCase());
+    if (!name) continue;
+    const cur = stats.get(name) ?? { trials: 0, bestSortino: null };
+    cur.trials += 1;
+    cur.bestSortino = cur.bestSortino === null ? r.sortino : Math.max(cur.bestSortino, r.sortino);
+    stats.set(name, cur);
+  }
 
   return (
     <section className="space-y-4">
@@ -18,19 +34,23 @@ export async function FeaturedScenarios() {
         </Link>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {featured.map((s) => (
-          <ScenarioCard
-            key={s.id}
-            data={{
-              id: s.id, title: s.title, asset: s.asset, kind: s.kind,
-              durationTicks: s.durationTicks, tickIntervalMs: s.tickIntervalMs,
-              previewPoints: s.previewPoints,
-              netMovePct: s.netMovePct,
-              bestSortino: null, trials: 0,
-              recordedDateLabel: s.kind === "historical" ? new Date(s.windowStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined,
-            }}
-          />
-        ))}
+        {featured.map((s) => {
+          const st = stats.get(s.id) ?? { trials: 0, bestSortino: null };
+          return (
+            <ScenarioCard
+              key={s.id}
+              data={{
+                id: s.id, title: s.title, asset: s.asset, kind: s.kind,
+                durationTicks: s.durationTicks, tickIntervalMs: s.tickIntervalMs,
+                previewPoints: s.previewPoints,
+                netMovePct: s.netMovePct,
+                bestSortino: st.bestSortino,
+                trials: st.trials,
+                recordedDateLabel: s.kind === "historical" ? new Date(s.windowStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : undefined,
+              }}
+            />
+          );
+        })}
       </div>
     </section>
   );

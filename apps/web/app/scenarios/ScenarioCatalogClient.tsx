@@ -10,7 +10,13 @@ function dateLabel(entry: ScenarioListEntry): string | undefined {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function ScenarioCatalogClient({ scenarios }: { scenarios: ScenarioListEntry[] }) {
+export function ScenarioCatalogClient({
+  scenarios,
+  stats,
+}: {
+  scenarios: ScenarioListEntry[];
+  stats: Record<string, { trials: number; bestSortino: number | null }>;
+}) {
   const [filter, setFilter] = useState<FilterValue>("all");
 
   const filtered = useMemo(() => {
@@ -30,24 +36,27 @@ export function ScenarioCatalogClient({ scenarios }: { scenarios: ScenarioListEn
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((s) => (
-            <ScenarioCard
-              key={s.id}
-              data={{
-                id: s.id,
-                title: s.title,
-                asset: s.asset,
-                kind: s.kind,
-                durationTicks: s.durationTicks,
-                tickIntervalMs: s.tickIntervalMs,
-                previewPoints: s.previewPoints,
-                netMovePct: s.netMovePct,
-                bestSortino: null,
-                trials: 0,
-                recordedDateLabel: dateLabel(s),
-              }}
-            />
-          ))}
+          {filtered.map((s) => {
+            const st = stats[s.id] ?? { trials: 0, bestSortino: null };
+            return (
+              <ScenarioCard
+                key={s.id}
+                data={{
+                  id: s.id,
+                  title: s.title,
+                  asset: s.asset,
+                  kind: s.kind,
+                  durationTicks: s.durationTicks,
+                  tickIntervalMs: s.tickIntervalMs,
+                  previewPoints: s.previewPoints,
+                  netMovePct: s.netMovePct,
+                  bestSortino: st.bestSortino,
+                  trials: st.trials,
+                  recordedDateLabel: dateLabel(s),
+                }}
+              />
+            );
+          })}
         </div>
       )}
     </div>
