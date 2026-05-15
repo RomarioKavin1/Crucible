@@ -3,6 +3,7 @@ import { fetchAllRunsV2, fetchAllRuns, aggregateByAgent, listScenarios } from "@
 import { OverallTable } from "@/components/LeaderboardTable";
 import { ScenarioFilterTabs } from "@/components/ScenarioFilterTabs";
 import { buildScenarioHashMap, listScenarios as listLocalScenarios } from "@/lib/scenarios";
+import { LeaderboardClient, type V2Row } from "./LeaderboardClient";
 
 export const revalidate = 30;
 
@@ -34,6 +35,12 @@ export default async function LeaderboardPage({ searchParams }: { searchParams?:
   const uniqueTokens = new Set(runs.map((r) => r.tokenId)).size;
   const uniqueScenarios = new Set(runs.map((r) => r.scenarioId)).size;
 
+  // Resolve scenario hashes to names once on the server.
+  const enriched: V2Row[] = runs.map((r) => ({
+    ...r,
+    scenarioName: scenarioHashMap.get(r.scenarioId.toLowerCase()) ?? null,
+  }));
+
   return (
     <div className="space-y-6">
       <Header source="v2" />
@@ -42,7 +49,10 @@ export default async function LeaderboardPage({ searchParams }: { searchParams?:
       {runs.length === 0 ? (
         <EmptyState />
       ) : (
-        <V2RunsTable rows={runs} scenarioHashMap={scenarioHashMap} />
+        <LeaderboardClient
+          rows={enriched}
+          scenarios={localScenarios.map((s) => ({ id: s.id, title: s.title }))}
+        />
       )}
     </div>
   );
@@ -58,7 +68,7 @@ function Header({ source }: { source: "v1" | "v2" }) {
         <h1 className="text-[28px] font-semibold tracking-tight text-[#e6e9f0]">Leaderboard</h1>
         <p className="text-[13px] text-[#aab2c5] mt-1.5 max-w-xl leading-relaxed">
           {source === "v2"
-            ? "Every entry is signed by the agent's INFT-authorized wallet and verifiable on-chain."
+            ? "Ranked by Sortino ratio. Every entry is signed by the agent's INFT-authorized wallet and verifiable on-chain."
             : "Pre-v2 runs under the placeholder AgentRegistry. Kept for historical reference only."}
         </p>
       </div>
@@ -104,62 +114,6 @@ function EmptyState() {
       <p className="text-[12px] text-[#6b7691]">
         Run an agent via the MCP server with <code className="font-mono text-[#22d3ee] bg-[#22d3ee0a] px-1.5 py-0.5 rounded">start_run</code> to appear here.
       </p>
-    </div>
-  );
-}
-
-function V2RunsTable({ rows, scenarioHashMap }: {
-  rows: { runId: string; tokenId: string; agentDescription: string; scenarioId: string; sortino: number; totalReturn: number; maxDrawdown: number }[];
-  scenarioHashMap: Map<string, string>;
-}) {
-  return (
-    <div className="overflow-x-auto bg-[#0f1623] border border-[#1c2538] rounded-2xl card-elevated">
-      <table className="w-full text-sm">
-        <thead className="text-left text-[10px] uppercase tracking-[0.12em] text-[#6b7691]">
-          <tr>
-            <th className="px-5 py-3 font-medium">Run</th>
-            <th className="px-5 py-3 font-medium">Agent</th>
-            <th className="px-5 py-3 font-medium">Scenario</th>
-            <th className="px-5 py-3 font-medium text-right">Sortino</th>
-            <th className="px-5 py-3 font-medium text-right">Return</th>
-            <th className="px-5 py-3 font-medium text-right">Max DD</th>
-            <th className="px-5 py-3 font-medium text-right">Verify</th>
-          </tr>
-        </thead>
-        <tbody className="text-[#e6e9f0]">
-          {rows.map((r) => {
-            const scenarioName = scenarioHashMap.get(r.scenarioId.toLowerCase());
-            const scenarioLabel = scenarioName ?? `${r.scenarioId.slice(0, 12)}…`;
-            return (
-              <tr key={r.runId} className="border-t border-[#1c253855] hover:bg-[#ffffff03] transition-colors">
-                <td className="px-5 py-3 font-mono text-[#6b7691] text-xs">#{r.runId}</td>
-                <td className="px-5 py-3">
-                  <Link href={`/agents/${r.tokenId}`} className="text-[#22d3ee] hover:underline inline-flex items-center gap-1.5">
-                    <span>◆</span>
-                    <span>#{r.tokenId}</span>
-                  </Link>
-                  {r.agentDescription && <div className="text-[11px] text-[#6b7691] mt-0.5 truncate max-w-[160px]">{r.agentDescription}</div>}
-                </td>
-                <td className="px-5 py-3 font-mono text-xs">
-                  {scenarioName ? (
-                    <Link href={`/scenarios/${scenarioName}`} className="text-[#22d3ee] hover:underline">{scenarioName}</Link>
-                  ) : (
-                    <span className="text-[#6b7691]">{scenarioLabel}</span>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-right font-mono tabular-nums">{r.sortino.toFixed(3)}</td>
-                <td className="px-5 py-3 text-right font-mono tabular-nums" style={{ color: r.totalReturn >= 0 ? "#10b981" : "#ef4444" }}>
-                  <span className="text-[10px] mr-1">{r.totalReturn >= 0 ? "▲" : "▼"}</span>{Math.abs(r.totalReturn).toFixed(2)}%
-                </td>
-                <td className="px-5 py-3 text-right font-mono tabular-nums text-[#ef4444]">{Math.abs(r.maxDrawdown).toFixed(2)}%</td>
-                <td className="px-5 py-3 text-right">
-                  <Link href={`/verify/${r.runId}`} className="text-xs text-[#22d3ee] hover:underline">audit →</Link>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }
