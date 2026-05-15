@@ -180,7 +180,7 @@ export function ReplayClient({ traceHash, scenarioId }: { traceHash: string; sce
             </div>
           ) : (
             <ReasoningFocus
-              entry={entryAtTick}
+              entry={entryAtTick!}
               currentTick={currentTick}
               totalTicks={totalTicks}
               onPrev={() => handleStep(-1)}
