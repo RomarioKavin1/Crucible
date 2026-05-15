@@ -43,7 +43,7 @@ describe("handleStartRun", () => {
       currentObservation: () => ({ tickId: 0, price: 100, ticksRemaining: 10 }),
     };
     const startEngine = vi.fn().mockResolvedValue(fakeEngine);
-    const reg: any = { create: vi.fn().mockReturnValue("0xrun123") };
+    const reg: any = { create: vi.fn().mockReturnValue("0xrun123"), checkAndAdvanceNonce: vi.fn().mockReturnValue(true) };
     const out = await handleStartRun({
       domain, inft, registry: reg, startEngine,
       input: { scenarioId: "tiny", tokenId: "42", nonce: "1", signature: sig, signer: wallet.address },
