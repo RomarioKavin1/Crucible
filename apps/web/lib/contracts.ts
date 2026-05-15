@@ -6,6 +6,7 @@ import deployedAddresses from "../../../contracts/deployed-addresses.json";
 const v2 = (deployedAddresses as Record<string, Record<string, string>>)["galileoV2"] ?? {};
 export const AGENT_INFT_ADDRESS: `0x${string}` = v2["AgentINFT"] as `0x${string}`;
 export const RUN_REGISTRY_V2_ADDRESS: `0x${string}` = v2["RunRegistryV2"] as `0x${string}`;
+export const RUN_REGISTRY_V3_ADDRESS: `0x${string}` = v2["RunRegistryV3"] as `0x${string}`;
 
 const AGENT_INFT_ABI = [
   { type: "function", name: "tokensOf", stateMutability: "view", inputs: [{ name: "o", type: "address" }], outputs: [{ type: "uint256[]" }] },
@@ -104,4 +105,36 @@ export async function readRun(runId: bigint) {
   });
 }
 
-export const ABIs = { AGENT_INFT_ABI, RUN_REGISTRY_V2_ABI };
+const RUN_REGISTRY_V3_ABI = [
+  { type: "function", name: "getRunsByToken", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "uint256[]" }] },
+  { type: "function", name: "getRunsByScenario", stateMutability: "view", inputs: [{ name: "id", type: "bytes32" }], outputs: [{ type: "uint256[]" }] },
+  { type: "function", name: "totalRuns", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "agentINFT", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+  {
+    type: "function",
+    name: "getRun",
+    stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [
+      {
+        type: "tuple",
+        components: [
+          { name: "tokenId", type: "uint256" },
+          { name: "scenarioId", type: "bytes32" },
+          { name: "traceRoot", type: "bytes32" },
+          { name: "scorecardHash", type: "bytes32" },
+          { name: "scoreSortinoE6", type: "int256" },
+          { name: "totalReturnE6", type: "int256" },
+          { name: "maxDrawdownE6", type: "int256" },
+          { name: "timestamp", type: "uint64" },
+          { name: "recordedBy", type: "address" },
+          { name: "model", type: "string" },
+          { name: "framework", type: "string" },
+          { name: "agentVersion", type: "string" },
+        ],
+      },
+    ],
+  },
+] as const;
+
+export const ABIs = { AGENT_INFT_ABI, RUN_REGISTRY_V2_ABI, RUN_REGISTRY_V3_ABI };

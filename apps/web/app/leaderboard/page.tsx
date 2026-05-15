@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fetchAllRunsV2, fetchAllRuns, aggregateByAgent, listScenarios } from "@/lib/leaderboard";
+import { fetchAllRunsV3, fetchAllRuns, aggregateByAgent, listScenarios } from "@/lib/leaderboard";
 import { OverallTable } from "@/components/LeaderboardTable";
 import { ScenarioFilterTabs } from "@/components/ScenarioFilterTabs";
 import { buildScenarioHashMap, listScenarios as listLocalScenarios } from "@/lib/scenarios";
@@ -27,7 +27,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams?:
   }
 
   const [runs, localScenarios] = await Promise.all([
-    fetchAllRunsV2(),
+    fetchAllRunsV3(),
     listLocalScenarios(),
   ]);
   const scenarioHashMap = buildScenarioHashMap(localScenarios.map((s) => s.id));

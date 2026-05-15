@@ -57,3 +57,13 @@ export const RUN_REGISTRY_V2_ABI = [
   "function getRunsByScenario(bytes32 scenarioId) view returns (uint256[])",
   "function agentINFT() view returns (address)",
 ] as const;
+
+export const RUN_REGISTRY_V3_ABI = [
+  "event RunPublished(uint256 indexed runId, uint256 indexed tokenId, bytes32 indexed scenarioId, bytes32 traceRoot, bytes32 scorecardHash, int256 scoreSortinoE6, string model, string framework, string agentVersion)",
+  "function publish(uint256 tokenId, bytes32 scenarioId, bytes32 traceRoot, bytes32 scorecardHash, int256 scoreSortinoE6, int256 totalReturnE6, int256 maxDrawdownE6, string model, string framework, string agentVersion) returns (uint256)",
+  "function totalRuns() view returns (uint256)",
+  "function getRun(uint256 runId) view returns (tuple(uint256 tokenId, bytes32 scenarioId, bytes32 traceRoot, bytes32 scorecardHash, int256 scoreSortinoE6, int256 totalReturnE6, int256 maxDrawdownE6, uint64 timestamp, address recordedBy, string model, string framework, string agentVersion))",
+  "function getRunsByToken(uint256 tokenId) view returns (uint256[])",
+  "function getRunsByScenario(bytes32 scenarioId) view returns (uint256[])",
+  "function agentINFT() view returns (address)",
+] as const;

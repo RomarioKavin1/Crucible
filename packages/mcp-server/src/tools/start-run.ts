@@ -12,6 +12,10 @@ export const StartRunInput = z.object({
   nonce: z.string(),
   signature: z.string(),
   signer: z.string(),
+  // Self-described agent metadata (optional — defaults to "unknown")
+  model: z.string().optional(),
+  framework: z.string().optional(),
+  agentVersion: z.string().optional(),
 });
 export type StartRunInputT = z.infer<typeof StartRunInput>;
 
@@ -54,7 +58,10 @@ export async function handleStartRun(deps: HandleStartRunDeps): Promise<StartRun
 
   const scenarioDir = path.join(scenariosDir, input.scenarioId);
   const engine = await startEngine(scenarioDir);
-  const runId = registry.create({ tokenId, signer: recovered, scenarioId: input.scenarioId, engine });
+  const runId = registry.create({
+    tokenId, signer: recovered, scenarioId: input.scenarioId, engine,
+    model: input.model, framework: input.framework, agentVersion: input.agentVersion,
+  });
   // Mark the start_run nonce as consumed so the next signed call (next_tick)
   // expects nonce+1. Without this, the agent would have to either re-use nonce 1
   // (replay risk) or know to skip a number — both fragile.

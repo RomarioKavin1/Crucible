@@ -14,6 +14,9 @@ export interface V2Row {
   maxDrawdown: number;
   timestamp: number;
   recordedBy: string;
+  model: string;
+  framework: string;
+  agentVersion: string;
 }
 
 type SortKey = "sortino" | "return" | "drawdown" | "recency";
@@ -77,12 +80,24 @@ export function LeaderboardClient({
   const [sort, setSort] = useState<SortKey>("sortino");
   const [view, setView] = useState<ViewMode>("all");
   const [scenarioFilter, setScenarioFilter] = useState<string | "all">("all");
+  const [modelFilter, setModelFilter] = useState<string | "all">("all");
   const [legendOpen, setLegendOpen] = useState(false);
 
-  const filtered = useMemo(
-    () => (scenarioFilter === "all" ? rows : rows.filter((r) => r.scenarioName === scenarioFilter)),
-    [rows, scenarioFilter],
-  );
+  const knownModels = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      const k = r.model || "unknown";
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    let out = rows;
+    if (scenarioFilter !== "all") out = out.filter((r) => r.scenarioName === scenarioFilter);
+    if (modelFilter !== "all") out = out.filter((r) => (r.model || "unknown") === modelFilter);
+    return out;
+  }, [rows, scenarioFilter, modelFilter]);
 
   const ordered = useMemo(
     () => (view === "best" ? bestPerAgent(filtered, sort) : sortRows(filtered, sort)),
@@ -115,7 +130,8 @@ export function LeaderboardClient({
 
       {/* Scenario filter chips */}
       {scenarios.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium pr-1">Scenario</span>
           <Chip active={scenarioFilter === "all"} onClick={() => setScenarioFilter("all")}>
             All ({rows.length})
           </Chip>
@@ -132,6 +148,21 @@ export function LeaderboardClient({
               </Chip>
             );
           })}
+        </div>
+      )}
+
+      {/* Model filter chips */}
+      {knownModels.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium pr-1">Model</span>
+          <Chip active={modelFilter === "all"} onClick={() => setModelFilter("all")}>
+            All ({rows.length})
+          </Chip>
+          {knownModels.map(([m, count]) => (
+            <Chip key={m} active={modelFilter === m} onClick={() => setModelFilter(m)}>
+              {m} ({count})
+            </Chip>
+          ))}
         </div>
       )}
 
@@ -172,6 +203,7 @@ export function LeaderboardClient({
             <tr>
               <th className="px-4 py-3 font-medium w-12 text-center">Rank</th>
               <th className="px-4 py-3 font-medium">Agent</th>
+              <th className="px-4 py-3 font-medium">Model</th>
               <th className="px-4 py-3 font-medium">Scenario</th>
               <SortableHeader label="Sortino" hint="Risk-adjusted return — bigger is better" active={sort === "sortino"} onClick={() => setSort("sortino")} />
               <SortableHeader label="Return" hint="Total % return on $10k start" active={sort === "return"} onClick={() => setSort("return")} />
@@ -205,6 +237,22 @@ export function LeaderboardClient({
                         <span title={r.recordedBy}>{shortAddr(r.recordedBy)}</span>
                       </div>
                     </Link>
+                  </td>
+                  <td className="px-4 py-3.5 align-middle">
+                    {r.model ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-mono text-[11.5px] text-[#22d3ee] bg-[#22d3ee0a] border border-[#22d3ee33] rounded px-1.5 py-0.5 self-start">
+                          {r.model}
+                        </span>
+                        {(r.framework || r.agentVersion) && (
+                          <span className="text-[10px] text-[#6b7691] font-mono pl-0.5">
+                            {r.framework}{r.framework && r.agentVersion ? " · " : ""}{r.agentVersion}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[10.5px] text-[#6b7691] italic">unknown</span>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 align-middle">
                     {r.scenarioName ? (

@@ -15,6 +15,14 @@ TOKEN_ID = os.environ.get("AGENT_TOKEN_ID", "1")
 PK = os.environ["AGENT_PRIVATE_KEY"]
 RUN_REGISTRY = os.environ.get("RUN_REGISTRY_V2", "0x80C1496980BA1183f8368F6072a130D7B01eDA7D")
 
+# Self-described agent metadata — recorded on chain in RunRegistryV3.
+# Anything you set here surfaces on the leaderboard as the Model column.
+META = {
+    "model": os.environ.get("AGENT_MODEL", "claude-haiku-4-5"),
+    "framework": "anthropic-sdk",
+    "agentVersion": "0.1.0",
+}
+
 acct = Account.from_key(PK)
 anthropic = Anthropic()
 
@@ -51,6 +59,7 @@ async def main():
             start = await sess.call_tool("crucible.start_run", {
                 "scenarioId": SCENARIO, "tokenId": TOKEN_ID, "nonce": str(nonce),
                 "signature": sig, "signer": acct.address,
+                "model": META["model"], "framework": META["framework"], "agentVersion": META["agentVersion"],
             })
             data = json.loads(start.content[0].text)
             run_id = data["runId"]; obs = data["observation"]
