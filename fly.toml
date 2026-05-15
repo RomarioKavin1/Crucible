@@ -1,0 +1,37 @@
+# fly.toml — Fly.io config for mcp.cruciblebench.xyz
+# Deploy from repo root: fly deploy
+app = "crucible-mcp"
+primary_region = "iad"  # us-east; pick whichever is closest to most users
+
+[build]
+  dockerfile = "packages/mcp-server/Dockerfile"
+
+[env]
+  PORT = "8080"
+  NETWORK = "galileo"
+  PUBLIC_URL = "https://mcp.cruciblebench.xyz"
+  WEB_PUBLIC_URL = "https://cruciblebench.xyz"
+  SQLITE_PATH = "/data/mcp-server.sqlite"
+  # PUBLISHER_PRIVATE_KEY set via `fly secrets set` — never put in env here
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"   # save $$ during idle
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.checks]
+    interval = "15s"
+    timeout = "5s"
+    method = "GET"
+    path = "/healthz"
+
+[[mounts]]
+  source = "crucible_mcp_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

@@ -71,7 +71,11 @@ async function main() {
         startedAt: s.createdAt,
         lastTickAt: s.lastTickAt,
       }));
-    reply.header("access-control-allow-origin", "*");
+    const allowedOrigins = (process.env.WEB_PUBLIC_URL ?? "http://localhost:3001").split(",").map(s => s.trim());
+    const origin = req.headers.origin as string | undefined;
+    if (origin && allowedOrigins.includes(origin)) {
+      reply.header("access-control-allow-origin", origin);
+    }
     reply.header("access-control-allow-headers", "*");
     reply.header("access-control-allow-methods", "GET");
     return { active };
