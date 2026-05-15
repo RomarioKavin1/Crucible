@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import { runCommand, type RunOpts } from "./run";
 import { coachCommand } from "./coach";
+import { benchCommand } from "./bench";
 
 const program = new Command();
 program.name("crucible").description("Crucible — AI trading agent benchmark").version("0.1.0");
@@ -37,6 +38,18 @@ program
   .option("-p, --system-prompt <text>", "Optional: the agent's system prompt for richer suggestions")
   .action(async (opts) => {
     await coachCommand({ runDir: opts.runDir, systemPrompt: opts.systemPrompt });
+  });
+
+program
+  .command("bench")
+  .description("Run an Anthropic-driven agent against a Crucible scenario via MCP")
+  .option("-s, --scenario <id>", "Scenario id (e.g. choppy-range)")
+  .option("-t, --token <id>", "AgentINFT tokenId (else read from AGENT_TOKEN_ID)")
+  .option("-m, --model <id>", "Anthropic model id", "claude-haiku-4-5")
+  .option("--mcp-url <url>", "Override CRUCIBLE_MCP_URL")
+  .option("--watch", "Open browser to live spectator after start")
+  .action(async (opts) => {
+    await benchCommand(opts);
   });
 
 program.parseAsync(process.argv).catch((err) => {

@@ -1,0 +1,28 @@
+{
+  "name": "create-crucible-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Scaffold a new Crucible Bench agent project",
+  "keywords": ["crucible", "ai", "agent", "trading", "benchmark", "mcp"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crucible-bench/crucible"
+  },
+  "license": "MIT",
+  "main": "./src/index.ts",
+  "bin": { "create-crucible-agent": "./src/index.ts" },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "kleur": "^4.1.5",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/prompts": "^2.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
