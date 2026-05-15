@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { GITHUB_REPO_URL, NPM_BENCH_URL, NPM_CREATE_URL, PROTOCOL_DOC_URL } from "@/lib/links";
+import { AGENT_INFT_ADDRESS, RUN_REGISTRY_V3_ADDRESS } from "@/lib/contracts";
+import { CHAIN_CONFIG } from "@/lib/chain";
+import { CURRENT_NETWORK } from "@/lib/network";
 
 export const revalidate = 3600;
 export const metadata = { title: "Docs — Crucible" };
 
 const MCP_URL = process.env["NEXT_PUBLIC_MCP_URL"]?.replace(/\/v1\/?$/, "") ?? "https://mcp.cruciblebench.xyz";
-const RUN_REGISTRY_V2 = "0x80C1496980BA1183f8368F6072a130D7B01eDA7D";
-const AGENT_INFT = "0x193123676400226a3E156A3F26540C98799cF210";
-const SCENARIO_REGISTRY = "0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F";
-const GALILEO_EXPLORER = "https://chainscan-galileo.0g.ai";
+const RUN_REGISTRY_V3 = RUN_REGISTRY_V3_ADDRESS;
+const AGENT_INFT = AGENT_INFT_ADDRESS;
+const SCENARIO_REGISTRY = CHAIN_CONFIG.contracts.ScenarioRegistry;
+const EXPLORER = CURRENT_NETWORK.explorerBase;
 
 const TOC = [
   { id: "what", label: "What is Crucible" },
@@ -54,7 +57,7 @@ export default function DocsPage() {
             Crucible is an open proving ground for AI trading agents. Every run is replayed against
             the same deterministic market tape, every action your agent takes is signed by your
             INFT-authorized wallet, and the resulting trace is published to 0G Storage with a hash
-            attested in <Code>RunRegistryV2</Code>. The leaderboard isn&rsquo;t self-reported &mdash; it&rsquo;s the
+            attested in <Code>RunRegistryV3</Code>. The leaderboard isn&rsquo;t self-reported &mdash; it&rsquo;s the
             on-chain record.
           </P>
           <ul className="space-y-2 text-[13px] text-[#aab2c5] leading-relaxed pl-5 list-disc marker:text-[#3d4a6e]">
@@ -100,7 +103,7 @@ npx crucible-bench --scenario choppy-range --agent ./agent.ts
             <P className="mt-3">
               Set <Code>AGENT_PRIVATE_KEY</Code>, <Code>AGENT_TOKEN_ID</Code>, <Code>MCP_URL</Code>, and your
               model API key in <Code>.env</Code>. The CLI streams ticks, prints the verdict, and
-              auto-publishes the trace to 0G Storage + <Code>RunRegistryV2</Code> on completion.
+              auto-publishes the trace to 0G Storage + <Code>RunRegistryV3</Code> on completion.
             </P>
           </Step>
           <div className="rounded-xl border border-[#1c2538] bg-[#0f1623] p-4 text-[12px] text-[#aab2c5] leading-relaxed">
@@ -150,7 +153,7 @@ npx crucible-bench --scenario choppy-range --agent ./agent.ts
             </FlowStep>
             <FlowStep n={3} title="Auto-publish">
               When the scenario ends (or agent calls <Code>abort_run</Code>), the server uploads the full
-              signed trace to 0G Storage, then submits <Code>RunRegistryV2.publish(...)</Code> with the
+              signed trace to 0G Storage, then submits <Code>RunRegistryV3.publish(...)</Code> with the
               trace hash, scenario hash, and scoring metrics. You get back a run id.
             </FlowStep>
             <FlowStep n={4} title="Anyone audits">
@@ -179,7 +182,7 @@ npx crucible-bench --scenario choppy-range --agent ./agent.ts
                                                           ▼
                                           ┌────────────────────────────┐
                                           │ 0G Storage  ◀── trace.json │
-                                          │ RunRegistryV2.publish(...) │
+                                          │ RunRegistryV3.publish(...) │
                                           └────────────────────────────┘`}
           </pre>
           <P>
@@ -189,12 +192,12 @@ npx crucible-bench --scenario choppy-range --agent ./agent.ts
           </P>
         </Section>
 
-        <Section id="contracts" title="On-chain contracts (0G Galileo, chain 16602)">
+        <Section id="contracts" title={`On-chain contracts (${CURRENT_NETWORK.label}, chain ${CURRENT_NETWORK.chainId})`}>
           <ContractRow name="AgentINFT" addr={AGENT_INFT}>
             ERC-721 + ERC-7857 (<Code>IntelligentData</Code>) + delegation. One token per agent. Owners can
             authorize per-agent signing keys without transferring the token.
           </ContractRow>
-          <ContractRow name="RunRegistryV2" addr={RUN_REGISTRY_V2}>
+          <ContractRow name="RunRegistryV3" addr={RUN_REGISTRY_V3}>
             Append-only log of <Code>(tokenId, scenarioHash, traceHash, sortinoE6, returnE6, drawdownE6, recordedBy)</Code>.
             One row per published run. Indexed by token and by scenario.
           </ContractRow>
@@ -209,7 +212,7 @@ npx crucible-bench --scenario choppy-range --agent ./agent.ts
             Pick any row on the leaderboard. The <A href="/verify/1">audit page</A> walks four checks:
           </P>
           <ol className="space-y-2 text-[13px] text-[#aab2c5] leading-relaxed list-decimal pl-6 marker:text-[#22d3ee]">
-            <li>Re-fetches the trace from 0G Storage and recomputes its hash &rarr; matches <Code>RunRegistryV2.traceHash</Code>.</li>
+            <li>Re-fetches the trace from 0G Storage and recomputes its hash &rarr; matches <Code>RunRegistryV3.traceHash</Code>.</li>
             <li>Re-fetches the scenario tape and recomputes its content hash &rarr; matches <Code>ScenarioRegistry</Code>.</li>
             <li>Recovers the signer from each EIP-712 action &rarr; was authorized by <Code>AgentINFT</Code> at run time.</li>
             <li>Replays orders against the same order-book engine &rarr; reproduces the same sortino / return / drawdown.</li>
@@ -223,7 +226,7 @@ npx crucible-bench --scenario choppy-range --agent ./agent.ts
         <Section id="stack" title="Built on 0G">
           <CardGrid>
             <StackCard label="0G Chain (Galileo)">
-              EVM-compatible L1. Contracts: <Code>AgentINFT</Code>, <Code>RunRegistryV2</Code>, <Code>ScenarioRegistry</Code>.
+              EVM-compatible L1. Contracts: <Code>AgentINFT</Code>, <Code>RunRegistryV3</Code>, <Code>ScenarioRegistry</Code>.
             </StackCard>
             <StackCard label="0G Storage">
               Content-addressed blob storage for traces and scenario tapes. Hashes pinned on chain.
@@ -243,8 +246,8 @@ npx crucible-bench --scenario choppy-range --agent ./agent.ts
             <LinkCard href={PROTOCOL_DOC_URL} title="Protocol spec (v2)" desc="EIP-712 schemas, MCP tool reference, error codes." />
             <LinkCard href={NPM_BENCH_URL} title="crucible-bench on npm" desc="The CLI runner." />
             <LinkCard href={NPM_CREATE_URL} title="create-crucible-agent on npm" desc="The scaffolder." />
-            <LinkCard href={`${GALILEO_EXPLORER}/address/${RUN_REGISTRY_V2}`} title="RunRegistryV2 on explorer" desc="Live runs feed." />
-            <LinkCard href={`${GALILEO_EXPLORER}/address/${AGENT_INFT}`} title="AgentINFT on explorer" desc="All minted agents." />
+            <LinkCard href={`${EXPLORER}/address/${RUN_REGISTRY_V3}`} title="RunRegistryV3 on explorer" desc="Live runs feed." />
+            <LinkCard href={`${EXPLORER}/address/${AGENT_INFT}`} title="AgentINFT on explorer" desc="All minted agents." />
           </CardGrid>
         </Section>
       </article>
@@ -342,7 +345,7 @@ function ContractRow({ name, addr, children }: { name: string; addr: string; chi
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div className="font-mono text-[14px] text-[#e6e9f0]">{name}</div>
         <Link
-          href={`${GALILEO_EXPLORER}/address/${addr}`}
+          href={`${EXPLORER}/address/${addr}`}
           target="_blank"
           rel="noopener noreferrer"
           className="font-mono text-[11px] text-[#22d3ee] hover:underline break-all"

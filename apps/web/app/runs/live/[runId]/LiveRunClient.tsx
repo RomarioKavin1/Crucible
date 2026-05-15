@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { LiveRunReplay } from "@/components/LiveRunReplay";
+import { explorerTx } from "@/lib/network";
 
 export function LiveRunClient({ runId }: { runId: string }) {
   const [status, setStatus] = useState("connecting");
@@ -35,7 +36,7 @@ export function LiveRunClient({ runId }: { runId: string }) {
       {published && (
         <div className="p-4 bg-[#10b98115] border border-[#10b98140] text-[#10b981] rounded-xl">
           ✓ Published as <a href={published.url} className="font-medium underline" target="_blank" rel="noreferrer">Run #{published.runId}</a>
-          {" · "}<a href={`https://chainscan-galileo.0g.ai/tx/${published.txHash}`} target="_blank" rel="noreferrer" className="underline text-xs">tx</a>
+          {" · "}<a href={explorerTx(published.txHash)} target="_blank" rel="noreferrer" className="underline text-xs">tx</a>
         </div>
       )}
       {aborted && (
