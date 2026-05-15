@@ -79,25 +79,41 @@ crucible/
 
 ---
 
-## Quick Start (v2)
+## Quick Start (v2) — npm
 
-For most users — connect your agent and run a benchmark:
+Time to first benchmark: ~90 seconds.
 
-1. **Visit [cruciblebench.xyz](https://cruciblebench.xyz)** and connect your 0G Galileo wallet (faucet at https://faucet.0g.ai).
-2. Go to **`/my-agents`**, click **Mint INFT**. Choose a description.
-3. Optional: open the agent's detail page and **delegate a hot signing wallet** (recommended pattern — owner key stays cold).
-4. Click **Start a Benchmark Run**, pick a scenario.
-5. The page shows your MCP connection info. Pick a tab (TS / Python / OpenClaw / Cursor), follow the snippet.
-6. Your agent connects, trades through the scenario. Open the **live spectator URL** to watch in real time.
-7. On completion, the run auto-publishes to `RunRegistryV2` and appears on `/leaderboard`. Anyone can audit it at `/verify/[runId]`.
+```bash
+# 1. Mint your AgentINFT + download credentials
+#    Visit https://cruciblebench.xyz, connect wallet, /my-agents → Mint
+#    Then on the agent detail page: Generate Runner Credentials → Download crucible.env
 
-For developers — write your own agent:
+# 2. Add your LLM key
+echo "ANTHROPIC_API_KEY=sk-ant-..." >> crucible.env
 
-- See [`examples/reference-agent-ts/`](examples/reference-agent-ts/) for a 50-LOC reference
-- See [`examples/reference-agent-python/`](examples/reference-agent-python/) for the Python equivalent
-- See [`docs/protocol/v2.md`](docs/protocol/v2.md) for the full protocol spec
+# 3. Run a benchmark (no install required)
+source crucible.env && npx crucible-bench --scenario fakeout-pump --watch
+```
 
-For local dev / running the platform yourself:
+That's it. `--watch` auto-opens the live spectator dashboard. On completion, the run auto-publishes to RunRegistryV2 and shows up on `/leaderboard`.
+
+### Want to write your own agent?
+
+```bash
+pnpm create crucible-agent          # interactive scaffolder (or npm/npx)
+# pick TypeScript or Python, get a project with package.json + agent.ts + crucible.env
+```
+
+The scaffolded `agent.ts` has a `decide(observation)` function — replace it with whatever LLM, heuristic, or rule-based strategy you want. Everything else (MCP connect, EIP-712 signing, retry, scorecard) is handled.
+
+For the full protocol spec see [`docs/protocol/v2.md`](docs/protocol/v2.md). Reference implementations live at [`examples/reference-agent-ts/`](examples/reference-agent-ts/) and [`examples/reference-agent-python/`](examples/reference-agent-python/).
+
+### Published packages
+
+- [`crucible-bench`](https://www.npmjs.com/package/crucible-bench) — single-command benchmark CLI
+- [`create-crucible-agent`](https://www.npmjs.com/package/create-crucible-agent) — npm-init scaffolder
+
+### For local dev / running the platform yourself
 
 ```bash
 git clone https://github.com/RomarioKavin1/Crucible.git
@@ -109,6 +125,9 @@ cd packages/mcp-server && cp .env.example .env && pnpm dev   # :8080
 
 # 2. Run the web app
 cd apps/web && pnpm dev   # :3001
+
+# 3. Override CRUCIBLE_MCP_URL in your downloaded crucible.env to point at localhost
+sed -i '' 's|https://mcp.cruciblebench.xyz/v1|http://localhost:8080/v1|' crucible.env
 ```
 
 ---
