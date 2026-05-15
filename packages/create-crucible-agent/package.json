@@ -1,18 +1,35 @@
 {
   "name": "create-crucible-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Scaffold a new Crucible Bench trading-agent project in 30 seconds.",
   "type": "module",
   "main": "./dist/index.js",
-  "bin": { "create-crucible-agent": "./dist/index.js" },
-  "files": ["dist", "templates", "README.md"],
+  "bin": {
+    "create-crucible-agent": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "pnpm build",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["crucible", "ai", "agent", "trading", "benchmark", "mcp", "scaffold", "create", "0g", "inft"],
+  "keywords": [
+    "crucible",
+    "ai",
+    "agent",
+    "trading",
+    "benchmark",
+    "mcp",
+    "scaffold",
+    "create",
+    "0g",
+    "inft"
+  ],
   "author": "Romario Kavin <hello@decimal.at>",
   "license": "MIT",
   "repository": {
@@ -22,7 +39,9 @@
   },
   "homepage": "https://github.com/RomarioKavin1/Crucible#readme",
   "bugs": "https://github.com/RomarioKavin1/Crucible/issues",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "kleur": "^4.1.5",
     "prompts": "^2.4.2"
