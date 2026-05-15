@@ -18,6 +18,10 @@ export function registerSpectator(app: FastifyInstance, sessions: SessionRegistr
     };
     send("hello", { runId, tokenId: session.tokenId.toString(), scenarioId: session.scenarioId, status: session.status });
 
+    // Replay buffered tick history so a late-joining spectator sees the full
+    // chart from tick 1 instead of starting at the moment of connection.
+    for (const ev of session.tickHistory) send("tick", ev);
+
     const onTick = (ev: any) => send("tick", ev);
     const onDone = (ev: any) => send("done", ev);
     const onAbort = (ev: any) => send("abort", ev);

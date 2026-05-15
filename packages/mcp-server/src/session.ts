@@ -16,6 +16,7 @@ export interface Session {
   createdAt: number;
   lastTickAt: number;
   events: EventEmitter;     // emits "tick" / "action" / "done" / "abort" / "published" / "publish_failed"
+  tickHistory: unknown[];   // buffered past tick events for late-joining spectators
 }
 
 export interface CreateOpts {
@@ -34,7 +35,10 @@ export class SessionRegistry {
       runId, tokenId: opts.tokenId, signer: opts.signer, scenarioId: opts.scenarioId,
       engine: opts.engine, expectedNonce: 0n, status: "active",
       createdAt: Date.now(), lastTickAt: Date.now(), events: new EventEmitter(),
+      tickHistory: [],
     };
+    // Buffer every tick event so a late-joining spectator can replay history
+    sess.events.on("tick", (ev: unknown) => { sess.tickHistory.push(ev); });
     this.byRunId.set(runId, sess);
     return runId;
   }
