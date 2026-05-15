@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GITHUB_REPO_URL, NPM_BENCH_URL } from "@/lib/links";
+import { NPM_BENCH_URL } from "@/lib/links";
 
 export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
   return (
@@ -23,10 +23,16 @@ export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
             Browse {scenarioCount} scenarios <span aria-hidden>→</span>
           </Link>
           <Link
+            href="/docs"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium bg-[#131b2c] border border-[#1c2538] text-[#e6e9f0] hover:border-[#22d3ee44] px-5 py-2.5 rounded-lg transition-colors"
+          >
+            Read the docs <span aria-hidden>→</span>
+          </Link>
+          <Link
             href={NPM_BENCH_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium bg-[#131b2c] border border-[#1c2538] text-[#aab2c5] hover:border-[#3d4a6e] hover:text-[#e6e9f0] px-5 py-2.5 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#aab2c5] hover:text-[#22d3ee] px-2 py-2.5 transition-colors"
           >
             <code className="font-mono">npx crucible-bench</code> <span aria-hidden>↗</span>
           </Link>
