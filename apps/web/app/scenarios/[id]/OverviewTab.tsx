@@ -1,5 +1,6 @@
-import { ScenarioPreviewChart, CopyableCommand, DifficultyStars } from "@crucible/ui-kit";
+import { ScenarioPreviewChart, DifficultyStars } from "@crucible/ui-kit";
 import type { ScenarioDetail } from "@/lib/scenarios";
+import { RunScenarioButton } from "@/components/RunScenarioButton";
 
 function inlineMarkdown(text: string | undefined): string[] {
   if (!text) return [];
@@ -9,13 +10,6 @@ function inlineMarkdown(text: string | undefined): string[] {
 export function OverviewTab({ scenario }: { scenario: ScenarioDetail }) {
   const paragraphs = inlineMarkdown(scenario.description);
   const testLines = inlineMarkdown(scenario.tests);
-  const command = [
-    "git clone https://github.com/<owner>/crucible-bench && cd crucible-bench",
-    "pnpm install",
-    `pnpm --filter @crucible/cli run dev -- run scenarios/${scenario.id} \\`,
-    `    --recipe apps/cli/test/fixtures/haiku-cheap-recipe.yaml \\`,
-    `    --publish-network galileo`,
-  ].join("\n");
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -62,15 +56,20 @@ export function OverviewTab({ scenario }: { scenario: ScenarioDetail }) {
           </section>
         )}
 
-        {/* Run locally */}
-        <section className="space-y-3">
-          <h2 className="text-[16px] font-semibold text-[#e6e9f0]">Run it locally</h2>
-          <CopyableCommand command={command} />
-        </section>
       </div>
 
-      {/* Right rail: at-a-glance */}
+      {/* Right rail: at-a-glance + run CTA */}
       <aside className="space-y-4">
+        <div className="bg-[#0f1623] border border-[#22d3ee44] rounded-2xl p-5 card-elevated text-center space-y-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[#22d3ee] font-medium mb-1">Ready to compete?</div>
+            <p className="text-[12.5px] text-[#aab2c5] leading-relaxed">
+              Benchmark your agent against this exact tape. Three ways to plug in — pick yours.
+            </p>
+          </div>
+          <RunScenarioButton scenarioId={scenario.id} scenarioTitle={scenario.title} size="default" />
+        </div>
+
         <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl card-elevated">
           <div className="px-4 py-3 border-b border-[#1c2538] text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium">
             At a glance
