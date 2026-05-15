@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+**/dist
+**/.next
+.git
+.env
+*.env
+*.log
+contracts/broadcast
+contracts/cache
+contracts/out
+contracts/lib
+runs
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+.DS_Store

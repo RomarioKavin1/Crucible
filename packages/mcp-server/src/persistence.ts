@@ -36,7 +36,7 @@ export class PersistenceStore {
   private db: Database.Database;
 
   constructor(opts: { path?: string } = {}) {
-    const p = opts.path ?? path.resolve(process.cwd(), "mcp-server.sqlite");
+    const p = opts.path ?? process.env.SQLITE_PATH ?? path.resolve(process.cwd(), "mcp-server.sqlite");
     this.db = new Database(p);
     this.db.pragma("journal_mode = WAL");
     this.db.exec(SCHEMA);
