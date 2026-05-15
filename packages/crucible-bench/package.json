@@ -1,0 +1,36 @@
+{
+  "name": "crucible-bench",
+  "version": "0.1.0",
+  "description": "Run an AI trading agent against Crucible Bench scenarios on 0G — single-command MCP+EIP-712 benchmark CLI.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": { "crucible-bench": "./dist/index.js" },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "pnpm build",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["crucible", "0g", "ai-agent", "trading", "benchmark", "mcp", "erc-7857", "inft"],
+  "author": "Romario Kavin <hello@decimal.at>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RomarioKavin1/Crucible.git",
+    "directory": "packages/crucible-bench"
+  },
+  "homepage": "https://github.com/RomarioKavin1/Crucible#readme",
+  "bugs": "https://github.com/RomarioKavin1/Crucible/issues",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^12.0.0",
+    "ethers": "^6.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  }
+}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GITHUB_REPO_URL } from "@/lib/links";
 
 export const revalidate = 3600;
 
@@ -38,7 +39,7 @@ export default function CommunityPage() {
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
           <Link
-            href="https://github.com/"
+            href={GITHUB_REPO_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-[12px] font-medium bg-[#22d3ee] hover:bg-[#67e8f9] text-[#0a0e17] px-4 py-2 rounded-lg transition-colors"

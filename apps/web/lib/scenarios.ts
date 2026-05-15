@@ -1,9 +1,13 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadManifest, type Manifest } from "@crucible/core";
+import { keccak256, toBytes } from "viem";
 
-const WORKSPACE_ROOT = process.env["INIT_CWD"] ?? path.resolve(process.cwd(), "..", "..");
-const SCENARIOS_DIR = path.join(WORKSPACE_ROOT, "scenarios");
+// Resolve relative to THIS source file's location so the path is stable regardless
+// of where pnpm/Next was invoked from. lib/ → apps/web/ → repo root.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SCENARIOS_DIR = path.resolve(__dirname, "..", "..", "..", "scenarios");
 
 export interface ScenarioListEntry {
   id: string;
@@ -67,14 +71,15 @@ export async function listScenarios(): Promise<ScenarioListEntry[]> {
       const mids = await readTicksMids(dir);
       const preview = downsample(mids, 60);
       const netMovePct = mids.length > 1 ? (mids[mids.length - 1]! - mids[0]!) / mids[0]! : 0;
+      const raw = manifest as any;
       out.push({
         id: manifest.id,
         title: manifest.title,
         asset: manifest.asset,
-        kind: (manifest.kind ?? "synthetic") as "historical" | "synthetic",
-        difficulty: manifest.difficulty,
-        tags: manifest.tags,
-        durationTicks: manifest.duration_ticks,
+        kind: (manifest.kind ?? raw.kind ?? "synthetic") as "historical" | "synthetic",
+        difficulty: manifest.difficulty ?? raw.difficulty,
+        tags: manifest.tags ?? raw.tags,
+        durationTicks: (raw.total_ticks ?? manifest.duration_ticks) as number,
         tickIntervalMs: manifest.tick_interval_ms,
         windowStart: manifest.window.start,
         windowEnd: manifest.window.end,
@@ -109,29 +114,51 @@ export async function getScenarioDetail(id: string): Promise<ScenarioDetail | nu
       return Math.max(0, Math.min(preview.length - 1, Math.round(ratio * (preview.length - 1))));
     });
 
+    const raw2 = manifest as any;
     return {
       id: manifest.id,
       title: manifest.title,
       asset: manifest.asset,
-      kind: (manifest.kind ?? "synthetic") as "historical" | "synthetic",
-      difficulty: manifest.difficulty,
-      tags: manifest.tags,
-      durationTicks: manifest.duration_ticks,
+      kind: (manifest.kind ?? raw2.kind ?? "synthetic") as "historical" | "synthetic",
+      difficulty: manifest.difficulty ?? raw2.difficulty,
+      tags: manifest.tags ?? raw2.tags,
+      durationTicks: (raw2.total_ticks ?? manifest.duration_ticks) as number,
       tickIntervalMs: manifest.tick_interval_ms,
       windowStart: manifest.window.start,
       windowEnd: manifest.window.end,
       previewPoints: preview,
       netMovePct,
-      description: manifest.description,
-      tests: manifest.tests,
+      description: manifest.description ?? raw2.description,
+      tests: manifest.tests ?? raw2.tests,
       startingCashUsd: manifest.starting_cash_usd,
       startingPosition: manifest.starting_position,
       contentHash: manifest.content_hash,
-      dataSource: manifest.data_source,
-      newsSource: manifest.news_source,
+      dataSource: manifest.data_source ?? raw2.data_source,
+      newsSource: manifest.news_source ?? raw2.news_source,
       newsIndexes,
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Build a map from keccak256(scenarioId) → scenarioId string.
+ * Used to reverse the bytes32 hash stored in RunRegistryV2.
+ */
+export function buildScenarioHashMap(scenarioIds: string[]): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const id of scenarioIds) {
+    m.set(keccak256(toBytes(id)).toLowerCase(), id);
+  }
+  return m;
+}
+
+/**
+ * Returns the scenario id string if the keccak256 hash is known, else null.
+ */
+export async function decodeScenarioHash(hash: string): Promise<string | null> {
+  const list = await listScenarios();
+  const map = buildScenarioHashMap(list.map((s) => s.id));
+  return map.get(hash.toLowerCase()) ?? null;
 }

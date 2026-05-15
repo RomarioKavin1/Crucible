@@ -1,0 +1,36 @@
+{
+  "name": "@crucible/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "bin": { "crucible-mcp": "./src/index.ts" },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "start": "tsx --env-file=.env src/index.ts"
+  },
+  "dependencies": {
+    "@crucible/core": "workspace:*",
+    "@crucible/og-client": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "fastify": "^4.28.0",
+    "@fastify/websocket": "^10.0.0",
+    "better-sqlite3": "^11.3.0",
+    "ethers": "^6.13.0",
+    "zod": "^3.23.0",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
