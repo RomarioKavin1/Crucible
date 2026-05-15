@@ -95,9 +95,9 @@ export async function listScenarios(runs?: LeaderboardRow[]): Promise<string[]> 
   return Array.from(new Set([...registered, ...referenced])).sort();
 }
 
-// ─── v2 fetchers (RunRegistryV2 + AgentINFT) ────────────────────────────────
+// ─── v2/v3 fetchers (RunRegistryV3 active + RunRegistryV2 legacy) ──────────
 import { keccak256, toBytes } from "viem";
-import { publicClient, RUN_REGISTRY_V2_ADDRESS, ABIs, readIntelligentData } from "./contracts";
+import { publicClient, RUN_REGISTRY_V2_ADDRESS, RUN_REGISTRY_V3_ADDRESS, ABIs, readIntelligentData } from "./contracts";
 
 export interface V2LeaderboardRow {
   runId: string;
@@ -109,6 +109,10 @@ export interface V2LeaderboardRow {
   maxDrawdown: number;
   timestamp: number;
   recordedBy: string;
+  // V3 self-described agent metadata; "" / "unknown" when reading legacy v2 rows
+  model: string;
+  framework: string;
+  agentVersion: string;
 }
 
 export async function fetchAllRunsV2(): Promise<V2LeaderboardRow[]> {
@@ -141,6 +145,47 @@ export async function fetchAllRunsV2(): Promise<V2LeaderboardRow[]> {
       maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
       timestamp: Number(r.timestamp as bigint),
       recordedBy: r.recordedBy as string,
+      model: "",
+      framework: "",
+      agentVersion: "",
+    };
+  }));
+}
+
+/** V3 (active): includes self-described model/framework/agentVersion. */
+export async function fetchAllRunsV3(): Promise<V2LeaderboardRow[]> {
+  const total = await publicClient.readContract({
+    address: RUN_REGISTRY_V3_ADDRESS, abi: ABIs.RUN_REGISTRY_V3_ABI, functionName: "totalRuns",
+  }) as bigint;
+
+  const ids = Array.from({ length: Number(total) }, (_, i) => BigInt(i + 1));
+  const descCache = new Map<string, string>();
+
+  return Promise.all(ids.map(async (id) => {
+    const r = await publicClient.readContract({
+      address: RUN_REGISTRY_V3_ADDRESS, abi: ABIs.RUN_REGISTRY_V3_ABI,
+      functionName: "getRun", args: [id],
+    }) as any;
+    const tokenIdStr = (r.tokenId as bigint).toString();
+    let desc = descCache.get(tokenIdStr);
+    if (desc === undefined) {
+      try { desc = (await readIntelligentData(r.tokenId as bigint)).description; }
+      catch { desc = ""; }
+      descCache.set(tokenIdStr, desc!);
+    }
+    return {
+      runId: id.toString(),
+      tokenId: tokenIdStr,
+      agentDescription: desc!,
+      scenarioId: r.scenarioId as string,
+      sortino: Number(r.scoreSortinoE6 as bigint) / 1e6,
+      totalReturn: Number(r.totalReturnE6 as bigint) / 1e6,
+      maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
+      timestamp: Number(r.timestamp as bigint),
+      recordedBy: r.recordedBy as string,
+      model: r.model as string,
+      framework: r.framework as string,
+      agentVersion: r.agentVersion as string,
     };
   }));
 }
@@ -168,12 +213,13 @@ export async function fetchRunsByScenarioV2(scenarioId: string): Promise<V2Leade
       runId: id.toString(),
       tokenId: tokenIdStr,
       agentDescription: desc!,
-      scenarioId,  // string here, not the hash
+      scenarioId,
       sortino: Number(r.scoreSortinoE6 as bigint) / 1e6,
       totalReturn: Number(r.totalReturnE6 as bigint) / 1e6,
       maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
       timestamp: Number(r.timestamp as bigint),
       recordedBy: r.recordedBy as string,
+      model: "", framework: "", agentVersion: "",
     };
   })).then((rows) => rows.sort((a, b) => b.sortino - a.sortino));
 }

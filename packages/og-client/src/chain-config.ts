@@ -12,9 +12,11 @@ export interface ChainConfig {
     ScenarioRegistry: string;
     AgentRegistry: string;
     RunRegistry: string;
-    // v2 (active)
+    // v2 (kept for legacy reads)
     AgentINFT: string;
     RunRegistryV2: string;
+    // v3 (active — adds model/framework/agentVersion)
+    RunRegistryV3: string;
   };
 }
 
@@ -40,12 +42,13 @@ export async function loadChainConfig(network: Network): Promise<ChainConfig> {
     RunRegistry:      v1.RunRegistry ?? "",
     AgentINFT:        v2.AgentINFT ?? "",
     RunRegistryV2:    v2.RunRegistryV2 ?? "",
+    RunRegistryV3:    v2.RunRegistryV3 ?? "",
   };
 
-  // Require at least the v2 contracts on Galileo (those are the active ones).
-  // mainnet may have empty addresses for now.
-  if (network === "galileo" && (!merged.AgentINFT || !merged.RunRegistryV2)) {
-    throw new Error(`Missing v2 addresses for network=${network} (need galileoV2.AgentINFT + galileoV2.RunRegistryV2)`);
+  // Require at least the v3 active contracts on Galileo. mainnet may have
+  // empty addresses for now.
+  if (network === "galileo" && (!merged.AgentINFT || !merged.RunRegistryV3)) {
+    throw new Error(`Missing v3 addresses for network=${network} (need galileoV2.AgentINFT + galileoV2.RunRegistryV3)`);
   }
 
   const rpcUrl =

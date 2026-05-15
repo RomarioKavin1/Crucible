@@ -30,6 +30,7 @@ function buildCfg(): ChainConfig {
       RunRegistry: v1["RunRegistry"] ?? "",
       AgentINFT: v2["AgentINFT"] ?? "",
       RunRegistryV2: v2["RunRegistryV2"] ?? "",
+      RunRegistryV3: v2["RunRegistryV3"] ?? "",
     },
   };
 }

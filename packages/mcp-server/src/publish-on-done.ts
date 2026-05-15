@@ -3,7 +3,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { ethers } from "ethers";
-import { publishRunV2 } from "@crucible/og-client";
+import { publishRunV3 } from "@crucible/og-client";
 import type { SessionRegistry, CreateOpts } from "./session";
 import type { ServerConfig } from "./config";
 
@@ -23,15 +23,18 @@ export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConf
       try {
         const dir = await mkdtemp(path.join(tmpdir(), `run-${runId.slice(2, 10)}-`));
         await writeFile(path.join(dir, "trace.jsonl"), ev.traceJsonl ?? "");
-        // The publishRunV2 helper expects scorecard.json with shape { scenario, scorecard:{...} }
+        // publishRunV3 expects scorecard.json with shape { scenario, scorecard:{...} }
         // — adapt by wrapping the engine's flat scorecard.
         const wrapped = { scenario: sess.scenarioId, scorecard: ev.scorecard };
         await writeFile(path.join(dir, "scorecard.json"), JSON.stringify(wrapped));
-        const result = await publishRunV2({
+        const result = await publishRunV3({
           runDir: dir,
           tokenId: sess.tokenId,
           network: cfg.network,
           privateKey: cfg.publisherPrivateKey,
+          model: sess.model,
+          framework: sess.framework,
+          agentVersion: sess.agentVersion,
         });
         sess.events.emit("published", {
           runId: result.runId.toString(),

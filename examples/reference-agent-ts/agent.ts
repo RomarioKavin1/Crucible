@@ -26,6 +26,14 @@ const START_RUN_TYPES = { StartRun: [
   { name: "scenarioId", type: "string" }, { name: "tokenId", type: "uint256" }, { name: "nonce", type: "uint256" },
 ]};
 
+// Self-described agent metadata — recorded on chain in RunRegistryV3.
+// Anything you set here surfaces on the leaderboard as the Model column.
+export const meta = {
+  model: process.env.AGENT_MODEL ?? "claude-haiku-4-5",
+  framework: "anthropic-sdk",
+  agentVersion: "0.1.0",
+};
+
 interface AgentDecision { kind: string; qty: bigint; reasoning: string; }
 
 async function decide(observation: any): Promise<AgentDecision> {
@@ -68,6 +76,7 @@ async function main() {
   const start = await client.callTool({ name: "crucible.start_run", arguments: {
     scenarioId: SCENARIO, tokenId: TOKEN_ID, nonce: nonce.toString(),
     signature: startSig, signer: wallet.address,
+    model: meta.model, framework: meta.framework, agentVersion: meta.agentVersion,
   }});
   const startData = JSON.parse((start.content as any[])[0].text);
   let { runId } = startData;

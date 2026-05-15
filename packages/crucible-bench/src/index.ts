@@ -182,6 +182,8 @@ async function runBench(opts: {
   scenario?: string;
   token?: string;
   model?: string;
+  framework?: string;
+  agentVersion?: string;
   mcpUrl?: string;
   watch?: boolean;
 }): Promise<void> {
@@ -201,7 +203,9 @@ async function runBench(opts: {
   const runRegistry =
     process.env["RUN_REGISTRY_V2"] ??
     "0x80C1496980BA1183f8368F6072a130D7B01eDA7D";
-  const model = opts.model ?? "claude-haiku-4-5";
+  const model = opts.model ?? process.env["MODEL"] ?? "claude-haiku-4-5";
+  const framework = opts.framework ?? process.env["FRAMEWORK"] ?? "crucible-bench";
+  const agentVersion = opts.agentVersion ?? process.env["AGENT_VERSION"] ?? "";
 
   // 3. Validate required vars
   const missing: string[] = [];
@@ -265,6 +269,9 @@ async function runBench(opts: {
       nonce: nonce.toString(),
       signature: startSig,
       signer: wallet.address,
+      model,
+      framework,
+      agentVersion,
     },
   });
 
@@ -382,13 +389,17 @@ program
   .version("0.1.0")
   .option("-s, --scenario <id>", "Scenario id (e.g. choppy-range)")
   .option("-t, --token <id>", "AgentINFT tokenId (else reads AGENT_TOKEN_ID)")
-  .option("-m, --model <id>", "Anthropic model id", "claude-haiku-4-5")
+  .option("-m, --model <id>", "Model id recorded on chain (also used for Anthropic API)", "claude-haiku-4-5")
+  .option("--framework <name>", "Framework name recorded on chain", "crucible-bench")
+  .option("--agent-version <ver>", "Agent version string recorded on chain", "")
   .option("--mcp-url <url>", "Override CRUCIBLE_MCP_URL")
   .option("--watch", "Open browser to live spectator after start")
   .action(async (opts: {
     scenario?: string;
     token?: string;
     model?: string;
+    framework?: string;
+    agentVersion?: string;
     mcpUrl?: string;
     watch?: boolean;
   }) => {

@@ -17,6 +17,10 @@ export interface Session {
   lastTickAt: number;
   events: EventEmitter;     // emits "tick" / "action" / "done" / "abort" / "published" / "publish_failed"
   tickHistory: unknown[];   // buffered past tick events for late-joining spectators
+  // Self-described agent metadata (declared at start_run, written into RunRegistryV3.publish)
+  model: string;
+  framework: string;
+  agentVersion: string;
 }
 
 export interface CreateOpts {
@@ -24,6 +28,9 @@ export interface CreateOpts {
   signer: string;
   scenarioId: string;
   engine: EngineSession;
+  model?: string;
+  framework?: string;
+  agentVersion?: string;
 }
 
 export class SessionRegistry {
@@ -36,6 +43,9 @@ export class SessionRegistry {
       engine: opts.engine, expectedNonce: 0n, status: "active",
       createdAt: Date.now(), lastTickAt: Date.now(), events: new EventEmitter(),
       tickHistory: [],
+      model: opts.model || "unknown",
+      framework: opts.framework || "unknown",
+      agentVersion: opts.agentVersion || "",
     };
     // Buffer every tick event so a late-joining spectator can replay history
     sess.events.on("tick", (ev: unknown) => { sess.tickHistory.push(ev); });
