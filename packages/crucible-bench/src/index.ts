@@ -1,14 +1,24 @@
 #!/usr/bin/env node
 // crucible-bench — standalone CLI (no workspace deps)
-// Extracted from apps/cli bench + env-loader logic.
+// Pure-flag, multi-provider runner. No repo clone needed:
+//   npx crucible-bench --scenario fakeout-pump --provider openai --model gpt-4o-mini
 import { readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ethers } from "ethers";
-import Anthropic from "@anthropic-ai/sdk";
+import {
+  PROVIDERS,
+  type Provider,
+  DEFAULT_PROMPT,
+  resolveApiKey,
+  requiresApiKey,
+  createDecider,
+  explainMissingSdk,
+  type AgentDecision,
+} from "./llm.js";
 
 // ─── Env loader ───────────────────────────────────────────────────────────────
 
@@ -40,14 +50,12 @@ function loadEnvFiles(): void {
     const vars = parseEnvFile(p);
     let count = 0;
     for (const [k, v] of Object.entries(vars)) {
-      // Don't overwrite if already in process.env (shell beats file)
       if (process.env[k] === undefined) {
         process.env[k] = v;
         count++;
       }
     }
     if (exists) {
-      // re-print with count
       process.stdout.write(`\x1b[1A\x1b[2K▸ Loading env: ${p} (loaded ${count} keys)\n`);
     }
   }
@@ -73,63 +81,6 @@ const START_RUN_TYPES = {
     { name: "nonce", type: "uint256" },
   ],
 };
-
-interface AgentDecision {
-  kind: string;
-  qty: bigint;
-  reasoning: string;
-}
-
-// ─── Agent decide() — mirrors reference-agent-ts verbatim ────────────────────
-
-async function decide(
-  anthropic: Anthropic,
-  model: string,
-  observation: Record<string, unknown>
-): Promise<AgentDecision> {
-  const remaining = (observation["ticksRemaining"] as number) ?? 0;
-  const tickId = (observation["tickId"] as number) ?? 0;
-  const isEarly = remaining > tickId * 2;
-  const isLate = remaining < 6;
-
-  const r = await anthropic.messages.create({
-    model,
-    max_tokens: 256,
-    system: `You are an active trader on a 150-tick benchmark scenario. **You MUST trade actively** — sitting at zero position the whole run wastes the benchmark.
-
-Each tick you receive: { tickId, price, bid, ask, position, cash, equity, news, ticksRemaining }.
-
-Rules:
-- If position == 0 and you have cash, OPEN a long position with kind=market_buy, qty="500000000000000000" (= 0.5 ETH in wei) within the first 5 ticks.
-- On sharp drops (price falls >2% over recent ticks), market_buy more at qty "300000000000000000" (0.3).
-- On sharp rallies (price up >3%), market_sell qty "200000000000000000" (0.2) to take partial profit.
-- React to news: bullish news → buy more, bearish news → sell.
-- In the LAST 5 ticks (ticksRemaining < 6): market_sell your entire current position to lock in PnL.
-- Otherwise noop is acceptable but rare — don't sit idle for more than 5 ticks at a time.
-
-Reply with ONLY raw JSON, no prose, no markdown:
-{"kind":"market_buy"|"market_sell"|"noop","qty":"<wei-string>","reasoning":"one short sentence"}`,
-    messages: [
-      {
-        role: "user",
-        content: JSON.stringify({ ...observation, isEarly, isLate }),
-      },
-    ],
-  });
-
-  const txt = (r.content[0] as { text: string }).text;
-  const cleaned = txt.replace(/^```(?:json)?\s*|\s*```$/gm, "").trim();
-  const j = JSON.parse(cleaned) as {
-    kind: string;
-    qty?: string;
-    reasoning?: string;
-  };
-  return {
-    kind: j.kind,
-    qty: BigInt(j.qty ?? "0"),
-    reasoning: j.reasoning ?? "",
-  };
-}
 
 // ─── Browser opener ───────────────────────────────────────────────────────────
 
@@ -168,34 +119,81 @@ function fmtTick(
   const qtyStr =
     action.kind === "noop" ? "".padEnd(16) : `qty=${fmtQty(action.qty)}`.padEnd(16);
   const equity = obs["equity"];
-  const equityStr =
-    equity != null ? `equity=${fmtPrice(equity)}` : "";
+  const equityStr = equity != null ? `equity=${fmtPrice(equity)}` : "";
   const price = obs["price"];
   const priceStr =
     action.kind !== "noop" && price != null ? `price=${fmtPrice(price)}` : "";
   return `  tick ${tickStr}/${totalStr}  → ${kindPad} ${qtyStr} ${priceStr.padEnd(18)} ${equityStr}`.trimEnd();
 }
 
+// ─── Pre-flight banner ────────────────────────────────────────────────────────
+
+function printBanner(b: {
+  ownerAddress: string;
+  tokenId: string;
+  network: { label: string; chainId: number; explorer: string };
+  provider: string;
+  model: string;
+  scenario: string;
+  promptSource: string;
+  systemPrompt: string;
+}): void {
+  const promptLines = b.systemPrompt.trim().split("\n");
+  const previewLines = promptLines.slice(0, 4);
+  const omitted = Math.max(0, promptLines.length - previewLines.length);
+  const indented = previewLines.map((l) => `      ${l.length > 92 ? l.slice(0, 92) + "…" : l}`).join("\n");
+  const promptTail = omitted > 0 ? `\n      … (${omitted} more line${omitted === 1 ? "" : "s"})` : "";
+
+  console.log(`\n┌─ Crucible Bench ─────────────────────────────────────────`);
+  console.log(`│  Network    ${b.network.label}  ·  chain ${b.network.chainId}`);
+  console.log(`│  Signer     ${b.ownerAddress}`);
+  console.log(`│  AgentINFT  #${b.tokenId}`);
+  console.log(`│  Scenario   ${b.scenario}`);
+  console.log(`│  Provider   ${b.provider}`);
+  console.log(`│  Model      ${b.model}`);
+  console.log(`│  Prompt     ${b.promptSource}`);
+  console.log(`└──────────────────────────────────────────────────────────`);
+  console.log(`\n  System prompt preview:`);
+  console.log(indented + promptTail);
+  console.log("");
+}
+
+// ─── Defaults per provider (model picks) ──────────────────────────────────────
+
+const DEFAULT_MODEL_FOR: Record<Provider, string> = {
+  anthropic: "claude-haiku-4-5",
+  openai: "gpt-4o-mini",
+  google: "gemini-2.0-flash",
+  mistral: "mistral-large-latest",
+  openrouter: "meta-llama/llama-3.3-70b-instruct",
+  ollama: "qwen2.5:32b",
+  "openai-compatible": "",
+};
+
 // ─── Main bench command ───────────────────────────────────────────────────────
 
-async function runBench(opts: {
+type BenchOpts = {
   scenario?: string;
   token?: string;
+  provider?: Provider;
   model?: string;
+  llmApiKey?: string;
+  llmBaseUrl?: string;
+  promptFile?: string;
   framework?: string;
   agentVersion?: string;
   mcpUrl?: string;
   watch?: boolean;
-}): Promise<void> {
-  // 1. Load env files (global → project → shell already in process.env)
+};
+
+async function runBench(opts: BenchOpts): Promise<void> {
   loadEnvFiles();
 
-  // 2. Resolve values from CLI flags → env
+  // ─── Resolve config (flags → env → defaults) ─────────────────────────────
   const scenario =
     opts.scenario ?? process.env["SCENARIO"] ?? process.env["scenario"];
   const tokenId = opts.token ?? process.env["AGENT_TOKEN_ID"];
   const privateKey = process.env["AGENT_PRIVATE_KEY"];
-  const anthropicKey = process.env["ANTHROPIC_API_KEY"];
   const mcpUrl =
     opts.mcpUrl ??
     process.env["CRUCIBLE_MCP_URL"] ??
@@ -203,16 +201,46 @@ async function runBench(opts: {
   const runRegistry =
     process.env["RUN_REGISTRY_V2"] ??
     "0x80C1496980BA1183f8368F6072a130D7B01eDA7D";
-  const model = opts.model ?? process.env["MODEL"] ?? "claude-haiku-4-5";
+
+  const provider: Provider =
+    opts.provider ?? (process.env["LLM_PROVIDER"] as Provider | undefined) ?? "anthropic";
+  if (!PROVIDERS.includes(provider)) {
+    console.error(`✗ Invalid provider "${provider}". Must be one of: ${PROVIDERS.join(", ")}`);
+    process.exit(1);
+  }
+
+  const model =
+    opts.model ??
+    process.env["LLM_MODEL"] ??
+    process.env["MODEL"] ??
+    DEFAULT_MODEL_FOR[provider] ??
+    "claude-haiku-4-5";
+  const apiKey = resolveApiKey(provider, opts.llmApiKey);
+  const baseUrl = opts.llmBaseUrl ?? process.env["LLM_BASE_URL"];
   const framework = opts.framework ?? process.env["FRAMEWORK"] ?? "crucible-bench";
   const agentVersion = opts.agentVersion ?? process.env["AGENT_VERSION"] ?? "";
 
-  // 3. Validate required vars
+  // System prompt: --prompt-file path, $LLM_PROMPT_FILE, or built-in default.
+  let systemPrompt = DEFAULT_PROMPT;
+  const promptFile = opts.promptFile ?? process.env["LLM_PROMPT_FILE"];
+  if (promptFile) {
+    const p = path.resolve(process.cwd(), promptFile);
+    if (!existsSync(p)) {
+      console.error(`✗ Prompt file not found: ${p}`);
+      process.exit(1);
+    }
+    systemPrompt = readFileSync(p, "utf8");
+    console.log(`▸ Loaded system prompt from ${p}`);
+  }
+
+  // ─── Validate required vars ──────────────────────────────────────────────
   const missing: string[] = [];
   if (!privateKey) missing.push("AGENT_PRIVATE_KEY");
   if (!tokenId) missing.push("AGENT_TOKEN_ID");
-  if (!anthropicKey) missing.push("ANTHROPIC_API_KEY");
   if (!scenario) missing.push("SCENARIO (or --scenario flag)");
+  if (requiresApiKey(provider) && !apiKey) {
+    missing.push(`LLM API key for "${provider}" (--llm-api-key, $LLM_API_KEY, or the provider-specific env var)`);
+  }
 
   if (missing.length > 0) {
     console.error(`\n✗ Missing required configuration:\n`);
@@ -229,31 +257,52 @@ async function runBench(opts: {
     process.exit(1);
   }
 
-  // 4. Connect to MCP
+  // ─── Build LLM decider ───────────────────────────────────────────────────
+  const decide = createDecider(
+    { provider, model, apiKey, baseUrl },
+    systemPrompt
+  );
+
+  // ─── Set up wallet (need this for the pre-flight banner) ─────────────────
+  const wallet = new ethers.Wallet(privateKey!);
+
+  // ─── Pre-flight banner ──────────────────────────────────────────────────
+  // Network is hardcoded to Galileo testnet for now; flip to mainnet once
+  // contracts are deployed and CRUCIBLE_NETWORK=mainnet is read here too.
+  const network = {
+    label: "0G Galileo (testnet)",
+    chainId: 16602,
+    explorer: "https://chainscan-galileo.0g.ai",
+  };
+
+  printBanner({
+    ownerAddress: wallet.address,
+    tokenId: tokenId!,
+    network,
+    provider,
+    model,
+    scenario: scenario!,
+    promptSource: promptFile ? promptFile : "(built-in default)",
+    systemPrompt,
+  });
+
+  // ─── Connect to MCP ──────────────────────────────────────────────────────
   console.log(`▸ Connecting to MCP at ${mcpUrl}`);
   const transport = new StreamableHTTPClientTransport(new URL(mcpUrl));
   const client = new Client(
-    { name: "crucible-bench", version: "0.1.0" },
+    { name: "crucible-bench", version: "0.2.1" },
     { capabilities: {} }
   );
   await client.connect(transport);
 
-  // 5. Set up ethers wallet
-  const wallet = new ethers.Wallet(privateKey!);
-  console.log(
-    `▸ Authenticating as tokenId=${tokenId} signer=${wallet.address.slice(0, 8)}...${wallet.address.slice(-4)}`
-  );
-
   const domain = {
     name: "CrucibleBench",
     version: "2",
-    chainId: 16602,
+    chainId: network.chainId,
     verifyingContract: runRegistry,
   };
 
-  const anthropic = new Anthropic({ apiKey: anthropicKey });
-
-  // 6. Start run
+  // ─── Start run ───────────────────────────────────────────────────────────
   let nonce = 1n;
   const startSig = await wallet.signTypedData(domain, START_RUN_TYPES, {
     scenarioId: scenario!,
@@ -286,23 +335,28 @@ async function runBench(opts: {
   const { runId } = startData;
   let observation = startData.observation;
 
-  console.log(`✓ Run started: ${runId}`);
-
-  // 7. Open watch URL if requested
-  const webBase =
-    process.env["CRUCIBLE_WEB_URL"] ?? "https://cruciblebench.xyz";
+  // ─── Watch URL — always printed, --watch additionally opens browser ─────
+  const webBase = process.env["CRUCIBLE_WEB_URL"] ?? "https://cruciblebench.xyz";
   const liveUrl = `${webBase}/runs/live/${runId}`;
+  console.log(`\n✓ Run started: ${runId}`);
+  console.log(`  Watch live: ${liveUrl}`);
   if (opts.watch) {
-    console.log(`▸ Watch live: ${liveUrl}`);
-    console.log(`  (opening in browser)`);
+    console.log(`  (opening browser…)`);
     await openBrowser(liveUrl);
   }
+  console.log("");
 
-  // 8. Tick loop
+  // ─── Tick loop ───────────────────────────────────────────────────────────
   const totalTicks = (observation["totalTicks"] as number) ?? 150;
 
   while (true) {
-    const action = await decide(anthropic, model, observation);
+    let action: AgentDecision;
+    try {
+      action = await decide(observation);
+    } catch (err) {
+      console.error(`\n✗ LLM call failed: ${explainMissingSdk(provider, err)}`);
+      process.exit(1);
+    }
     nonce += 1n;
 
     const sig = await wallet.signTypedData(domain, ACTION_TYPES, {
@@ -338,7 +392,6 @@ async function runBench(opts: {
     };
 
     if (out.done) {
-      // 9. Print scorecard
       console.log(`\n✓ Done.`);
       const sc = out.scorecard ?? {};
       const sortino = sc["sortino"] as number | undefined;
@@ -358,8 +411,7 @@ async function runBench(opts: {
         const sign = totalReturn >= 0 ? "+" : "";
         console.log(`  Return:    ${sign}${(totalReturn * 100).toFixed(2)}%`);
       }
-      if (maxDD != null)
-        console.log(`  Max DD:    ${(maxDD * 100).toFixed(2)}%`);
+      if (maxDD != null) console.log(`  Max DD:    ${(maxDD * 100).toFixed(2)}%`);
       if (runUrl) console.log(`  Run page:  ${runUrl}`);
       else console.log(`  Run page:  ${webBase}/runs/${runId}`);
       return;
@@ -369,13 +421,17 @@ async function runBench(opts: {
     const tickId = observation["tickId"] as number;
     const ticksRemaining = observation["ticksRemaining"] as number;
     const computedTotal = tickId + ticksRemaining;
-    console.log(
-      fmtTick(tickId, computedTotal || totalTicks, action, observation)
-    );
+    console.log(fmtTick(tickId, computedTotal || totalTicks, action, observation));
   }
 }
 
 // ─── CLI entry point ──────────────────────────────────────────────────────────
+
+/** Commander option parser that narrows string → Provider, throws if invalid. */
+function parseProvider(value: string): Provider {
+  if ((PROVIDERS as readonly string[]).includes(value)) return value as Provider;
+  throw new InvalidArgumentError(`must be one of: ${PROVIDERS.join(", ")}`);
+}
 
 const program = new Command();
 
@@ -383,26 +439,33 @@ program
   .name("crucible-bench")
   .description(
     "Run an AI trading agent against Crucible Bench scenarios on 0G.\n" +
-    "Source crucible.env first (or set env vars), then:\n\n" +
-    "  crucible-bench --scenario fakeout-pump --watch"
+    "Works with any LLM provider — Anthropic, OpenAI, Google, Mistral, OpenRouter, Ollama, or any OpenAI-compatible endpoint.\n\n" +
+    "  npx crucible-bench --scenario fakeout-pump --provider openai --model gpt-4o-mini --llm-api-key sk-... --watch\n\n" +
+    "Credentials (AGENT_PRIVATE_KEY, AGENT_TOKEN_ID) come from ./crucible.env or ~/.crucible/config.env."
   )
-  .version("0.1.0")
-  .option("-s, --scenario <id>", "Scenario id (e.g. choppy-range)")
+  .version("0.2.1")
+  // ── benchmark wiring ────────────────────────────────────────────────────
+  .option("-s, --scenario <id>", "Scenario id (e.g. choppy-range, fakeout-pump, luna-collapse)")
   .option("-t, --token <id>", "AgentINFT tokenId (else reads AGENT_TOKEN_ID)")
-  .option("-m, --model <id>", "Model id recorded on chain (also used for Anthropic API)", "claude-haiku-4-5")
-  .option("--framework <name>", "Framework name recorded on chain", "crucible-bench")
-  .option("--agent-version <ver>", "Agent version string recorded on chain", "")
   .option("--mcp-url <url>", "Override CRUCIBLE_MCP_URL")
   .option("--watch", "Open browser to live spectator after start")
-  .action(async (opts: {
-    scenario?: string;
-    token?: string;
-    model?: string;
-    framework?: string;
-    agentVersion?: string;
-    mcpUrl?: string;
-    watch?: boolean;
-  }) => {
+  // ── llm provider (the new typed flags) ──────────────────────────────────
+  .option(
+    "--provider <name>",
+    `LLM provider: ${PROVIDERS.join(" | ")}`,
+    parseProvider
+  )
+  .option("-m, --model <id>", "Model id (defaults vary per provider; also recorded on chain)")
+  .option("--llm-api-key <key>", "API key for the chosen provider (else read from env)")
+  .option(
+    "--llm-base-url <url>",
+    "Override base URL (required for --provider openai-compatible; defaults set for openrouter/ollama)"
+  )
+  .option("--prompt-file <path>", "Path to a markdown/txt file used as the system prompt")
+  // ── leaderboard metadata ────────────────────────────────────────────────
+  .option("--framework <name>", "Framework name recorded on chain", "crucible-bench")
+  .option("--agent-version <ver>", "Agent version string recorded on chain", "")
+  .action(async (opts: BenchOpts) => {
     await runBench(opts);
   });
 

@@ -36,8 +36,9 @@ export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
         transition={{ duration: DURATION.modal, ease: EASE_OUT, delay: 0.1 }}
         className="mt-5 text-[15px] md:text-[16px] text-[#aab2c5] max-w-2xl leading-[1.6]"
       >
-        Replay LUNA&rsquo;s collapse, the BTC flash crash, the ETH ETF reaction. Every action signed by
-        your agent&rsquo;s wallet, every score recorded on 0G Galileo. No self-reporting.
+        Replay LUNA&rsquo;s collapse, the BTC flash crash, the ETH ETF reaction. One{" "}
+        <code className="font-mono text-[#22d3ee] text-[14px]">npx</code> command, any LLM provider, every score
+        signed by your agent&rsquo;s wallet and recorded on 0G Galileo. No self-reporting, no repo to clone.
       </motion.p>
 
       <motion.div
