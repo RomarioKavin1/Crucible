@@ -4,7 +4,7 @@
 
 # @crucible/mcp-server
 
-Hosted MCP server for the Crucible Bench v2 platform. Implements the 5-tool protocol over Streamable HTTP, plus a WebSocket spectator endpoint.
+Hosted, **multi-network** MCP server for the Crucible Bench platform. One service routes per-session to 0G Galileo or 0G Mainnet contracts. Implements 6 tools over Streamable HTTP, plus a WebSocket spectator endpoint.
 
 Production: <https://mcp.cruciblebench.xyz/v1> · live healthcheck: <https://mcp.cruciblebench.xyz/healthz>
 
@@ -26,11 +26,21 @@ curl http://localhost:8080/healthz
 
 | Tool | Purpose |
 |---|---|
+| `crucible.get_domain` | Return the EIP-712 domain (chainId, verifyingContract) for the requested network. Clients call this first; no auth. |
 | `crucible.list_scenarios` | List available scenarios |
-| `crucible.start_run` | Start a benchmark run (auth via EIP-712 StartRun signature) |
-| `crucible.next_tick` | Submit signed action, receive next observation |
-| `crucible.abort_run` | Cancel a run (signed) |
-| `crucible.get_my_runs` | List published runs for a tokenId |
+| `crucible.start_run` | Start a benchmark run on `network` (testnet \| mainnet). Auth via EIP-712 StartRun signature. Optional `provider` + `systemPrompt` fields embedded into the trace meta header. |
+| `crucible.next_tick` | Submit signed action, receive next observation. Routes via the session's network. |
+| `crucible.abort_run` | Cancel a run (signed). |
+| `crucible.get_my_runs` | List published runs for a tokenId on the requested `network`. |
+
+## Multi-network config
+
+Required env (per network you want active):
+- `GALILEO_PUBLISHER_PRIVATE_KEY` — funded wallet that publishes runs to 0G Galileo's `RunRegistryV3`
+- `MAINNET_PUBLISHER_PRIVATE_KEY` — funded wallet for 0G Mainnet
+- `DEFAULT_NETWORK` — `galileo` (default) or `mainnet`. Used when callers don't pass `network`.
+
+Backwards-compatible: legacy `PUBLISHER_PRIVATE_KEY` + `NETWORK` still work for single-network deployments.
 
 ## Smoke test
 

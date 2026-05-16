@@ -86,8 +86,8 @@ Behind the scenes TS uses Vercel AI SDK, Python uses litellm — both let you sw
 
 | Package | Description |
 |---|---|
-| [`crucible-bench`](https://www.npmjs.com/package/crucible-bench) | Single-command benchmark CLI. Any LLM provider via flags — Anthropic, OpenAI, Google, Mistral, OpenRouter, Ollama, or any OpenAI-compatible endpoint |
-| [`create-crucible-agent`](https://www.npmjs.com/package/create-crucible-agent) | Scaffolder (TS or Python). Generates `agent` + `strategy` + `prompt.md` for full control |
+| [`crucible-bench@0.4.0`](https://www.npmjs.com/package/crucible-bench) | Single-command benchmark CLI. `--network testnet\|mainnet` + any LLM provider via flags — Anthropic, OpenAI, Google, Mistral, OpenRouter, Ollama, or any OpenAI-compatible endpoint. |
+| [`create-crucible-agent@0.4.0`](https://www.npmjs.com/package/create-crucible-agent) | Scaffolder (TS or Python). Generates `agent` + `strategy` + `prompt.md` for full control. Network selection via `NETWORK` env var. |
 
 ---
 
@@ -158,43 +158,62 @@ crucible/
 
 | 0G module | How Crucible uses it |
 |---|---|
-| **0G Chain (Galileo)** | `AgentINFT` (ERC-7857), `RunRegistryV2`, `ScenarioRegistry` |
-| **0G Storage** | Trace bundles (with embedded signatures) + scenario manifests via `@0gfoundation/0g-storage-ts-sdk` |
-| **0G Compute Router** | AI Coach LLM inference (drop-in OpenAI-compatible) |
-| **ERC-7857 INFTs** | Agent identity. INFT owner wallet (or delegated assistants) signs all benchmark actions |
-| **MCP** | Crucible hosts the first production MCP server in the 0G ecosystem at `mcp.cruciblebench.xyz` |
-| **OpenClaw** | Native MCP integration — drop our server URL into `~/.openclaw/openclaw.json` |
+| **0G Chain (Mainnet + Galileo)** | `AgentINFT` (ERC-7857), `RunRegistryV3`, `ScenarioRegistry` — deployed on both networks. The web/CLI switch via a one-click toggle. |
+| **0G Storage** | Every signed run trace + scenario manifest uploaded via `@0gfoundation/0g-storage-ts-sdk`. Trace's first line is a meta header (provider, model, system prompt, agent version) so auditors see the full agent config. |
+| **0G Compute Router** | AI Coach LLM inference (drop-in OpenAI-compatible) for post-run critique. |
+| **ERC-7857 INFTs** | Agent identity. INFT owner wallet (or delegated keys) signs all benchmark actions. First production deployment of ERC-7857 on 0G Mainnet. |
+| **MCP** | `mcp.cruciblebench.xyz` is one of the first production MCP servers in the 0G ecosystem — multi-network, 6 tools (`get_domain`, `list_scenarios`, `start_run`, `next_tick`, `abort_run`, `get_my_runs`). |
+| **OpenClaw / Cursor / Claude Desktop** | Native MCP integration — drop our server URL into any MCP-capable agent's config. |
 
 ---
 
-## Deployed contracts (v2 — active)
+## Deployed contracts
 
-### Galileo testnet (chain ID 16602)
+The frontend ships with a **one-click network toggle** in the header. Click to cycle between testnet and mainnet — the chain pill, wallet, on-chain feed, and every chain read instantly switch to the cookie-selected network.
+
+### 0G Mainnet (chain ID 16661) — production
 
 | Contract | Address | Role |
 |---|---|---|
-| `AgentINFT` | [`0x193123676400226a3E156A3F26540C98799cF210`](https://chainscan-galileo.0g.ai/address/0x193123676400226a3E156A3F26540C98799cF210) | Simplified ERC-7857. Owner + delegated keys. |
-| `RunRegistryV2` | [`0x80C1496980BA1183f8368F6072a130D7B01eDA7D`](https://chainscan-galileo.0g.ai/address/0x80C1496980BA1183f8368F6072a130D7B01eDA7D) | Append-only, INFT-attested run log. |
-| `ScenarioRegistry` | [`0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F`](https://chainscan-galileo.0g.ai/address/0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F) | Scenario manifest registry (shared with v1). |
+| `AgentINFT` | [`0x656aad1c2DB6Cc4adF65E274B10341F0Ba355a20`](https://chainscan.0g.ai/address/0x656aad1c2DB6Cc4adF65E274B10341F0Ba355a20) | Simplified ERC-7857. Owner + delegated keys. |
+| `RunRegistryV3` | [`0x6EA011Cb038b29A0554716E8AFfFDe42594Def12`](https://chainscan.0g.ai/address/0x6EA011Cb038b29A0554716E8AFfFDe42594Def12) | Append-only, INFT-attested run log with model metadata. |
+| `ScenarioRegistry` | [`0x4eBeceF2517695A4248233d0994DE51ed4ad0C30`](https://chainscan.0g.ai/address/0x4eBeceF2517695A4248233d0994DE51ed4ad0C30) | Scenario manifest registry. |
 
-> v2 ships the **plaintext-metadata** ERC-7857 variant. The encrypted-brain `iTransferFrom` flow lands in v3 once 0G publishes the TEE oracle.
+### 0G Galileo testnet (chain ID 16602) — development
 
-### Mainnet
+| Contract | Address | Role |
+|---|---|---|
+| `AgentINFT` | [`0x193123676400226a3E156A3F26540C98799cF210`](https://chainscan-galileo.0g.ai/address/0x193123676400226a3E156A3F26540C98799cF210) | Simplified ERC-7857. |
+| `RunRegistryV3` | [`0xe7d44754c73C29Ef95b9b0a37aa41471c0c9731a`](https://chainscan-galileo.0g.ai/address/0xe7d44754c73C29Ef95b9b0a37aa41471c0c9731a) | Active run log. |
+| `RunRegistryV2` | [`0x80C1496980BA1183f8368F6072a130D7B01eDA7D`](https://chainscan-galileo.0g.ai/address/0x80C1496980BA1183f8368F6072a130D7B01eDA7D) | Legacy. Still used as the EIP-712 domain identifier on testnet. |
+| `ScenarioRegistry` | [`0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F`](https://chainscan-galileo.0g.ai/address/0xfCe793368c623dF55AFE2267B113c7Ae15Cf196F) | Shared with v1. |
 
-Pending. v2 ships to Galileo first; mainnet after stabilization.
+> v3 ships the **plaintext-metadata** ERC-7857 variant plus on-chain `model`/`framework`/`agentVersion` columns. The encrypted-brain `iTransferFrom` flow lands later once 0G publishes the TEE oracle.
+
+### CLI network selection
+
+```bash
+# Testnet (default)
+npx crucible-bench --scenario fakeout-pump --provider anthropic --watch
+
+# Mainnet
+npx crucible-bench --network mainnet --scenario fakeout-pump --provider anthropic --watch
+```
+
+The CLI fetches the EIP-712 domain from the MCP server via `crucible.get_domain` — no contract addresses on the client. The MCP server runs both networks in one service and routes per-session based on `start_run`'s `network` arg.
 
 ---
 
 ## Trace verification
 
-Every per-tick action in `trace.jsonl` carries its EIP-712 signature. Anyone can audit any leaderboard entry without trusting Crucible:
+Every per-tick action in `trace.jsonl` carries its EIP-712 signature. The first line is a meta header revealing provider/model/framework/system prompt. Anyone can audit any leaderboard entry without trusting Crucible:
 
-1. Read `RunRegistryV2.getRun(runId)` → `{ tokenId, traceRoot, scorecardHash, … }`
-2. Pull trace from 0G Storage by `traceRoot`
-3. For each line: `ecrecover(EIP712(action), signature) === signer` AND `AgentINFT.isAuthorized(tokenId, signer) === true`
-4. Verify `sha256(trace) === traceRoot`
+1. Read `RunRegistryV3.getRun(runId)` → `{ tokenId, traceRoot (0G Storage Merkle root), scorecardHash, model, framework, agentVersion, … }`
+2. Pull trace bytes from 0G Storage by `traceRoot` — content-addressed by the Merkle root
+3. First line: parse meta header → see the prompt + model the agent was running
+4. For each tick line: `ecrecover(EIP712(action), signature) === signer` AND `AgentINFT.isAuthorized(tokenId, signer) === true`
 
-The [`/verify/[runId]`](https://cruciblebench.xyz/verify/1) page does steps 1–4 in your browser. See [`docs/protocol/v2.md`](docs/protocol/v2.md) for the EIP-712 domain + types.
+The [`/verify/[runId]`](https://cruciblebench.xyz/verify/1) page does this in your browser. See [`docs/protocol/v2.md`](docs/protocol/v2.md) for the EIP-712 domain + types.
 
 ---
 
