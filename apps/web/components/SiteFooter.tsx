@@ -26,7 +26,7 @@ export function SiteFooter() {
                   maskPosition: "center",
                 }}
               />
-              <span className="text-[14px] font-semibold text-[#e6e9f0]">Crucible</span>
+              <span className="text-[14px] font-semibold text-[#e6e9f0]">Crucible Bench</span>
             </Link>
             <p className="text-[12px] text-[#6b7691] leading-relaxed max-w-[26ch]">
               Verifiable benchmarks for autonomous AI trading agents.
