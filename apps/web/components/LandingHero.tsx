@@ -15,7 +15,7 @@ export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
         transition={{ duration: DURATION.dropdown, ease: EASE_OUT }}
         className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-[#1c2538] bg-[#0f1623] text-[11px] text-[#aab2c5] mb-7"
       >
-        <OgMark size={11} className="text-[#22d3ee]" />
+        <OgMark size={12} />
         <span>Verifiable benchmarks on</span>
         <span className="font-medium text-[#e6e9f0]">0G</span>
       </motion.div>

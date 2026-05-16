@@ -1,29 +1,33 @@
+import Image from "next/image";
+
 /**
- * Inline 0G mark — small monochrome glyph for "Built on 0G" chips,
- * footer credit, and the chain pill in the header.
+ * Real 0G wordmark. Drop-in mark for "Built on 0G" chips, footer credit,
+ * the chain pill, etc. The PNG is purple (the brand), so any text-color
+ * class passed in is a no-op — `className` is forwarded for layout only.
  *
- * Geometric "0G" — a circle with a notch, evoking the 0 + G letterforms
- * in a single shape. Currentcolor so it can sit on any surface.
+ * `size` is the rendered HEIGHT in px; width is derived from the source's
+ * 756×366 aspect ratio so the glyph never squashes.
  */
-export function OgMark({ size = 14, className = "" }: { size?: number; className?: string }) {
+const AR = 756 / 366;
+
+export function OgMark({
+  size = 14,
+  className = "",
+  alt = "0G",
+}: {
+  size?: number;
+  className?: string;
+  alt?: string;
+}) {
+  const w = Math.round(size * AR);
   return (
-    <svg
-      width={size}
+    <Image
+      src="/0g_logo.png"
+      width={w}
       height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+      alt={alt}
       className={className}
-      aria-label="0G"
-    >
-      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      <path
-        d="M8 8 L13 8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <circle cx="8" cy="8" r="1.25" fill="currentColor" />
-    </svg>
+      priority={false}
+    />
   );
 }

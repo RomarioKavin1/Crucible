@@ -152,7 +152,7 @@ function ConnectedPill({
             {/* Header card */}
             <div className="px-3 py-2.5 border-b border-[#1c2538]">
               <div className="flex items-center gap-2 mb-1">
-                <OgMark size={11} className="text-[#22d3ee]" />
+                <OgMark size={12} />
                 <span className="text-[11px] text-[#aab2c5] font-medium">{networkLabel}</span>
                 {isTestnet && (
                   <span className="text-[9px] uppercase tracking-[0.1em] font-semibold text-[#fbbf24]">

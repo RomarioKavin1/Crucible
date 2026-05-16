@@ -15,7 +15,7 @@ export default function LoginPage() {
   return (
     <div className="max-w-md mx-auto py-20 text-center space-y-6">
       <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-[#1c2538] bg-[#0f1623] text-[11px] text-[#aab2c5]">
-        <OgMark size={11} className="text-[#22d3ee]" />
+        <OgMark size={12} />
         <span>0G Galileo</span>
       </div>
       <div>

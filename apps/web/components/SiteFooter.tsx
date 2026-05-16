@@ -55,7 +55,7 @@ export function SiteFooter() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-[#aab2c5] hover:text-[#22d3ee] transition-colors"
             >
-              <OgMark size={11} className="text-[#22d3ee]" />
+              <OgMark size={12} />
               <span className="font-medium">0G</span>
             </a>
             <span className="text-[#3d4a6e]">·</span>
