@@ -146,3 +146,19 @@ export function explorerTx(hash: string): string {
 export function storageDownload(rootHash: string): string {
   return `${CURRENT_NETWORK.storageGateway}/file?root=${rootHash}`;
 }
+
+// ─── Network-explicit helpers (use when you already resolved the network) ──
+// These bypass the cookie/env Proxy entirely. Useful when SSR has decided
+// the target network and we need the URL to match on the client too.
+
+export function storageDownloadFor(rootHash: string, network: Network): string {
+  return `${META[network].storageGateway}/file?root=${rootHash}`;
+}
+
+export function explorerAddressFor(addr: string, network: Network): string {
+  return `${META[network].explorerBase}/address/${addr}`;
+}
+
+export function explorerTxFor(hash: string, network: Network): string {
+  return `${META[network].explorerBase}/tx/${hash}`;
+}

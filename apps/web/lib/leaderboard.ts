@@ -107,6 +107,8 @@ export interface V2LeaderboardRow {
   tokenId: string;
   agentDescription: string;
   scenarioId: string;
+  /** bytes32 Merkle root pointing at the trace blob on 0G Storage. */
+  traceRoot: string;
   sortino: number;
   totalReturn: number;
   maxDrawdown: number;
@@ -143,6 +145,7 @@ export async function fetchAllRunsV2(): Promise<V2LeaderboardRow[]> {
       tokenId: tokenIdStr,
       agentDescription: desc!,
       scenarioId: r.scenarioId as string,
+      traceRoot: r.traceRoot as string,
       sortino: Number(r.scoreSortinoE6 as bigint) / 1e6,
       totalReturn: Number(r.totalReturnE6 as bigint) / 1e6,
       maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
@@ -212,6 +215,7 @@ export async function fetchAllRunsV3ForNetwork(n: Network): Promise<V2Leaderboar
     return {
       runId: id.toString(), tokenId: tokenIdStr, agentDescription: desc ?? "",
       scenarioId: r.scenarioId as string,
+      traceRoot: r.traceRoot as string,
       sortino: Number(r.scoreSortinoE6 as bigint) / 1e6,
       totalReturn: Number(r.totalReturnE6 as bigint) / 1e6,
       maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
@@ -222,6 +226,55 @@ export async function fetchAllRunsV3ForNetwork(n: Network): Promise<V2Leaderboar
       agentVersion: r.agentVersion as string,
     };
   }));
+}
+
+/** Fetch a single V3 run on a specific network — cookie-aware callers use this. */
+export async function fetchRunV3ForNetwork(
+  runIdNum: bigint,
+  n: Network,
+): Promise<V2LeaderboardRow | null> {
+  const client = clientForNetwork(n);
+  const addr = addressesForNetwork(n)["RunRegistryV3"];
+  if (!addr) return null;
+
+  const total = (await client.readContract({
+    address: addr as `0x${string}`, abi: ABIs.RUN_REGISTRY_V3_ABI, functionName: "totalRuns",
+  })) as bigint;
+  if (runIdNum > total || runIdNum === 0n) return null;
+
+  const r = (await client.readContract({
+    address: addr as `0x${string}`, abi: ABIs.RUN_REGISTRY_V3_ABI,
+    functionName: "getRun", args: [runIdNum],
+  })) as any;
+
+  // Try to decorate with the agent name (INFT description) on the same network.
+  const inftAddr = addressesForNetwork(n)["AgentINFT"] as `0x${string}` | undefined;
+  let desc = "";
+  if (inftAddr) {
+    try {
+      const data = (await client.readContract({
+        address: inftAddr, abi: ABIs.AGENT_INFT_ABI,
+        functionName: "intelligentData", args: [r.tokenId as bigint],
+      })) as readonly [string, `0x${string}`];
+      desc = data[0];
+    } catch {}
+  }
+
+  return {
+    runId: runIdNum.toString(),
+    tokenId: (r.tokenId as bigint).toString(),
+    agentDescription: desc,
+    scenarioId: r.scenarioId as string,
+      traceRoot: r.traceRoot as string,
+    sortino: Number(r.scoreSortinoE6 as bigint) / 1e6,
+    totalReturn: Number(r.totalReturnE6 as bigint) / 1e6,
+    maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
+    timestamp: Number(r.timestamp as bigint),
+    recordedBy: r.recordedBy as string,
+    model: r.model as string,
+    framework: r.framework as string,
+    agentVersion: r.agentVersion as string,
+  };
 }
 
 /** V3 (active): includes self-described model/framework/agentVersion. */
@@ -250,6 +303,7 @@ export async function fetchAllRunsV3(): Promise<V2LeaderboardRow[]> {
       tokenId: tokenIdStr,
       agentDescription: desc!,
       scenarioId: r.scenarioId as string,
+      traceRoot: r.traceRoot as string,
       sortino: Number(r.scoreSortinoE6 as bigint) / 1e6,
       totalReturn: Number(r.totalReturnE6 as bigint) / 1e6,
       maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
@@ -291,6 +345,7 @@ export async function fetchRunsByScenarioV2(scenarioId: string): Promise<V2Leade
       maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
       timestamp: Number(r.timestamp as bigint),
       recordedBy: r.recordedBy as string,
+      traceRoot: (r.traceHash as string) ?? "",
       model: "", framework: "", agentVersion: "",
     };
   })).then((rows) => rows.sort((a, b) => b.sortino - a.sortino));

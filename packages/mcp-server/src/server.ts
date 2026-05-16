@@ -95,10 +95,14 @@ export function buildMcpServer(ctx: McpServerCtx): Server {
         })) }] };
       }
       case "crucible.get_my_runs": {
-        const net = networkOf(ctx.cfg, normalizeNetwork(a?.network));
+        const nKey = normalizeNetwork(a?.network);
+        const net = networkOf(ctx.cfg, nKey);
+        const passNet: "galileo" | "mainnet" | undefined =
+          nKey === "galileo" || nKey === "mainnet" ? nKey : undefined;
         return { content: [{ type: "text", text: JSON.stringify(await handleGetMyRuns({
           registry: net.runRegistry, tokenId: BigInt(String(a?.tokenId)),
           webPublicUrl: ctx.cfg.webPublicUrl,
+          network: passNet,
         })) }] };
       }
       default:

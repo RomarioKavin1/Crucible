@@ -454,7 +454,10 @@ async function runBench(opts: BenchOpts): Promise<void> {
         console.log(`  Watch URL (session, not the chain row): ${liveUrl}`);
       } else {
         // Older server that doesn't return publish status — fall back to session URL.
-        console.log(`  Run page:  ${webBase}/runs/${runId}`);
+        // The session id won't resolve to an on-chain row on the public site, but
+        // we still tag the network so the page picks the right contracts.
+        const netParam = network === "mainnet" ? "mainnet" : "galileo";
+        console.log(`  Run page:  ${webBase}/runs/${runId}?network=${netParam}`);
       }
       return;
     }

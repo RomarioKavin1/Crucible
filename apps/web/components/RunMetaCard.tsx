@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { storageDownload } from "@/lib/network";
+import { storageDownload, storageDownloadFor, type Network } from "@/lib/network";
 
 interface RunMeta {
   type: "meta";
@@ -22,7 +22,7 @@ interface RunMeta {
  *
  * Older runs (no meta header) render nothing.
  */
-export function RunMetaCard({ traceRoot }: { traceRoot: string }) {
+export function RunMetaCard({ traceRoot, network }: { traceRoot: string; network?: Network }) {
   const [meta, setMeta] = useState<RunMeta | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,8 @@ export function RunMetaCard({ traceRoot }: { traceRoot: string }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(storageDownload(traceRoot));
+        const url = network ? storageDownloadFor(traceRoot, network) : storageDownload(traceRoot);
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`storage ${res.status}`);
         const text = await res.text();
         const firstLine = text.split("\n", 1)[0]?.trim();
