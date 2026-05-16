@@ -8,6 +8,7 @@ import { handleStartRun, StartRunInput } from "./tools/start-run";
 import { handleNextTick, NextTickInput } from "./tools/next-tick";
 import { handleAbortRun, AbortRunInput } from "./tools/abort-run";
 import { handleGetMyRuns } from "./tools/get-my-runs";
+import { handleGetDomain } from "./tools/get-domain";
 
 export interface McpServerCtx {
   cfg: ServerConfig;
@@ -22,6 +23,8 @@ export function buildMcpServer(ctx: McpServerCtx): Server {
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
+      { name: "crucible.get_domain", description: "Return the EIP-712 domain to sign with (name, version, chainId, verifyingContract). Clients must call this first.",
+        inputSchema: { type: "object", properties: {} } },
       { name: "crucible.list_scenarios", description: "List available scenarios",
         inputSchema: { type: "object", properties: {} } },
       { name: "crucible.start_run", description: "Start a new benchmark run; returns runId + tick 0 observation",
@@ -51,6 +54,8 @@ export function buildMcpServer(ctx: McpServerCtx): Server {
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const { name, arguments: args } = req.params;
     switch (name) {
+      case "crucible.get_domain":
+        return { content: [{ type: "text", text: JSON.stringify(handleGetDomain(ctx.cfg.domain)) }] };
       case "crucible.list_scenarios":
         return { content: [{ type: "text", text: JSON.stringify(await listScenarios(ctx.cfg.scenariosDir)) }] };
       case "crucible.start_run":

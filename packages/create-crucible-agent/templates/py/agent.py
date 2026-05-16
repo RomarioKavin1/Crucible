@@ -23,11 +23,9 @@ SERVER_URL = os.environ.get("CRUCIBLE_MCP_URL", "http://localhost:8080/v1")
 SCENARIO = os.environ.get("SCENARIO", "choppy-range")
 TOKEN_ID = os.environ.get("AGENT_TOKEN_ID", "1")
 PK = os.environ["AGENT_PRIVATE_KEY"]
-RUN_REGISTRY = os.environ.get("RUN_REGISTRY_V2", "0x80C1496980BA1183f8368F6072a130D7B01eDA7D")
 
 acct = Account.from_key(PK)
 
-DOMAIN = {"name": "CrucibleBench", "version": "2", "chainId": 16602, "verifyingContract": RUN_REGISTRY}
 ACTION_TYPES = {"Action": [
     {"name": "runId", "type": "bytes32"}, {"name": "tickId", "type": "uint32"},
     {"name": "kind", "type": "string"}, {"name": "qty", "type": "uint256"},
@@ -38,8 +36,8 @@ START_TYPES = {"StartRun": [
 ]}
 
 
-def sign(types, payload):
-    msg = encode_typed_data(domain_data=DOMAIN, message_types=types, message_data=payload)
+def sign(domain, types, payload):
+    msg = encode_typed_data(domain_data=domain, message_types=types, message_data=payload)
     return acct.sign_message(msg).signature.hex()
 
 
@@ -47,8 +45,11 @@ async def main():
     async with streamablehttp_client(SERVER_URL) as (read, write, _):
         async with ClientSession(read, write) as sess:
             await sess.initialize()
+            # Fetch the server's EIP-712 domain — no hardcoded contract addresses.
+            dom_res = await sess.call_tool("crucible.get_domain", {})
+            domain = json.loads(dom_res.content[0].text)
             nonce = 1
-            sig = sign(START_TYPES, {"scenarioId": SCENARIO, "tokenId": int(TOKEN_ID), "nonce": nonce})
+            sig = sign(domain, START_TYPES, {"scenarioId": SCENARIO, "tokenId": int(TOKEN_ID), "nonce": nonce})
             start = await sess.call_tool("crucible.start_run", {
                 "scenarioId": SCENARIO, "tokenId": TOKEN_ID, "nonce": str(nonce),
                 "signature": sig, "signer": acct.address,
@@ -60,7 +61,7 @@ async def main():
             while True:
                 kind, qty, reasoning = decide(obs)
                 nonce += 1
-                sig = sign(ACTION_TYPES, {
+                sig = sign(domain, ACTION_TYPES, {
                     "runId": run_id, "tickId": obs["tickId"], "kind": kind, "qty": qty,
                     "reasoning": reasoning, "nonce": nonce,
                 })

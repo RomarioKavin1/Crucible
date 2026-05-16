@@ -158,6 +158,19 @@ function printBanner(b: {
   console.log("");
 }
 
+// ─── Network display helper ───────────────────────────────────────────────────
+
+function networkLabel(chainId: number): { label: string; chainId: number; explorer: string } {
+  switch (chainId) {
+    case 16602:
+      return { label: "0G Galileo (testnet)", chainId, explorer: "https://chainscan-galileo.0g.ai" };
+    case 16661:
+      return { label: "0G Mainnet", chainId, explorer: "https://chainscan.0g.ai" };
+    default:
+      return { label: `chain ${chainId}`, chainId, explorer: "" };
+  }
+}
+
 // ─── Defaults per provider (model picks) ──────────────────────────────────────
 
 const DEFAULT_MODEL_FOR: Record<Provider, string> = {
@@ -198,9 +211,8 @@ async function runBench(opts: BenchOpts): Promise<void> {
     opts.mcpUrl ??
     process.env["CRUCIBLE_MCP_URL"] ??
     "https://mcp.cruciblebench.xyz/v1";
-  const runRegistry =
-    process.env["RUN_REGISTRY_V2"] ??
-    "0x80C1496980BA1183f8368F6072a130D7B01eDA7D";
+  // verifyingContract is no longer client-configured — we fetch it from
+  // the server right after connect via the crucible.get_domain tool.
 
   const provider: Provider =
     opts.provider ?? (process.env["LLM_PROVIDER"] as Provider | undefined) ?? "anthropic";
@@ -266,15 +278,29 @@ async function runBench(opts: BenchOpts): Promise<void> {
   // ─── Set up wallet (need this for the pre-flight banner) ─────────────────
   const wallet = new ethers.Wallet(privateKey!);
 
-  // ─── Pre-flight banner ──────────────────────────────────────────────────
-  // Network is hardcoded to Galileo testnet for now; flip to mainnet once
-  // contracts are deployed and CRUCIBLE_NETWORK=mainnet is read here too.
-  const network = {
-    label: "0G Galileo (testnet)",
-    chainId: 16602,
-    explorer: "https://chainscan-galileo.0g.ai",
-  };
+  // ─── Connect to MCP + fetch domain ──────────────────────────────────────
+  // The EIP-712 domain (chainId, verifyingContract) is the single source of
+  // truth on the server. We fetch it before signing anything so client and
+  // server cannot drift.
+  console.log(`▸ Connecting to MCP at ${mcpUrl}`);
+  const transport = new StreamableHTTPClientTransport(new URL(mcpUrl));
+  const client = new Client(
+    { name: "crucible-bench", version: "0.3.0" },
+    { capabilities: {} }
+  );
+  await client.connect(transport);
 
+  const domainResult = await client.callTool({
+    name: "crucible.get_domain",
+    arguments: {},
+  });
+  const domain = JSON.parse(
+    ((domainResult.content as { text: string }[])[0] ?? { text: "{}" }).text
+  ) as { name: string; version: string; chainId: number; verifyingContract: string };
+
+  const network = networkLabel(domain.chainId);
+
+  // ─── Pre-flight banner (uses the just-fetched domain) ───────────────────
   printBanner({
     ownerAddress: wallet.address,
     tokenId: tokenId!,
@@ -285,22 +311,6 @@ async function runBench(opts: BenchOpts): Promise<void> {
     promptSource: promptFile ? promptFile : "(built-in default)",
     systemPrompt,
   });
-
-  // ─── Connect to MCP ──────────────────────────────────────────────────────
-  console.log(`▸ Connecting to MCP at ${mcpUrl}`);
-  const transport = new StreamableHTTPClientTransport(new URL(mcpUrl));
-  const client = new Client(
-    { name: "crucible-bench", version: "0.2.2" },
-    { capabilities: {} }
-  );
-  await client.connect(transport);
-
-  const domain = {
-    name: "CrucibleBench",
-    version: "2",
-    chainId: network.chainId,
-    verifyingContract: runRegistry,
-  };
 
   // ─── Start run ───────────────────────────────────────────────────────────
   let nonce = 1n;
@@ -443,7 +453,7 @@ program
     "  npx crucible-bench --scenario fakeout-pump --provider openai --model gpt-4o-mini --llm-api-key sk-... --watch\n\n" +
     "Credentials (AGENT_PRIVATE_KEY, AGENT_TOKEN_ID) come from ./crucible.env or ~/.crucible/config.env."
   )
-  .version("0.2.2")
+  .version("0.3.0")
   // ── benchmark wiring ────────────────────────────────────────────────────
   .option("-s, --scenario <id>", "Scenario id (e.g. choppy-range, fakeout-pump, luna-collapse)")
   .option("-t, --token <id>", "AgentINFT tokenId (else reads AGENT_TOKEN_ID)")

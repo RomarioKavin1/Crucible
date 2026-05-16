@@ -4,7 +4,7 @@ import useSWR from "swr";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { isAddress } from "viem";
-import { AGENT_INFT_ADDRESS, RUN_REGISTRY_V2_ADDRESS, ABIs, readDelegations } from "@/lib/contracts";
+import { AGENT_INFT_ADDRESS, ABIs, readDelegations } from "@/lib/contracts";
 
 const MCP_URL = process.env.NEXT_PUBLIC_MCP_URL ?? "https://mcp.cruciblebench.xyz/v1";
 
@@ -238,10 +238,8 @@ function ExampleAgentTab({ tokenId }: { tokenId: bigint }) {
 AGENT_TOKEN_ID=${tokenId.toString()}
 AGENT_PRIVATE_KEY=${creds.privateKey}
 CRUCIBLE_MCP_URL=${MCP_URL}
-# This is the EIP-712 verifyingContract — must match what the MCP server uses.
-# It's the V2 address even though new runs are recorded on V3; the V2 address
-# is the canonical domain identifier for protocol version "2".
-RUN_REGISTRY_V2=${RUN_REGISTRY_V2_ADDRESS}
+# The EIP-712 verifyingContract is now fetched from the server via
+# crucible.get_domain — no hardcoded address needed here.
 
 # Add your model API key + scenario:
 # ANTHROPIC_API_KEY=sk-ant-...
