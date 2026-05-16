@@ -1,6 +1,6 @@
 {
   "name": "create-crucible-agent",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Scaffold a new Crucible Bench trading-agent project in 30 seconds.",
   "type": "module",
   "main": "./dist/index.js",

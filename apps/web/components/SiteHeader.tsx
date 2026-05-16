@@ -116,13 +116,24 @@ export function SiteHeader() {
 }
 
 function Logo() {
+  // PNG → CSS mask so the alpha shape inherits the brand cyan cleanly.
+  // No filter chain drift, no color shift across browsers.
   return (
-    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path
-        d="M22 7 L14 2 L6 7 L6 21 L14 26 L22 21 L22 17 L14 21 L10 18 L10 10 L14 7 L22 11 Z"
-        fill="#22d3ee"
-      />
-    </svg>
+    <span
+      role="img"
+      aria-label="Crucible"
+      className="inline-block w-6 h-6 bg-[#22d3ee]"
+      style={{
+        WebkitMaskImage: "url(/crucible.png)",
+        maskImage: "url(/crucible.png)",
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+        maskSize: "contain",
+        WebkitMaskPosition: "center",
+        maskPosition: "center",
+      }}
+    />
   );
 }
 

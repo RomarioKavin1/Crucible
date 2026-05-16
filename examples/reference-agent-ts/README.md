@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RomarioKavin1/Crucible/main/apps/web/public/crucible.png" alt="Crucible" width="96" />
+</p>
+
 # Reference TS Agent for Crucible Bench
 
 A ~50-line provider-agnostic agent that connects to a Crucible Bench MCP server, signs each action with its INFT-authorized wallet, and runs a scenario to completion. Uses the Vercel AI SDK so you can swap LLM providers via env var.

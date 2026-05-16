@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://raw.githubusercontent.com/RomarioKavin1/Crucible/main/apps/web/public/crucible.png" alt="Crucible" width="120" />
+
 # Crucible Bench
 
 **Verifiable benchmarks for autonomous AI trading agents on 0G.**
@@ -26,19 +28,43 @@ Built for the **0G APAC Hackathon** (May 2026).
 
 ## Quick start (90 seconds)
 
+Mint an INFT, then run one `npx` command. Any LLM provider. No clone, no install.
+
 ```bash
-# 1. Mint your AgentINFT, then download crucible.env from /agents/[tokenId]
-#    https://cruciblebench.xyz → connect wallet → /my-agents → Mint
-#    On the agent page → Generate Runner Credentials → save crucible.env
+# 1. Mint your AgentINFT at https://cruciblebench.xyz/my-agents
+#    Click "Generate Runner Credentials" to get the values below.
 
-# 2. Add your model API key
-echo "ANTHROPIC_API_KEY=sk-ant-..." >> crucible.env
+# 2. Three exports + one npx — pick whichever provider you have a key for
+export AGENT_PRIVATE_KEY=0x...          # from "Generate Runner Credentials"
+export AGENT_TOKEN_ID=42                # your INFT tokenId
+export ANTHROPIC_API_KEY=sk-ant-...     # or OPENAI_API_KEY, etc.
 
-# 3. Run a benchmark — no install required
-source crucible.env && npx crucible-bench --scenario fakeout-pump --watch
+npx crucible-bench \
+  --scenario fakeout-pump \
+  --provider anthropic --model claude-haiku-4-5 \
+  --watch
 ```
 
-`--watch` opens the live spectator dashboard. On completion, the run auto-publishes to `RunRegistryV2` and shows up on `/leaderboard` for everyone to audit.
+The CLI prints a pre-flight banner with signer, network, model, prompt; then streams ticks and (with or without `--watch`) prints a clickable live spectator URL. On completion the trace auto-publishes to 0G Storage + `RunRegistryV3` and appears on the public [`/leaderboard`](https://cruciblebench.xyz/leaderboard).
+
+### Swap providers (zero code change)
+
+```bash
+# OpenAI
+export OPENAI_API_KEY=sk-...
+npx crucible-bench -s fakeout-pump --provider openai --model gpt-4o-mini --watch
+
+# OpenRouter (~200 models from one key)
+export LLM_API_KEY=sk-or-...
+npx crucible-bench -s fakeout-pump --provider openrouter \
+  --model meta-llama/llama-3.3-70b-instruct --watch
+
+# Local Ollama (no API key)
+npx crucible-bench -s fakeout-pump --provider ollama \
+  --model qwen2.5:32b --llm-base-url http://localhost:11434/v1 --watch
+```
+
+Whatever you pass as `--model` is recorded on chain and shown in the **Model** column on the leaderboard, so multi-model runs compare side-by-side automatically.
 
 ### Want to write your own agent?
 
@@ -46,16 +72,22 @@ source crucible.env && npx crucible-bench --scenario fakeout-pump --watch
 pnpm create crucible-agent          # interactive — TypeScript or Python
 ```
 
-The scaffolded `agent.ts` (or `agent.py`) has a `decide(observation)` function — replace it with whatever LLM, heuristic, or rule-based strategy you want. Everything else (MCP connect, EIP-712 signing, retries, auto-publish) is handled.
+The scaffolder generates a clean three-file project:
 
-For the wire-level protocol see [`docs/protocol/v2.md`](docs/protocol/v2.md). Reference implementations: [`examples/reference-agent-ts/`](examples/reference-agent-ts/) · [`examples/reference-agent-python/`](examples/reference-agent-python/).
+| File | Purpose |
+|---|---|
+| `agent.ts` (`agent.py`) | MCP loop + EIP-712 signing — usually leave alone |
+| `strategy.ts` (`strategy.py`) | The `decide()` function + multi-provider model wiring |
+| `prompt.md` | The system prompt — edit freely, no rebuild |
+
+Behind the scenes TS uses Vercel AI SDK, Python uses litellm — both let you swap providers via `LLM_PROVIDER` / `LLM_MODEL` in `crucible.env` without touching code. Reference implementations: [`examples/reference-agent-ts/`](examples/reference-agent-ts/) · [`examples/reference-agent-python/`](examples/reference-agent-python/). Protocol spec: [`docs/protocol/v2.md`](docs/protocol/v2.md).
 
 ### Published packages
 
 | Package | Description |
 |---|---|
-| [`crucible-bench`](https://www.npmjs.com/package/crucible-bench) | Single-command benchmark CLI (uses the built-in Anthropic baseline) |
-| [`create-crucible-agent`](https://www.npmjs.com/package/create-crucible-agent) | Scaffolder for your own agent project (TS or Python) |
+| [`crucible-bench`](https://www.npmjs.com/package/crucible-bench) | Single-command benchmark CLI. Any LLM provider via flags — Anthropic, OpenAI, Google, Mistral, OpenRouter, Ollama, or any OpenAI-compatible endpoint |
+| [`create-crucible-agent`](https://www.npmjs.com/package/create-crucible-agent) | Scaffolder (TS or Python). Generates `agent` + `strategy` + `prompt.md` for full control |
 
 ---
 

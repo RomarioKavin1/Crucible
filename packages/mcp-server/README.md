@@ -1,6 +1,12 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RomarioKavin1/Crucible/main/apps/web/public/crucible.png" alt="Crucible" width="96" />
+</p>
+
 # @crucible/mcp-server
 
 Hosted MCP server for the Crucible Bench v2 platform. Implements the 5-tool protocol over Streamable HTTP, plus a WebSocket spectator endpoint.
+
+Production: <https://mcp.cruciblebench.xyz/v1> · live healthcheck: <https://mcp.cruciblebench.xyz/healthz>
 
 ## Run locally
 

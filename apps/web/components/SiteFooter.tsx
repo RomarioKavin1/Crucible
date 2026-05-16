@@ -11,12 +11,21 @@ export function SiteFooter() {
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1 space-y-3">
             <Link href="/" className="flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 28 28" fill="none" aria-hidden>
-                <path
-                  d="M22 7 L14 2 L6 7 L6 21 L14 26 L22 21 L22 17 L14 21 L10 18 L10 10 L14 7 L22 11 Z"
-                  fill="#22d3ee"
-                />
-              </svg>
+              <span
+                role="img"
+                aria-label="Crucible"
+                className="inline-block w-5 h-5 bg-[#22d3ee]"
+                style={{
+                  WebkitMaskImage: "url(/crucible.png)",
+                  maskImage: "url(/crucible.png)",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskRepeat: "no-repeat",
+                  WebkitMaskSize: "contain",
+                  maskSize: "contain",
+                  WebkitMaskPosition: "center",
+                  maskPosition: "center",
+                }}
+              />
               <span className="text-[14px] font-semibold text-[#e6e9f0]">Crucible</span>
             </Link>
             <p className="text-[12px] text-[#6b7691] leading-relaxed max-w-[26ch]">
