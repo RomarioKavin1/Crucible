@@ -1,78 +1,106 @@
-"use client";
 import Link from "next/link";
-import { motion } from "motion/react";
-import { NPM_BENCH_URL } from "@/lib/links";
-import { OgMark } from "./OgMark";
-import { PRESS_BUTTON, EASE_OUT, DURATION } from "@/lib/motion";
+import { NPM_BENCH_URL, GITHUB_REPO_URL } from "@/lib/links";
+import { CURRENT_NETWORK } from "@/lib/network";
 
+/**
+ * Editorial hero. Anchored to the left of a 12-col grid; the right column
+ * carries a colophon-style metadata stack (live indicator, network, chain id,
+ * scenario count). Type is the brand: weight-200 mega, weight-400 lead, mono
+ * for any chain-y identifier.
+ *
+ * No motion. No glow. No gradient. The mega type doing its job is the show.
+ */
 export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
   return (
-    <section className="relative pt-12 pb-16 md:pt-20 md:pb-24">
-      {/* 0G micro-credit, top-left */}
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: DURATION.dropdown, ease: EASE_OUT }}
-        className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-[#1c2538] bg-[#0f1623] text-[11px] text-[#aab2c5] mb-7"
-      >
-        <OgMark size={12} />
-        <span>Fully on-chain on</span>
-        <span className="font-medium text-[#e6e9f0]">0G Galileo</span>
-      </motion.div>
+    <section className="relative pt-12 md:pt-20 pb-16 md:pb-24">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-8 gap-y-10">
+        {/* Headline column (8/12) */}
+        <div className="lg:col-span-8 lg:col-start-1">
+          <div className="text-eyebrow flex items-center gap-2.5 mb-8">
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-up" aria-hidden>
+              <span className="absolute inset-0 rounded-full bg-up opacity-50 animate-ping" />
+            </span>
+            Live on {CURRENT_NETWORK.label}
+            <span className="text-ink-4">·</span>
+            <span className="font-mono normal-case tracking-normal">chain {CURRENT_NETWORK.chainId}</span>
+          </div>
 
-      {/* Headline — slightly tighter, single confident line */}
-      <motion.h1
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: DURATION.modal, ease: EASE_OUT, delay: 0.05 }}
-        className="text-[44px] md:text-[60px] font-semibold tracking-[-0.02em] text-[#e6e9f0] leading-[1.02] max-w-3xl"
-      >
-        Battle-test your AI trading agent against real market crises.
-      </motion.h1>
+          <h1 className="text-mega text-ink">
+            Proof,
+            <br />
+            not promises.
+          </h1>
 
-      <motion.p
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: DURATION.modal, ease: EASE_OUT, delay: 0.1 }}
-        className="mt-5 text-[15px] md:text-[16px] text-[#aab2c5] max-w-2xl leading-[1.6]"
-      >
-        Replay LUNA&rsquo;s collapse, the BTC flash crash, the ETH ETF reaction. Every action signed
-        by your agent&rsquo;s wallet, every trace on 0G Storage, every score in <code className="font-mono text-[#22d3ee] text-[14px]">RunRegistryV3</code>{" "}
-        on 0G Galileo. No self-reporting. No Crucible-controlled API in the trust path.
-      </motion.p>
+          <p className="mt-10 text-lead text-ink-2 max-w-[58ch] font-light">
+            Crucible Bench is the verifiable benchmark for autonomous AI trading agents.
+            Every per-tick decision is{" "}
+            <span className="text-ink font-normal">EIP-712 signed</span> by your
+            agent&rsquo;s INFT-authorized wallet, every trace is uploaded to{" "}
+            <span className="text-ink font-normal">0G Storage</span>, every score
+            is recorded in{" "}
+            <code className="font-mono text-accent">RunRegistryV3</code>. Anyone can
+            re-derive the signer and re-compute the score.
+          </p>
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: DURATION.modal, ease: EASE_OUT, delay: 0.15 }}
-        className="mt-7 flex flex-wrap items-center gap-3"
-      >
-        <motion.div {...PRESS_BUTTON}>
-          <Link
-            href="/scenarios"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium bg-[#22d3ee] [@media(hover:hover)and(pointer:fine)]:hover:bg-[#67e8f9] text-[#0a0e17] px-5 py-2.5 rounded-lg transition-colors"
-          >
-            Browse {scenarioCount} scenarios <span aria-hidden>→</span>
-          </Link>
-        </motion.div>
-        <motion.div {...PRESS_BUTTON}>
-          <Link
-            href="/docs"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium bg-[#0f1623] border border-[#1c2538] text-[#e6e9f0] [@media(hover:hover)and(pointer:fine)]:hover:border-[#232d44] px-5 py-2.5 rounded-lg transition-colors"
-          >
-            Read the docs <span aria-hidden>→</span>
-          </Link>
-        </motion.div>
-        <Link
-          href={NPM_BENCH_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6b7691] hover:text-[#22d3ee] px-2 py-2.5 transition-colors"
-        >
-          <code className="font-mono">npx crucible-bench</code>
-          <span aria-hidden className="text-[#3d4a6e]">↗</span>
-        </Link>
-      </motion.div>
+          <p className="mt-3 text-[15px] text-ink-3 font-mono tracking-tight">
+            The score is the chain.
+          </p>
+
+          {/* CTAs — primary, ghost, mono invitation */}
+          <div className="mt-10 flex flex-wrap items-center gap-x-3 gap-y-4">
+            <Link
+              href={NPM_BENCH_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-[13px] font-medium bg-accent hover:bg-accent-hover text-bg px-5 h-10 rounded transition-colors duration-fast ease-out-quart"
+            >
+              <span className="font-mono">$</span> npx crucible-bench
+              <span aria-hidden className="text-bg/60">↗</span>
+            </Link>
+            <Link
+              href="/scenarios"
+              className="inline-flex items-center gap-2 text-[13px] font-medium text-ink border border-border-subtle hover:border-border-strong px-5 h-10 rounded transition-colors duration-fast ease-out-quart"
+            >
+              Browse {scenarioCount} scenarios <span aria-hidden>→</span>
+            </Link>
+            <Link
+              href={GITHUB_REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[13px] text-ink-3 hover:text-ink underline underline-offset-4 decoration-border-subtle hover:decoration-border-strong transition-colors duration-fast ease-out-quart"
+            >
+              Read the source
+            </Link>
+          </div>
+        </div>
+
+        {/* Colophon column (4/12) — running metadata, not a stat card */}
+        <aside className="lg:col-span-3 lg:col-start-10 lg:pt-1 space-y-7">
+          <ColopRow label="Built on">
+            <span className="text-ink">0G Chain · Storage · Compute</span>
+          </ColopRow>
+          <ColopRow label="Identity">
+            <span className="font-mono text-ink">ERC-7857 AgentINFT</span>
+          </ColopRow>
+          <ColopRow label="Authorisation">
+            <span className="font-mono text-ink">EIP-712 per tick</span>
+          </ColopRow>
+          <ColopRow label="Audit surface">
+            <Link href="/verify/7" className="editorial-link font-mono">
+              re-verify any run →
+            </Link>
+          </ColopRow>
+        </aside>
+      </div>
     </section>
+  );
+}
+
+function ColopRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-eyebrow mb-1.5">{label}</div>
+      <div className="text-[13px] leading-snug">{children}</div>
+    </div>
   );
 }

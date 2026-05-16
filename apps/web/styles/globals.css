@@ -1,97 +1,156 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;450;500;550;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Surfaces — flat, no gradients */
-  --bg-deep: #0a0e17;
-  --bg-surface: #0f1623;
-  --bg-elevated: #131b2c;
-
-  /* Borders */
-  --border-hairline: #1c2538;
-  --border-soft: #232d44;
-
-  /* Text */
-  --text-primary: #e6e9f0;
-  --text-secondary: #aab2c5;
-  --text-muted: #6b7691;
-  --text-faint: #4a5470;
-
-  /* Accents — solid colors, never gradient */
-  --accent-cyan: #22d3ee;
-  --accent-cyan-soft: #67e8f9;
-  --accent-amber: #fbbf24;
-  --chart-up: #10b981;
-  --chart-down: #ef4444;
-
-  /* Type */
-  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-
-  /* Radii */
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 18px;
+/* next/font from `geist` injects --font-geist-sans / --font-geist-mono onto
+   <html>. We alias them to our project tokens so DESIGN.md stays portable. */
+html {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+   Tokens — source of truth lives in /DESIGN.md. Keep this in lockstep.
+   All neutrals are cyan-tinted (chroma ~0.012, hue ~220). Never #000/#fff.
+   ───────────────────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --bg:               oklch(0.14 0.012 220);
+  --surface-1:        oklch(0.18 0.012 220);
+  --surface-2:        oklch(0.22 0.013 220);
+  --surface-inset:    oklch(0.12 0.011 220);
+
+  /* Borders */
+  --border-subtle:    oklch(0.25 0.011 220);
+  --border-strong:    oklch(0.32 0.012 220);
+  --border-accent:    oklch(0.82 0.16 200 / 0.40);
+
+  /* Text */
+  --text-primary:     oklch(0.96 0.005 220);
+  --text-secondary:   oklch(0.78 0.008 220);
+  --text-muted:       oklch(0.62 0.01 220);
+  --text-dim:         oklch(0.45 0.012 220);
+
+  /* Accent + semantic */
+  --accent:           oklch(0.82 0.16 200);
+  --accent-hover:     oklch(0.88 0.14 200);
+  --accent-dim:       oklch(0.82 0.16 200 / 0.12);
+  --up:               oklch(0.78 0.16 155);
+  --up-dim:           oklch(0.78 0.16 155 / 0.12);
+  --down:             oklch(0.68 0.18 28);
+  --down-dim:         oklch(0.68 0.18 28 / 0.12);
+
+  /* Motion */
+  --motion-fast:      150ms;
+  --motion:           240ms;
+  --motion-slow:      420ms;
+  --ease-out-quart:   cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo:    cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Shadows — restrained. Most surfaces use border alone. */
+  --shadow-card:      0 1px 0 0 oklch(0.14 0.012 220) inset, 0 0 0 1px oklch(0.25 0.011 220);
+  --shadow-elevated:  0 12px 32px -8px oklch(0.05 0.01 220 / 0.6), 0 0 0 1px oklch(0.32 0.012 220);
+  --shadow-focus:     0 0 0 3px oklch(0.82 0.16 200 / 0.25);
+
+  /* Containers */
+  --container-wide:   1240px;
+  --container:        1080px;
+  --container-narrow: 760px;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────── */
 html, body {
-  background: var(--bg-deep);
+  background: var(--bg);
   color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: 14px;
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
   font-feature-settings: 'cv11', 'ss01', 'ss03';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.005em;
+  text-rendering: optimizeLegibility;
 }
 
-.font-mono, code, pre {
-  font-family: var(--font-mono);
+/* Mono content. tabular-nums for everything that should align. */
+.font-mono, code, pre, kbd, samp {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 
 main { position: relative; z-index: 1; }
 
-/* Scrollbars — recede into the surface */
+/* Selection */
+::selection {
+  background: oklch(0.82 0.16 200 / 0.25);
+  color: var(--text-primary);
+}
+
+/* ─── Typography utility scale ───────────────────────────────────── */
+/* These mirror DESIGN.md exactly. Use them instead of arbitrary text-* sizes. */
+
+.text-mega    { font-size: clamp(64px, 9vw, 112px); line-height: 0.95; font-weight: 200; letter-spacing: -0.035em; }
+.text-display { font-size: clamp(48px, 6.5vw, 80px);  line-height: 1.0;  font-weight: 300; letter-spacing: -0.03em; }
+.text-h1      { font-size: clamp(36px, 4.5vw, 56px); line-height: 1.05; font-weight: 400; letter-spacing: -0.025em; }
+.text-h2      { font-size: clamp(28px, 3vw, 40px);   line-height: 1.1;  font-weight: 500; letter-spacing: -0.02em; }
+.text-h3      { font-size: clamp(22px, 2vw, 28px);   line-height: 1.2;  font-weight: 600; letter-spacing: -0.015em; }
+.text-h4      { font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+.text-lead    { font-size: 18px; line-height: 1.55; font-weight: 400; }
+.text-body    { font-size: 15px; line-height: 1.6; font-weight: 400; }
+.text-sm      { font-size: 13px; line-height: 1.5; font-weight: 400; }
+.text-eyebrow { font-size: 11px; line-height: 1.4; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+.text-mono-lg { font-size: 16px; line-height: 1.5; }
+.text-mono-md { font-size: 13.5px; line-height: 1.5; }
+.text-mono-sm { font-size: 12px; line-height: 1.4; }
+
+/* ─── Surfaces + lines ───────────────────────────────────────────── */
+.surface-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+.surface-inset {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+.hairline-t { border-top: 1px solid var(--border-subtle); }
+.hairline-b { border-bottom: 1px solid var(--border-subtle); }
+
+/* Backwards-compat: legacy components still reference .card-elevated.
+   Editorial register uses border-as-elevation (no shadow). Once those
+   components are revamped, this can be removed. */
+.card-elevated {
+  border-color: var(--border-subtle);
+}
+
+/* ─── Scrollbars — recede ─────────────────────────────────────────── */
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb {
-  background-color: #2a3550;
+  background-color: oklch(0.28 0.011 220);
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #3d4a6e;
+  background-color: oklch(0.36 0.012 220);
   background-clip: padding-box;
 }
 *::-webkit-scrollbar-corner { background: transparent; }
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #2a3550 transparent;
-}
+* { scrollbar-width: thin; scrollbar-color: oklch(0.28 0.011 220) transparent; }
 
-/* Card depth — single soft shadow, no inset highlight, no glow */
-.card-elevated {
-  box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.3), 0 4px 12px -4px rgba(0, 0, 0, 0.4);
-}
-
-/* Quiet keyboard focus ring — visible but not garish */
+/* ─── Focus — visible, not garish. Editorial: focus is a feature. ── */
 :focus-visible {
-  outline: 2px solid var(--accent-cyan);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--shadow-focus);
   border-radius: 4px;
 }
 button:focus-visible, a:focus-visible {
-  outline-offset: 3px;
+  box-shadow: var(--shadow-focus);
 }
 
-/* Honor reduced motion — keep opacity, drop movement */
+/* ─── Reduced motion — keep opacity, drop transforms ──────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -99,4 +158,30 @@ button:focus-visible, a:focus-visible {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ─── Editorial link treatment ────────────────────────────────────── */
+.editorial-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--border-accent);
+  transition: color var(--motion-fast) var(--ease-out-quart),
+              text-decoration-color var(--motion-fast) var(--ease-out-quart);
+}
+.editorial-link:hover {
+  color: var(--accent-hover);
+  text-decoration-color: var(--accent-hover);
+}
+
+/* ─── Diagonal hairline pattern (rare — for empty states only) ────── */
+.bg-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 8px,
+    oklch(0.25 0.011 220) 8px,
+    oklch(0.25 0.011 220) 9px
+  );
 }
