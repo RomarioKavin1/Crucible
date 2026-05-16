@@ -70,7 +70,20 @@ export function RunBuilderClient({
   const scenario = selectedScenario ? scenarios.find((s) => s.id === selectedScenario) : null;
 
   return (
-    <div className="max-w-container-narrow mx-auto space-y-10">
+    <div className="max-w-3xl mx-auto space-y-6">
+      <header className="space-y-2">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-[#22d3ee] font-medium">
+          Run a benchmark
+        </div>
+        <h1 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.02em] text-[#e6e9f0] leading-[1.05]">
+          Three steps. Fully on-chain.
+        </h1>
+        <p className="text-[13.5px] text-[#aab2c5] leading-[1.6] max-w-xl">
+          Pick an agent, pick a scenario, then either point your existing MCP-capable agent at our server
+          or copy a ready-to-run command for the npm CLI.
+        </p>
+      </header>
+
       <StepTracker
         step={step}
         haveAgent={selectedAgent !== null}
@@ -143,40 +156,44 @@ function StepTracker({
   ];
 
   return (
-    <ol className="grid grid-cols-3 gap-0 border-y border-border-subtle divide-x divide-border-subtle">
-      {steps.map((s, i) => {
-        const active = step === s.id;
-        return (
-          <li key={s.id}>
-            <button
-              type="button"
-              disabled={!s.available}
-              onClick={() => s.available && onJump(s.id)}
-              className={`w-full text-left px-5 py-4 transition-colors duration-fast ease-out-quart disabled:cursor-not-allowed disabled:opacity-40 hover:bg-surface-1/40 ${
-                active ? "bg-surface-1/60" : ""
-              }`}
-            >
-              <div className="flex items-baseline gap-3">
-                <span
-                  className={`font-mono text-[11px] tracking-tight ${
-                    s.done ? "text-up" : active ? "text-accent" : "text-ink-4"
-                  }`}
-                >
-                  {s.done ? "✓ done" : `0${i + 1}`}
-                </span>
-              </div>
-              <div
-                className={`mt-1 text-[15px] font-medium tracking-[-0.01em] transition-colors ${
-                  active ? "text-ink" : s.done ? "text-ink-2" : "text-ink-3"
+    <LayoutGroup id="step-tracker">
+      <ol className="flex items-center gap-2 sm:gap-3 text-[12px]">
+        {steps.map((s, i) => {
+          const active = step === s.id;
+          return (
+            <li key={s.id} className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <button
+                type="button"
+                disabled={!s.available}
+                onClick={() => s.available && onJump(s.id)}
+                className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full border transition-colors disabled:cursor-not-allowed ${
+                  active
+                    ? "border-[#22d3ee55] bg-[#22d3ee0a] text-[#22d3ee]"
+                    : s.done
+                      ? "border-[#10b98140] bg-[#10b98108] text-[#10b981] hover:bg-[#10b98115]"
+                      : "border-[#1c2538] text-[#6b7691] hover:text-[#aab2c5] hover:border-[#232d44] disabled:opacity-40 disabled:hover:text-[#6b7691] disabled:hover:border-[#1c2538]"
                 }`}
               >
-                {s.label}
-              </div>
-            </button>
-          </li>
-        );
-      })}
-    </ol>
+                <span className="inline-flex items-center justify-center h-4 w-4 rounded-full text-[10px] font-bold font-mono">
+                  {s.done ? "✓" : i + 1}
+                </span>
+                <span className="font-medium">{s.label}</span>
+                {active && (
+                  <motion.span
+                    layoutId="step-active-pill"
+                    className="absolute inset-0 rounded-full ring-1 ring-[#22d3ee44]"
+                    transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                  />
+                )}
+              </button>
+              {i < steps.length - 1 && (
+                <span className="w-4 sm:w-8 h-px bg-[#1c2538]" aria-hidden />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </LayoutGroup>
   );
 }
 

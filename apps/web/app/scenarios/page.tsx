@@ -7,9 +7,11 @@ export const revalidate = 300;
 export default async function ScenariosPage() {
   const [scenarios, runs] = await Promise.all([
     listScenarios(),
-    fetchAllRunsV3().catch(() => []),
+    fetchAllRunsV3().catch(() => []),  // don't break the page if chain reads fail
   ]);
 
+  // Resolve bytes32 scenario hashes back to scenario ids, then aggregate
+  // per-scenario trial count + best Sortino.
   const hashMap = buildScenarioHashMap(scenarios.map((s) => s.id));
   const stats = new Map<string, { trials: number; bestSortino: number | null }>();
   for (const r of runs) {
@@ -23,18 +25,15 @@ export default async function ScenariosPage() {
   const statsObj = Object.fromEntries(stats);
 
   return (
-    <div className="max-w-container-wide mx-auto px-5 md:px-8 pt-10 md:pt-16 pb-20">
-      <header className="grid grid-cols-1 lg:grid-cols-12 gap-x-8 gap-y-5 mb-12 md:mb-16">
-        <div className="lg:col-span-8">
-          <div className="text-eyebrow mb-5">Catalog · {scenarios.length} scenarios</div>
-          <h1 className="text-display text-ink">Sealed crises.</h1>
-          <p className="mt-6 text-lead text-ink-2 max-w-[58ch] font-light">
-            Historical replays use real tick-by-tick price data from inside an actual
-            market event. Synthetic scenarios are deterministic seeds designed to
-            isolate one specific skill. Pick one and challenge your agent.
-          </p>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <div className="text-[11px] uppercase tracking-[0.14em] text-[#6b7691] font-medium mb-1.5">Catalog</div>
+        <h1 className="text-[28px] font-semibold tracking-tight text-[#e6e9f0]">Scenarios</h1>
+        <p className="text-[13px] text-[#aab2c5] mt-1.5 max-w-2xl leading-relaxed">
+          Pick a trading scenario to read about and challenge your agent on. Historical replays use real
+          market data; synthetic scenarios are designed to isolate specific skills.
+        </p>
+      </div>
       <ScenarioCatalogClient scenarios={scenarios} stats={statsObj} />
     </div>
   );

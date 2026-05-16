@@ -7,8 +7,8 @@ export interface V2Row {
   runId: string;
   tokenId: string;
   agentDescription: string;
-  scenarioId: string;
-  scenarioName: string | null;
+  scenarioId: string;          // bytes32 hash
+  scenarioName: string | null; // resolved name, null if unknown
   sortino: number;
   totalReturn: number;
   maxDrawdown: number;
@@ -25,7 +25,7 @@ type ViewMode = "all" | "best";
 const SORT_OPTIONS: { key: SortKey; label: string; help: string }[] = [
   { key: "sortino",  label: "Sortino",  help: "Risk-adjusted return — bigger is better" },
   { key: "return",   label: "Return",   help: "Total % return — bigger is better" },
-  { key: "drawdown", label: "Drawdown", help: "Worst peak-to-trough drop — smaller is better" },
+  { key: "drawdown", label: "Max DD",   help: "Worst peak-to-trough drop — smaller is better" },
   { key: "recency",  label: "Newest",   help: "Most recently published" },
 ];
 
@@ -53,14 +53,21 @@ function bestPerAgent(rows: V2Row[], key: SortKey): V2Row[] {
 
 function formatAgo(ms: number): string {
   const sec = Math.max(0, Math.floor(ms / 1000));
-  if (sec < 60) return `${sec}s`;
-  if (sec < 3600) return `${Math.floor(sec / 60)}m`;
-  if (sec < 86400) return `${Math.floor(sec / 3600)}h`;
-  return `${Math.floor(sec / 86400)}d`;
+  if (sec < 60) return `${sec}s ago`;
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
+  return `${Math.floor(sec / 86400)}d ago`;
 }
 
 function shortAddr(a: string): string {
   return a.length > 10 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a;
+}
+
+function rankBadge(idx: number) {
+  if (idx === 0) return { bg: "#fbbf24", color: "#0a0e17", label: "1" };
+  if (idx === 1) return { bg: "#aab2c5", color: "#0a0e17", label: "2" };
+  if (idx === 2) return { bg: "#cd7f32", color: "#0a0e17", label: "3" };
+  return { bg: "transparent", color: "#6b7691", label: `${idx + 1}` };
 }
 
 export function LeaderboardClient({
@@ -74,6 +81,7 @@ export function LeaderboardClient({
   const [view, setView] = useState<ViewMode>("all");
   const [scenarioFilter, setScenarioFilter] = useState<string | "all">("all");
   const [modelFilter, setModelFilter] = useState<string | "all">("all");
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const knownModels = useMemo(() => {
     const counts = new Map<string, number>();
@@ -96,168 +104,204 @@ export function LeaderboardClient({
     [filtered, sort, view],
   );
 
-  const scenariosWithCounts = useMemo(() => {
-    return scenarios
-      .map((s) => ({ ...s, count: rows.filter((r) => r.scenarioName === s.id).length }))
-      .filter((s) => s.count > 0);
-  }, [scenarios, rows]);
-
   return (
-    <div className="space-y-8">
-      {/* ─── Filters — editorial typography, no pill chips ─────────── */}
-      <div className="space-y-5">
-        <FilterRow
-          label="View"
-          items={[
-            { id: "all",  label: "All runs",       active: view === "all",  onClick: () => setView("all") },
-            { id: "best", label: "Best per agent", active: view === "best", onClick: () => setView("best") },
-          ]}
-        />
+    <div className="space-y-4">
+      {/* Filter row */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1 bg-[#0f1623] border border-[#1c2538] rounded-lg p-1">
+          <ToggleBtn active={view === "all"} onClick={() => setView("all")}>All runs</ToggleBtn>
+          <ToggleBtn active={view === "best"} onClick={() => setView("best")}>Best per agent</ToggleBtn>
+        </div>
 
-        <FilterRow
-          label="Sort"
-          items={SORT_OPTIONS.map((o) => ({
-            id: o.key,
-            label: o.label,
-            active: sort === o.key,
-            onClick: () => setSort(o.key),
-          }))}
-        />
+        <div className="flex items-center gap-1 bg-[#0f1623] border border-[#1c2538] rounded-lg p-1 ml-auto">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] px-2 font-medium">Sort</span>
+          {SORT_OPTIONS.map((o) => (
+            <ToggleBtn
+              key={o.key}
+              active={sort === o.key}
+              onClick={() => setSort(o.key)}
+              title={o.help}
+            >
+              {o.label}
+            </ToggleBtn>
+          ))}
+        </div>
+      </div>
 
-        {scenariosWithCounts.length > 0 && (
-          <FilterRow
-            label="Scenario"
-            items={[
-              { id: "all", label: `All · ${rows.length}`, active: scenarioFilter === "all", onClick: () => setScenarioFilter("all") },
-              ...scenariosWithCounts.map((s) => ({
-                id: s.id,
-                label: `${s.title} · ${s.count}`,
-                active: scenarioFilter === s.id,
-                onClick: () => setScenarioFilter(s.id),
-              })),
-            ]}
-          />
-        )}
+      {/* Scenario filter chips */}
+      {scenarios.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium pr-1">Scenario</span>
+          <Chip active={scenarioFilter === "all"} onClick={() => setScenarioFilter("all")}>
+            All ({rows.length})
+          </Chip>
+          {scenarios.map((s) => {
+            const count = rows.filter((r) => r.scenarioName === s.id).length;
+            if (count === 0) return null;
+            return (
+              <Chip
+                key={s.id}
+                active={scenarioFilter === s.id}
+                onClick={() => setScenarioFilter(s.id)}
+              >
+                {s.title} ({count})
+              </Chip>
+            );
+          })}
+        </div>
+      )}
 
-        {knownModels.length > 1 && (
-          <FilterRow
-            label="Model"
-            items={[
-              { id: "all", label: `All · ${rows.length}`, active: modelFilter === "all", onClick: () => setModelFilter("all") },
-              ...knownModels.map(([m, count]) => ({
-                id: m,
-                label: `${m} · ${count}`,
-                active: modelFilter === m,
-                onClick: () => setModelFilter(m),
-              })),
-            ]}
-          />
+      {/* Model filter chips */}
+      {knownModels.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium pr-1">Model</span>
+          <Chip active={modelFilter === "all"} onClick={() => setModelFilter("all")}>
+            All ({rows.length})
+          </Chip>
+          {knownModels.map(([m, count]) => (
+            <Chip key={m} active={modelFilter === m} onClick={() => setModelFilter(m)}>
+              {m} ({count})
+            </Chip>
+          ))}
+        </div>
+      )}
+
+      {/* Metrics legend */}
+      <div className="bg-[#0f1623] border border-[#1c2538] rounded-xl card-elevated overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setLegendOpen((v) => !v)}
+          className="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-[#ffffff03] transition-colors"
+        >
+          <span className="text-[12px] text-[#aab2c5]">
+            <span className="text-[#22d3ee]">ⓘ</span> What do these metrics mean?
+          </span>
+          <span className="text-[#6b7691] text-[11px]">{legendOpen ? "Hide" : "Show"}</span>
+        </button>
+        {legendOpen && (
+          <div className="border-t border-[#1c2538] px-4 py-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-[12px] leading-relaxed">
+            <Metric name="Sortino ratio" formula="(return / downside-deviation)">
+              Risk-adjusted return that only penalises <em>downside</em> volatility — the standard
+              hedge-fund quality score. <strong className="text-[#10b981]">Higher is better.</strong> Used as the default rank.
+            </Metric>
+            <Metric name="Return" formula="(end equity − start) / start">
+              Total profit or loss across the scenario, as a percentage of the $10,000 starting cash.{" "}
+              <strong className="text-[#10b981]">Higher is better.</strong>
+            </Metric>
+            <Metric name="Max drawdown" formula="max((peak − trough) / peak)">
+              The worst peak-to-trough equity drop the agent suffered during the run.{" "}
+              <strong className="text-[#ef4444]">Closer to zero is better.</strong>
+            </Metric>
+          </div>
         )}
       </div>
 
-      {/* ─── Table — borderless, hairline rows ─────────────────────── */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-left border-y border-border-subtle">
-              <Th className="w-12 text-right pr-3">#</Th>
-              <Th>Agent</Th>
-              <Th>Model</Th>
-              <Th>Scenario</Th>
-              <Th align="right" sortable active={sort === "sortino"} onClick={() => setSort("sortino")}>
-                Sortino
-              </Th>
-              <Th align="right" sortable active={sort === "return"} onClick={() => setSort("return")}>
-                Return
-              </Th>
-              <Th align="right" sortable active={sort === "drawdown"} onClick={() => setSort("drawdown")}>
-                Drawdown
-              </Th>
-              <Th align="right" sortable active={sort === "recency"} onClick={() => setSort("recency")}>
-                Published
-              </Th>
-              <Th align="right">Audit</Th>
+      {/* The table */}
+      <div className="overflow-x-auto bg-[#0f1623] border border-[#1c2538] rounded-2xl card-elevated">
+        <table className="w-full text-sm">
+          <thead className="text-left text-[10px] uppercase tracking-[0.12em] text-[#6b7691] bg-[#0a0e17]/40">
+            <tr>
+              <th className="px-4 py-3 font-medium w-12 text-center">Rank</th>
+              <th className="px-4 py-3 font-medium">Agent</th>
+              <th className="px-4 py-3 font-medium">Model</th>
+              <th className="px-4 py-3 font-medium">Scenario</th>
+              <SortableHeader label="Sortino" hint="Risk-adjusted return — bigger is better" active={sort === "sortino"} onClick={() => setSort("sortino")} />
+              <SortableHeader label="Return" hint="Total % return on $10k start" active={sort === "return"} onClick={() => setSort("return")} />
+              <SortableHeader label="Max DD" hint="Worst peak-to-trough drop — smaller is better" active={sort === "drawdown"} onClick={() => setSort("drawdown")} />
+              <th className="px-4 py-3 font-medium text-right">Published</th>
+              <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="text-[#e6e9f0]">
             {ordered.map((r, i) => {
-              const returnColor = r.totalReturn >= 0 ? "text-up" : "text-down";
+              const badge = rankBadge(i);
+              const returnColor = r.totalReturn >= 0 ? "#10b981" : "#ef4444";
               return (
-                <tr
-                  key={r.runId}
-                  className="border-b border-border-subtle hover:bg-surface-1/40 transition-colors duration-fast ease-out-quart group"
-                >
-                  <td className="py-5 pr-3 text-right font-mono text-[12px] text-ink-4 tabular-nums align-middle">
-                    {String(i + 1).padStart(2, "0")}
+                <tr key={r.runId} className="border-t border-[#1c253855] hover:bg-[#ffffff04] transition-colors group">
+                  <td className="px-4 py-3.5 text-center align-middle">
+                    <span
+                      className="inline-flex items-center justify-center h-6 w-6 rounded-full font-mono text-[11px] font-bold"
+                      style={{ background: badge.bg, color: badge.color, border: i < 3 ? "none" : "1px solid #1c2538" }}
+                    >
+                      {badge.label}
+                    </span>
                   </td>
-                  <td className="py-5 pr-5 align-middle">
+                  <td className="px-4 py-3.5 align-middle">
                     <Link href={`/runs/${r.runId}`} className="block">
-                      <div className="text-[15px] text-ink group-hover:text-accent transition-colors duration-fast ease-out-quart leading-tight">
-                        {r.agentDescription || <span className="text-ink-3 italic">Unnamed agent</span>}
+                      <div className="text-[13.5px] text-[#e6e9f0] group-hover:text-[#22d3ee] transition-colors font-medium leading-tight">
+                        {r.agentDescription || <span className="text-[#6b7691] italic">Unnamed agent</span>}
                       </div>
-                      <div className="text-[11.5px] text-ink-3 font-mono mt-1 flex items-center gap-2">
-                        <span className="text-accent">INFT #{r.tokenId}</span>
-                        <span className="text-ink-4">·</span>
+                      <div className="text-[10.5px] text-[#6b7691] mt-1 flex items-center gap-2 font-mono">
+                        <span className="text-[#22d3ee]">◆ INFT #{r.tokenId}</span>
+                        <span className="text-[#3a4456]">·</span>
                         <span title={r.recordedBy}>{shortAddr(r.recordedBy)}</span>
                       </div>
                     </Link>
                   </td>
-                  <td className="py-5 pr-5 align-middle">
+                  <td className="px-4 py-3.5 align-middle">
                     {r.model ? (
-                      <div className="leading-tight">
-                        <div className="font-mono text-[12px] text-ink">{r.model}</div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-mono text-[11.5px] text-[#22d3ee] bg-[#22d3ee0a] border border-[#22d3ee33] rounded px-1.5 py-0.5 self-start">
+                          {r.model}
+                        </span>
                         {(r.framework || r.agentVersion) && (
-                          <div className="text-[10.5px] text-ink-3 font-mono mt-0.5">
+                          <span className="text-[10px] text-[#6b7691] font-mono pl-0.5">
                             {r.framework}{r.framework && r.agentVersion ? " · " : ""}{r.agentVersion}
-                          </div>
+                          </span>
                         )}
                       </div>
                     ) : (
-                      <span className="text-[11.5px] text-ink-4 italic">unknown</span>
+                      <span className="text-[10.5px] text-[#6b7691] italic">unknown</span>
                     )}
                   </td>
-                  <td className="py-5 pr-5 align-middle">
+                  <td className="px-4 py-3.5 align-middle">
                     {r.scenarioName ? (
-                      <Link href={`/scenarios/${r.scenarioName}`} className="font-mono text-[12.5px] text-ink-2 hover:text-accent transition-colors duration-fast">
+                      <Link href={`/scenarios/${r.scenarioName}`} className="font-mono text-[12px] text-[#aab2c5] hover:text-[#22d3ee] transition-colors">
                         {r.scenarioName}
                       </Link>
                     ) : (
-                      <span className="font-mono text-[11.5px] text-ink-4" title={r.scenarioId}>
+                      <span className="font-mono text-[11px] text-[#6b7691]" title={r.scenarioId}>
                         {r.scenarioId.slice(0, 10)}…
                       </span>
                     )}
                   </td>
-                  <td className="py-5 pr-5 text-right align-middle">
-                    <span className={`font-mono tabular-nums tracking-tight ${
-                      sort === "sortino" ? "text-[20px] text-ink" : "text-[14px] text-ink-2"
-                    }`}>
+                  <td className="px-4 py-3.5 text-right align-middle">
+                    <span className={`font-mono tabular-nums ${sort === "sortino" ? "text-[16px] font-semibold text-[#e6e9f0]" : "text-[13px] text-[#aab2c5]"}`}>
                       {r.sortino.toFixed(3)}
                     </span>
                   </td>
-                  <td className={`py-5 pr-5 text-right align-middle font-mono tabular-nums ${returnColor}`}>
-                    <span className="text-ink-4 mr-1 text-[10px]">{r.totalReturn >= 0 ? "▲" : "▼"}</span>
-                    <span className={sort === "return" ? "text-[18px]" : "text-[14px]"}>
+                  <td className="px-4 py-3.5 text-right align-middle font-mono tabular-nums" style={{ color: returnColor }}>
+                    <span className="text-[10px] mr-0.5">{r.totalReturn >= 0 ? "▲" : "▼"}</span>
+                    <span className={sort === "return" ? "text-[15px] font-semibold" : "text-[13px]"}>
                       {Math.abs(r.totalReturn).toFixed(2)}%
                     </span>
                   </td>
-                  <td className="py-5 pr-5 text-right align-middle font-mono tabular-nums text-down">
-                    <span className={sort === "drawdown" ? "text-[18px]" : "text-[14px]"}>
+                  <td className="px-4 py-3.5 text-right align-middle font-mono tabular-nums text-[#ef4444]">
+                    <span className={sort === "drawdown" ? "text-[15px] font-semibold" : "text-[13px]"}>
                       −{Math.abs(r.maxDrawdown).toFixed(2)}%
                     </span>
                   </td>
-                  <td className="py-5 pr-5 text-right align-middle text-[12px] text-ink-3 whitespace-nowrap font-mono">
-                    <div title={new Date(r.timestamp * 1000).toISOString()}>
+                  <td className="px-4 py-3.5 text-right align-middle text-[11px] text-[#6b7691] whitespace-nowrap">
+                    <span title={new Date(r.timestamp * 1000).toISOString()}>
                       {formatAgo(Date.now() - r.timestamp * 1000)}
-                    </div>
-                    <div className="text-[10.5px] text-ink-4 mt-0.5">#{r.runId}</div>
+                    </span>
+                    <div className="text-[10px] font-mono text-[#3a4456] mt-0.5">Run #{r.runId}</div>
                   </td>
-                  <td className="py-5 text-right align-middle whitespace-nowrap">
-                    <Link
-                      href={`/verify/${r.runId}`}
-                      className="editorial-link text-[12.5px] font-medium"
-                    >
-                      Verify →
-                    </Link>
+                  <td className="px-4 py-3.5 text-right align-middle whitespace-nowrap">
+                    <div className="flex justify-end gap-1.5">
+                      <Link
+                        href={`/runs/${r.runId}`}
+                        className="text-[11px] font-medium text-[#22d3ee] hover:bg-[#22d3ee15] px-2 py-1 rounded transition-colors"
+                      >
+                        View
+                      </Link>
+                      <Link
+                        href={`/verify/${r.runId}`}
+                        className="text-[11px] font-medium text-[#aab2c5] hover:text-[#22d3ee] hover:bg-[#22d3ee15] px-2 py-1 rounded transition-colors"
+                      >
+                        Audit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               );
@@ -265,108 +309,80 @@ export function LeaderboardClient({
           </tbody>
         </table>
         {ordered.length === 0 && (
-          <div className="py-16 text-center text-[13px] text-ink-3">
+          <div className="px-4 py-10 text-center text-[12px] text-[#6b7691]">
             No runs match the current filter.
           </div>
         )}
       </div>
-
-      {/* ─── Footnote: metric definitions, editorial type ──────────── */}
-      <footer className="pt-8 border-t border-border-subtle grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
-        <MetricFootnote name="Sortino" formula="return / downside-deviation">
-          Risk-adjusted return penalising only <em>downside</em> volatility. Higher is better.
-          Used as the default rank.
-        </MetricFootnote>
-        <MetricFootnote name="Return" formula="(end − start) / start">
-          Total profit or loss as a percentage of the $10,000 starting cash. Higher is better.
-        </MetricFootnote>
-        <MetricFootnote name="Drawdown" formula="max((peak − trough) / peak)">
-          The worst peak-to-trough equity drop the agent suffered. Closer to zero is better.
-        </MetricFootnote>
-      </footer>
     </div>
   );
 }
 
-function FilterRow({
-  label,
-  items,
-}: {
-  label: string;
-  items: { id: string; label: string; active: boolean; onClick: () => void }[];
-}) {
+function ToggleBtn({
+  active, onClick, children, title,
+}: { active: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
   return (
-    <div className="flex items-baseline gap-5 flex-wrap">
-      <span className="text-eyebrow w-14 shrink-0">{label}</span>
-      <div className="flex items-baseline gap-4 flex-wrap">
-        {items.map((it) => (
-          <button
-            key={it.id}
-            type="button"
-            onClick={it.onClick}
-            className={`text-[13px] transition-colors duration-fast ease-out-quart ${
-              it.active
-                ? "text-ink font-medium underline underline-offset-4 decoration-accent decoration-2"
-                : "text-ink-3 hover:text-ink-2"
-            }`}
-          >
-            {it.label}
-          </button>
-        ))}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`px-3 py-1.5 text-[11px] rounded-md transition-colors font-medium ${
+        active
+          ? "bg-[#22d3ee15] text-[#22d3ee] border border-[#22d3ee44]"
+          : "text-[#aab2c5] hover:text-[#e6e9f0] hover:bg-[#ffffff05] border border-transparent"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
-function Th({
-  children,
-  align = "left",
-  className = "",
-  sortable,
-  active,
-  onClick,
-}: {
-  children: React.ReactNode;
-  align?: "left" | "right";
-  className?: string;
-  sortable?: boolean;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  const cls = `text-eyebrow py-4 ${align === "right" ? "text-right pr-5" : ""} ${className}`;
-  if (sortable) {
-    return (
-      <th className={cls}>
-        <button
-          type="button"
-          onClick={onClick}
-          className={`uppercase tracking-[0.12em] transition-colors duration-fast ease-out-quart ${
-            active ? "text-ink" : "text-ink-3 hover:text-ink-2"
-          }`}
-        >
-          {children}
-          {active && <span className="ml-1 text-[8px]">▼</span>}
-        </button>
-      </th>
-    );
-  }
-  return <th className={cls}>{children}</th>;
+function Chip({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 text-[11px] rounded-full transition-colors font-mono ${
+        active
+          ? "bg-[#22d3ee] text-[#0a0e17] font-semibold"
+          : "bg-[#0f1623] text-[#aab2c5] border border-[#1c2538] hover:border-[#3d4a6e]"
+      }`}
+    >
+      {children}
+    </button>
+  );
 }
 
-function MetricFootnote({
-  name,
-  formula,
-  children,
-}: {
-  name: string;
-  formula: string;
-  children: React.ReactNode;
-}) {
+function SortableHeader({
+  label, hint, active, onClick,
+}: { label: string; hint: string; active: boolean; onClick: () => void }) {
+  return (
+    <th className="px-4 py-3 font-medium text-right">
+      <button
+        type="button"
+        onClick={onClick}
+        title={hint}
+        className={`inline-flex items-center gap-1 transition-colors ${
+          active ? "text-[#22d3ee]" : "text-[#6b7691] hover:text-[#aab2c5]"
+        }`}
+      >
+        {label}
+        <span className="text-[9px]">{active ? "▼" : ""}</span>
+      </button>
+    </th>
+  );
+}
+
+function Metric({
+  name, formula, children,
+}: { name: string; formula: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[14px] text-ink font-medium">{name}</div>
-      <div className="font-mono text-[11px] text-accent mt-0.5">{formula}</div>
-      <div className="text-[12.5px] text-ink-2 mt-2 leading-relaxed">{children}</div>
+      <div className="text-[#e6e9f0] font-medium mb-0.5">{name}</div>
+      <div className="font-mono text-[10.5px] text-[#22d3ee] mb-1">{formula}</div>
+      <div className="text-[#aab2c5]">{children}</div>
     </div>
   );
 }
