@@ -96,8 +96,11 @@ export async function listScenarios(runs?: LeaderboardRow[]): Promise<string[]> 
 }
 
 // ─── v2/v3 fetchers (RunRegistryV3 active + RunRegistryV2 legacy) ──────────
-import { keccak256, toBytes } from "viem";
+import { keccak256, toBytes, createPublicClient, http, type PublicClient } from "viem";
 import { publicClient, RUN_REGISTRY_V2_ADDRESS, RUN_REGISTRY_V3_ADDRESS, ABIs, readIntelligentData } from "./contracts";
+import { networkMeta, type Network } from "./network";
+import { galileo, mainnet } from "./chains";
+import deployedAddresses from "../../../contracts/deployed-addresses.json";
 
 export interface V2LeaderboardRow {
   runId: string;
@@ -148,6 +151,75 @@ export async function fetchAllRunsV2(): Promise<V2LeaderboardRow[]> {
       model: "",
       framework: "",
       agentVersion: "",
+    };
+  }));
+}
+
+// Explicit per-network reader: lets API routes target a specific network
+// (via cookie) without relying on the global Proxy-resolved publicClient.
+const _clientCache = new Map<Network, PublicClient>();
+function clientForNetwork(n: Network): PublicClient {
+  let c = _clientCache.get(n);
+  if (!c) {
+    const chain = n === "mainnet" ? mainnet : galileo;
+    c = createPublicClient({ chain, transport: http() });
+    _clientCache.set(n, c);
+  }
+  return c;
+}
+function addressesForNetwork(n: Network) {
+  const key = n === "mainnet" ? "mainnetV2" : "galileoV2";
+  const slot = (deployedAddresses as Record<string, Record<string, string>>)[key] ?? {};
+  return slot;
+}
+
+/**
+ * Network-aware version of fetchAllRunsV3 for server-side callers that resolved
+ * the target network themselves (e.g. an API route reading the cookie via
+ * next/headers). Uses an explicit publicClient + address pair instead of the
+ * cookie-Proxy fallback.
+ */
+export async function fetchAllRunsV3ForNetwork(n: Network): Promise<V2LeaderboardRow[]> {
+  const client = clientForNetwork(n);
+  const addr = addressesForNetwork(n)["RunRegistryV3"];
+  if (!addr) return [];
+
+  const total = (await client.readContract({
+    address: addr as `0x${string}`, abi: ABIs.RUN_REGISTRY_V3_ABI, functionName: "totalRuns",
+  })) as bigint;
+
+  const ids = Array.from({ length: Number(total) }, (_, i) => BigInt(i + 1));
+  const inftAddr = addressesForNetwork(n)["AgentINFT"] as `0x${string}` | undefined;
+  const descCache = new Map<string, string>();
+
+  return Promise.all(ids.map(async (id) => {
+    const r = (await client.readContract({
+      address: addr as `0x${string}`, abi: ABIs.RUN_REGISTRY_V3_ABI,
+      functionName: "getRun", args: [id],
+    })) as any;
+    const tokenIdStr = (r.tokenId as bigint).toString();
+    let desc = descCache.get(tokenIdStr);
+    if (desc === undefined && inftAddr) {
+      try {
+        const data = (await client.readContract({
+          address: inftAddr, abi: ABIs.AGENT_INFT_ABI,
+          functionName: "intelligentData", args: [r.tokenId as bigint],
+        })) as readonly [string, `0x${string}`];
+        desc = data[0];
+      } catch { desc = ""; }
+      descCache.set(tokenIdStr, desc!);
+    }
+    return {
+      runId: id.toString(), tokenId: tokenIdStr, agentDescription: desc ?? "",
+      scenarioId: r.scenarioId as string,
+      sortino: Number(r.scoreSortinoE6 as bigint) / 1e6,
+      totalReturn: Number(r.totalReturnE6 as bigint) / 1e6,
+      maxDrawdown: Number(r.maxDrawdownE6 as bigint) / 1e6,
+      timestamp: Number(r.timestamp as bigint),
+      recordedBy: r.recordedBy as string,
+      model: r.model as string,
+      framework: r.framework as string,
+      agentVersion: r.agentVersion as string,
     };
   }));
 }

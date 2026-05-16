@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, LayoutGroup } from "motion/react";
 import { WalletConnectButton } from "./WalletConnectButton";
+import { NetworkToggle } from "./NetworkToggle";
 import { GITHUB_REPO_URL } from "@/lib/links";
 import { PRESS_BUTTON } from "@/lib/motion";
 
@@ -70,6 +71,11 @@ export function SiteHeader() {
         </LayoutGroup>
 
         <div className="flex-1" />
+
+        {/* Network cycle button — click to switch testnet ↔ mainnet */}
+        <div className="hidden sm:block shrink-0">
+          <NetworkToggle />
+        </div>
 
         {/* Github icon (hidden on small screens) */}
         <motion.a

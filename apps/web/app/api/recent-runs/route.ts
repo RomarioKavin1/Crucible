@@ -1,23 +1,28 @@
 import { NextResponse } from "next/server";
-import { fetchAllRunsV3 } from "@/lib/leaderboard";
+import { cookies } from "next/headers";
+import { fetchAllRunsV3ForNetwork } from "@/lib/leaderboard";
 import { decodeScenarioHash } from "@/lib/scenarios";
+import { NETWORK_COOKIE, type Network } from "@/lib/network";
 
-export const revalidate = 0;          // never ISR-cache; rail polls every 15s
+export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
 /**
- * Returns up to N most recent V3 runs for the landing-page rail.
- *
- * Why a dedicated endpoint? The /api/leaderboard route caches at 60s and
- * exposes a different shape (rows-by-token-aggregation). This is single-row,
- * minimal, and always fresh — the rail polls it on the client.
+ * Most-recent V3 runs for the landing-page rail. Reads the `crucible-network`
+ * cookie so the rail mirrors whichever network the user toggled to.
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const limit = Math.min(20, Math.max(1, parseInt(url.searchParams.get("limit") ?? "8", 10)));
 
+  // Cookie wins; query param is a fallback (lets callers force a specific net).
+  const cookieValue = cookies().get(NETWORK_COOKIE)?.value;
+  const fromQuery = url.searchParams.get("network");
+  const requested = cookieValue ?? fromQuery;
+  const network: Network = requested === "mainnet" ? "mainnet" : "galileo";
+
   try {
-    const runs = await fetchAllRunsV3();
+    const runs = await fetchAllRunsV3ForNetwork(network);
     const recent = runs
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, limit);
@@ -33,11 +38,11 @@ export async function GET(req: Request) {
       timestamp: r.timestamp,
     }));
 
-    return NextResponse.json({ rows });
+    return NextResponse.json({ rows, network });
   } catch (e) {
     return NextResponse.json(
-      { rows: [], error: e instanceof Error ? e.message : String(e) },
-      { status: 200 },        // soft-fail so the rail just shows empty
+      { rows: [], network, error: e instanceof Error ? e.message : String(e) },
+      { status: 200 },
     );
   }
 }
