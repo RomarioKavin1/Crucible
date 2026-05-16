@@ -4,7 +4,7 @@ import {
   ScenarioReplay, AgentReasoningStream, TradesTable, EquityCurve, PlaybackControls,
 } from "@crucible/ui-kit";
 import type { TraceEntry, Tick, Portfolio, Fill } from "@crucible/core";
-import { storageDownload } from "@/lib/network";
+import { storageDownload, storageDownloadFor, type Network } from "@/lib/network";
 const DEFAULT_TICK_INTERVAL_MS = 600;
 
 interface V2TraceLine {
@@ -99,7 +99,7 @@ function adaptV2(lines: V2TraceLine[]): { ticks: Tick[]; entries: TraceEntry[]; 
   return { ticks, entries, allFills };
 }
 
-export function V2RunReplay({ traceRoot }: { traceRoot: string }) {
+export function V2RunReplay({ traceRoot, network }: { traceRoot: string; network?: Network }) {
   const [data, setData] = useState<{ ticks: Tick[]; entries: TraceEntry[]; allFills: Fill[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,7 +112,8 @@ export function V2RunReplay({ traceRoot }: { traceRoot: string }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(storageDownload(traceRoot));
+        const url = network ? storageDownloadFor(traceRoot, network) : storageDownload(traceRoot);
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`storage ${res.status}`);
         const text = await res.text();
         // Filter out the meta header line (and any future non-tick lines).

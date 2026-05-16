@@ -3,15 +3,17 @@ import { fmtSortino, fmtPct, fmtAddr, fromE6 } from "@/lib/format";
 import { ReplayClient } from "@/components/ReplayClient";
 import { V2RunReplay } from "@/components/V2RunReplay";
 import { RunMetaCard } from "@/components/RunMetaCard";
-import { publicClient, RUN_REGISTRY_V3_ADDRESS, AGENT_INFT_ADDRESS, ABIs, readIntelligentData } from "@/lib/contracts";
+import { AGENT_INFT_ADDRESS } from "@/lib/contracts";
+import { fetchRunV3ForNetwork } from "@/lib/leaderboard";
 import { ethers } from "ethers";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { decodeScenarioHash } from "@/lib/scenarios";
-import { CURRENT_NETWORK, explorerAddress, storageDownload } from "@/lib/network";
+import { NETWORK_COOKIE, networkMeta, storageDownload, storageDownloadFor, explorerAddress, explorerAddressFor, type Network } from "@/lib/network";
+import deployedAddresses from "../../../../../contracts/deployed-addresses.json";
 
-export const revalidate = 30;
-
-const NETWORK = CURRENT_NETWORK.id;
+// Per-request render so the cookie-driven network choice always applies.
+export const dynamic = "force-dynamic";
 
 interface CommonRun {
   source: "v1" | "v2";
@@ -30,35 +32,29 @@ interface CommonRun {
   registryAddress: string;
 }
 
-async function loadV2(runIdNum: bigint): Promise<CommonRun | null> {
-  const total = await publicClient.readContract({
-    address: RUN_REGISTRY_V3_ADDRESS, abi: ABIs.RUN_REGISTRY_V3_ABI, functionName: "totalRuns",
-  }) as bigint;
-  if (runIdNum > total || runIdNum === 0n) return null;
-  const r = await publicClient.readContract({
-    address: RUN_REGISTRY_V3_ADDRESS, abi: ABIs.RUN_REGISTRY_V3_ABI, functionName: "getRun", args: [runIdNum],
-  }) as any;
-  let agentLabel = `Agent #${r.tokenId.toString()}`;
-  try {
-    const data = await readIntelligentData(r.tokenId);
-    if (data.description) agentLabel = `Agent #${r.tokenId.toString()} — ${data.description}`;
-  } catch {}
-  // Attempt to decode the bytes32 scenario hash back to a human-readable scenario id
+async function loadV2(runIdNum: bigint, network: Network): Promise<CommonRun | null> {
+  const r = await fetchRunV3ForNetwork(runIdNum, network);
+  if (!r) return null;
+  const agentLabel = r.agentDescription
+    ? `Agent #${r.tokenId} — ${r.agentDescription}`
+    : `Agent #${r.tokenId}`;
   const decodedScenario = await decodeScenarioHash(r.scenarioId).catch(() => null);
+  const v2Key = network === "mainnet" ? "mainnetV2" : "galileoV2";
+  const v2 = (deployedAddresses as Record<string, Record<string, string>>)[v2Key] ?? {};
   return {
     source: "v2",
     runId: runIdNum.toString(),
     agentLabel,
-    agentLink: `/agents/${r.tokenId.toString()}`,
+    agentLink: `/agents/${r.tokenId}`,
     scenarioId: decodedScenario ?? r.scenarioId,
     scenarioLink: decodedScenario ? `/scenarios/${decodedScenario}` : undefined,
     traceHash: r.traceRoot,
-    sortino: Number(r.scoreSortinoE6) / 1e6,
-    totalReturn: Number(r.totalReturnE6) / 1e6,
-    maxDrawdown: Number(r.maxDrawdownE6) / 1e6,
-    timestamp: Number(r.timestamp),
+    sortino: r.sortino,
+    totalReturn: r.totalReturn,
+    maxDrawdown: r.maxDrawdown,
+    timestamp: r.timestamp,
     recordedBy: r.recordedBy,
-    registryAddress: RUN_REGISTRY_V3_ADDRESS,
+    registryAddress: v2["RunRegistryV3"] as `0x${string}`,
   };
 }
 
@@ -94,13 +90,18 @@ async function loadV1(runIdNum: bigint, cfg: typeof CHAIN_CONFIG): Promise<Commo
 
 export default async function RunPage({ params, searchParams }: {
   params: { id: string };
-  searchParams?: { source?: string };
+  searchParams?: { source?: string; network?: string };
 }) {
   const cfg = CHAIN_CONFIG;
   const id = BigInt(params.id);
   const forceV1 = searchParams?.source === "v1";
 
-  let run = forceV1 ? await loadV1(id, cfg) : await loadV2(id);
+  // URL ?network=… wins (so CLI-printed links lock the view), else cookie, else cookie-default.
+  const requested = searchParams?.network ?? cookies().get(NETWORK_COOKIE)?.value;
+  const network: Network = requested === "mainnet" ? "mainnet" : "galileo";
+  const netMeta = networkMeta(network);
+
+  let run = forceV1 ? await loadV1(id, cfg) : await loadV2(id, network);
   if (!run && !forceV1) run = await loadV1(id, cfg);  // fallback if v2 didn't have it
 
   if (!run) {
@@ -177,36 +178,38 @@ export default async function RunPage({ params, searchParams }: {
         </div>
       </div>
 
-      {run.source === "v2" && <RunMetaCard traceRoot={run.traceHash} />}
+      {run.source === "v2" && <RunMetaCard traceRoot={run.traceHash} network={network} />}
       {run.source === "v1" && run.scenarioLink && <ReplayClient traceHash={run.traceHash} scenarioId={run.scenarioId} />}
-      {run.source === "v2" && <V2RunReplay traceRoot={run.traceHash} />}
+      {run.source === "v2" && <V2RunReplay traceRoot={run.traceHash} network={network} />}
 
       {/* ON-CHAIN PROOF */}
       <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
         <div className="px-5 py-3 border-b border-[#1c2538] flex items-center justify-between">
           <span className="text-[12px] font-medium text-[#e6e9f0]">On-chain proof</span>
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691]">{NETWORK} · {run.source}</span>
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691]">{netMeta.label} · {run.source}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#1c2538]">
           <ProofCell
             label="Run record"
             value={`runId ${run.runId}`}
             sub={run.source === "v2" ? "RunRegistryV3 · 0G Galileo" : "RunRegistry · 0G Galileo"}
-            link={explorerAddress(run.registryAddress)}
+            link={run.source === "v2" ? explorerAddressFor(run.registryAddress, network) : explorerAddress(run.registryAddress)}
             linkLabel="View contract"
           />
           <ProofCell
             label="Trace blob"
             value={shortHash(run.traceHash, 10, 6)}
             sub="Stored on 0G Storage"
-            link={storageDownload(run.traceHash)}
+            link={run.source === "v2" ? storageDownloadFor(run.traceHash, network) : storageDownload(run.traceHash)}
             linkLabel="Download"
           />
           <ProofCell
             label={run.source === "v2" ? "INFT contract" : "Recipe hash"}
             value={run.source === "v2" ? shortHash(AGENT_INFT_ADDRESS, 10, 6) : shortHash(run.recipeHash ?? "", 10, 6)}
             sub={run.source === "v2" ? "AgentINFT (ERC-7857)" : "committed in AgentRegistry"}
-            link={explorerAddress(run.source === "v2" ? AGENT_INFT_ADDRESS : (cfg.contracts.AgentRegistry))}
+            link={run.source === "v2"
+              ? explorerAddressFor(((deployedAddresses as any)[network === "mainnet" ? "mainnetV2" : "galileoV2"]?.AgentINFT ?? AGENT_INFT_ADDRESS) as string, network)
+              : explorerAddress(cfg.contracts.AgentRegistry)}
             linkLabel="View contract"
           />
         </div>
