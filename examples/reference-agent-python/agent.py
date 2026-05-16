@@ -18,6 +18,7 @@ SERVER_URL = os.environ.get("CRUCIBLE_MCP_URL", "http://localhost:8080/v1")
 SCENARIO = os.environ.get("SCENARIO", "choppy-range")
 TOKEN_ID = os.environ.get("AGENT_TOKEN_ID", "1")
 PK = os.environ["AGENT_PRIVATE_KEY"]
+NETWORK = os.environ.get("NETWORK", "testnet")  # testnet | mainnet
 
 acct = Account.from_key(PK)
 
@@ -40,8 +41,8 @@ async def main():
     async with streamablehttp_client(SERVER_URL) as (read, write, _):
         async with ClientSession(read, write) as sess:
             await sess.initialize()
-            # Fetch the server's EIP-712 domain — no hardcoded contract addresses.
-            dom_res = await sess.call_tool("crucible.get_domain", {})
+            # Fetch the server's EIP-712 domain for the target network.
+            dom_res = await sess.call_tool("crucible.get_domain", {"network": NETWORK})
             domain = json.loads(dom_res.content[0].text)
             nonce = 1
             sig = sign(domain, START_TYPES, {"scenarioId": SCENARIO, "tokenId": int(TOKEN_ID), "nonce": nonce})
@@ -54,6 +55,7 @@ async def main():
             start = await sess.call_tool("crucible.start_run", {
                 "scenarioId": SCENARIO, "tokenId": TOKEN_ID, "nonce": str(nonce),
                 "signature": sig, "signer": acct.address,
+                "network": NETWORK,
                 "model": META["model"], "framework": META["framework"], "agentVersion": META["agentVersion"],
                 "provider": os.environ.get("LLM_PROVIDER", "anthropic"),
                 "systemPrompt": system_prompt,

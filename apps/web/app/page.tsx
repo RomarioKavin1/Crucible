@@ -16,7 +16,7 @@ export default async function HomePage() {
       <div className="space-y-14 min-w-0">
         <LandingHero scenarioCount={all.length} />
         <FeaturedScenarios />
-        <CliOnboardingCard />
+        {/* <CliOnboardingCard /> */}
       </div>
       <RecentRunsFeed />
     </div>

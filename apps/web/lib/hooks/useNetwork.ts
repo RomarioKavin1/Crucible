@@ -28,7 +28,7 @@ type NetworkState = {
   isSwitching: boolean;
 };
 
-const ID_TO_NETWORK: Record<number, Network> = { 16602: "galileo", 16601: "mainnet" };
+const ID_TO_NETWORK: Record<number, Network> = { 16602: "galileo", 16661: "mainnet" };
 
 export function useNetwork(): NetworkState {
   const { isConnected } = useAccount();

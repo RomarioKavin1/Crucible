@@ -60,7 +60,7 @@ export MAINNET_DEPLOYER_PRIVATE_KEY="$DEPLOYER_KEY"
 export OG_MAINNET_RPC="${OG_MAINNET_RPC:-https://evmrpc.0g.ai}"
 
 echo ""
-echo "▸ Deploying RunRegistryV3 + AgentINFT + ScenarioRegistry to 0G Mainnet (chain 16601)..."
+echo "▸ Deploying RunRegistryV3 + AgentINFT + ScenarioRegistry to 0G Mainnet (chain 16661)..."
 forge script script/DeployV3Mainnet.s.sol \
   --rpc-url mainnet \
   --broadcast \
@@ -89,4 +89,4 @@ echo "  5. Redeploy:"
 echo "     railway up              # mcp-server"
 echo "     git push                # web (Vercel auto-deploys from main)"
 echo ""
-echo "  6. Smoke-test: visit cruciblebench.xyz — header pill should read \"0G Mainnet · 16601\"."
+echo "  6. Smoke-test: visit cruciblebench.xyz — header pill should read \"0G Mainnet · 16661\"."

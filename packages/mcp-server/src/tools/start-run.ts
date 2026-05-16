@@ -1,7 +1,7 @@
 // packages/mcp-server/src/tools/start-run.ts
 import path from "node:path";
 import { z } from "zod";
-import type { AgentINFTClient } from "@crucible/og-client";
+import type { AgentINFTClient, Network } from "@crucible/og-client";
 import { recoverStartRunSigner, type EIP712Domain } from "../auth";
 import { EngineSession } from "../engine-adapter";
 import type { SessionRegistry } from "../session";
@@ -12,6 +12,9 @@ export const StartRunInput = z.object({
   nonce: z.string(),
   signature: z.string(),
   signer: z.string(),
+  // Network selection — handled at the server layer (caller resolves with networkOf());
+  // present here so it doesn't fail zod parse if clients send it.
+  network: z.enum(["testnet", "mainnet", "galileo"]).optional(),
   // Self-described agent metadata (optional — defaults to "unknown")
   model: z.string().optional(),
   framework: z.string().optional(),
@@ -24,13 +27,15 @@ export const StartRunInput = z.object({
 export type StartRunInputT = z.infer<typeof StartRunInput>;
 
 export interface HandleStartRunDeps {
+  /** Network resolved by the server layer; persisted on the session. */
+  network: Network;
   domain: EIP712Domain;
   inft: AgentINFTClient;
   registry: SessionRegistry;
-  scenariosDir?: string;   // defaults to repo's scenarios/
+  scenariosDir?: string;
   startEngine?: (scenarioDir: string) => Promise<EngineSession>;
   input: StartRunInputT;
-  webPublicUrl?: string;   // base URL of the web UI (default http://localhost:3001)
+  webPublicUrl?: string;
 }
 
 export interface StartRunResult {
@@ -63,6 +68,7 @@ export async function handleStartRun(deps: HandleStartRunDeps): Promise<StartRun
   const scenarioDir = path.join(scenariosDir, input.scenarioId);
   const engine = await startEngine(scenarioDir);
   const runId = registry.create({
+    network: deps.network,
     tokenId, signer: recovered, scenarioId: input.scenarioId, engine,
     model: input.model, framework: input.framework, agentVersion: input.agentVersion,
     provider: input.provider, systemPrompt: input.systemPrompt,

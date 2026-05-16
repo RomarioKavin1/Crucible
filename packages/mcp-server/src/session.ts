@@ -2,11 +2,14 @@
 import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import type { EngineSession } from "./engine-adapter";
+import type { Network } from "@crucible/og-client";
 
 export type SessionStatus = "active" | "completed" | "aborted";
 
 export interface Session {
   runId: string;            // 0x-prefixed bytes32
+  /** Network this run lives on. Carried forward to next_tick/abort/publish. */
+  network: Network;
   tokenId: bigint;
   signer: string;
   scenarioId: string;
@@ -29,6 +32,7 @@ export interface Session {
 }
 
 export interface CreateOpts {
+  network: Network;
   tokenId: bigint;
   signer: string;
   scenarioId: string;
@@ -46,7 +50,7 @@ export class SessionRegistry {
   create(opts: CreateOpts): string {
     const runId = "0x" + randomBytes(32).toString("hex");
     const sess: Session = {
-      runId, tokenId: opts.tokenId, signer: opts.signer, scenarioId: opts.scenarioId,
+      runId, network: opts.network, tokenId: opts.tokenId, signer: opts.signer, scenarioId: opts.scenarioId,
       engine: opts.engine, expectedNonce: 0n, status: "active",
       createdAt: Date.now(), lastTickAt: Date.now(), events: new EventEmitter(),
       tickHistory: [],

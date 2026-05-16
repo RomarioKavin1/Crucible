@@ -2,17 +2,15 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { ethers } from "ethers";
 import { publishRunV3 } from "@crucible/og-client";
 import type { SessionRegistry, CreateOpts } from "./session";
 import type { ServerConfig } from "./config";
+import { networkOf } from "./config";
 
 /**
- * Wraps SessionRegistry.create so newly-created sessions auto-publish on engine completion.
- * Listens to the per-session "done" event (emitted by handleNextTick when isDone()==true)
- * and uploads the trace + scorecard to 0G Storage + records on RunRegistryV2.
- *
- * Emits "published" or "publish_failed" on the session events.
+ * Wraps SessionRegistry.create so newly-created sessions auto-publish on
+ * engine completion. Routes via the session's network — each run lands on
+ * the contract for the network it was started against.
  */
 export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConfig) {
   const origCreate = sessions.create.bind(sessions);
@@ -21,14 +19,13 @@ export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConf
     const sess = sessions.get(runId);
     sess.events.on("done", async (ev: any) => {
       try {
+        const net = networkOf(cfg, sess.network);
+
         const dir = await mkdtemp(path.join(tmpdir(), `run-${runId.slice(2, 10)}-`));
-        // Prepend a meta header line so anyone auditing the trace can see what
-        // model + prompt the agent was running. Not signed, not on chain —
-        // purely for auditor transparency. The verifier skips it because it
-        // has no signature/signer fields (existing path).
         const meta = JSON.stringify({
           type: "meta",
           schema: 1,
+          network: sess.network,
           tokenId: sess.tokenId.toString(),
           scenarioId: sess.scenarioId,
           signer: sess.signer,
@@ -41,23 +38,24 @@ export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConf
         });
         const traceWithMeta = `${meta}\n${ev.traceJsonl ?? ""}`;
         await writeFile(path.join(dir, "trace.jsonl"), traceWithMeta);
-        // publishRunV3 expects scorecard.json with shape { scenario, scorecard:{...} }
-        // — adapt by wrapping the engine's flat scorecard.
+
         const wrapped = { scenario: sess.scenarioId, scorecard: ev.scorecard };
         await writeFile(path.join(dir, "scorecard.json"), JSON.stringify(wrapped));
+
         const result = await publishRunV3({
           runDir: dir,
           tokenId: sess.tokenId,
-          network: cfg.network,
-          privateKey: cfg.publisherPrivateKey,
+          network: sess.network,
+          privateKey: net.publisherPrivateKey,
           model: sess.model,
           framework: sess.framework,
           agentVersion: sess.agentVersion,
         });
+
         sess.events.emit("published", {
           runId: result.runId.toString(),
           txHash: result.txHash,
-          url: `${cfg.webPublicUrl}/runs/${result.runId.toString()}`,
+          url: `${cfg.webPublicUrl}/runs/${result.runId.toString()}?network=${sess.network}`,
         });
         sessions.markCompleted(runId);
       } catch (err) {

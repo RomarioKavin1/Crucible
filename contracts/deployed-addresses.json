@@ -11,16 +11,13 @@
     "RunRegistryV3": "0xe7d44754c73C29Ef95b9b0a37aa41471c0c9731a"
   },
   "mainnet": {
-    "_comment": "Populate after running `forge script script/DeployV3Mainnet.s.sol --rpc-url mainnet --broadcast`",
-    "ScenarioRegistry": "",
-    "AgentRegistry": "",
-    "RunRegistry": ""
+    "ScenarioRegistry": "0x4eBeceF2517695A4248233d0994DE51ed4ad0C30"
   },
   "mainnetV2": {
-    "_comment": "Populate after running `forge script script/DeployV3Mainnet.s.sol --rpc-url mainnet --broadcast`. Until populated, the frontend will refuse to switch to mainnet via NEXT_PUBLIC_OG_NETWORK=mainnet and isMainnetReady() returns false.",
-    "ScenarioRegistry": "",
-    "AgentINFT": "",
-    "RunRegistryV2": "",
-    "RunRegistryV3": ""
+    "_comment": "On mainnet we skipped V2; RunRegistryV3 IS the EIP-712 verifyingContract. Same address is in both V2 and V3 slots so code that reads RunRegistryV2 (for the domain) and code that reads RunRegistryV3 (for run data) both work without touching either path.",
+    "ScenarioRegistry": "0x4eBeceF2517695A4248233d0994DE51ed4ad0C30",
+    "AgentINFT": "0x656aad1c2DB6Cc4adF65E274B10341F0Ba355a20",
+    "RunRegistryV2": "0x6EA011Cb038b29A0554716E8AFfFDe42594Def12",
+    "RunRegistryV3": "0x6EA011Cb038b29A0554716E8AFfFDe42594Def12"
   }
 }

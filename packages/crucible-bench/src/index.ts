@@ -185,9 +185,12 @@ const DEFAULT_MODEL_FOR: Record<Provider, string> = {
 
 // ─── Main bench command ───────────────────────────────────────────────────────
 
+type Network = "testnet" | "mainnet";
+
 type BenchOpts = {
   scenario?: string;
   token?: string;
+  network?: Network;
   provider?: Provider;
   model?: string;
   llmApiKey?: string;
@@ -211,8 +214,17 @@ async function runBench(opts: BenchOpts): Promise<void> {
     opts.mcpUrl ??
     process.env["CRUCIBLE_MCP_URL"] ??
     "https://mcp.cruciblebench.xyz/v1";
-  // verifyingContract is no longer client-configured — we fetch it from
-  // the server right after connect via the crucible.get_domain tool.
+
+  // Network selection: --network testnet|mainnet. Default testnet. The flag
+  // travels through get_domain + start_run so the server routes to the right
+  // chain. The CLI itself doesn't care about which contracts — it gets the
+  // EIP-712 domain from the server.
+  const network: Network =
+    opts.network ?? (process.env["NETWORK"] as Network | undefined) ?? "testnet";
+  if (network !== "testnet" && network !== "mainnet") {
+    console.error(`✗ Invalid --network "${network}". Must be "testnet" or "mainnet".`);
+    process.exit(1);
+  }
 
   const provider: Provider =
     opts.provider ?? (process.env["LLM_PROVIDER"] as Provider | undefined) ?? "anthropic";
@@ -285,26 +297,26 @@ async function runBench(opts: BenchOpts): Promise<void> {
   console.log(`▸ Connecting to MCP at ${mcpUrl}`);
   const transport = new StreamableHTTPClientTransport(new URL(mcpUrl));
   const client = new Client(
-    { name: "crucible-bench", version: "0.3.1" },
+    { name: "crucible-bench", version: "0.4.0" },
     { capabilities: {} }
   );
   await client.connect(transport);
 
   const domainResult = await client.callTool({
     name: "crucible.get_domain",
-    arguments: {},
+    arguments: { network },
   });
   const domain = JSON.parse(
     ((domainResult.content as { text: string }[])[0] ?? { text: "{}" }).text
   ) as { name: string; version: string; chainId: number; verifyingContract: string };
 
-  const network = networkLabel(domain.chainId);
+  const networkInfo = networkLabel(domain.chainId);
 
   // ─── Pre-flight banner (uses the just-fetched domain) ───────────────────
   printBanner({
     ownerAddress: wallet.address,
     tokenId: tokenId!,
-    network,
+    network: networkInfo,
     provider,
     model,
     scenario: scenario!,
@@ -328,6 +340,7 @@ async function runBench(opts: BenchOpts): Promise<void> {
       nonce: nonce.toString(),
       signature: startSig,
       signer: wallet.address,
+      network,
       model,
       framework,
       agentVersion,
@@ -446,6 +459,12 @@ function parseProvider(value: string): Provider {
   throw new InvalidArgumentError(`must be one of: ${PROVIDERS.join(", ")}`);
 }
 
+/** Commander option parser for --network. Accepts "testnet" or "mainnet". */
+function parseNetwork(value: string): Network {
+  if (value === "testnet" || value === "mainnet") return value;
+  throw new InvalidArgumentError(`must be "testnet" or "mainnet"`);
+}
+
 const program = new Command();
 
 program
@@ -456,11 +475,12 @@ program
     "  npx crucible-bench --scenario fakeout-pump --provider openai --model gpt-4o-mini --llm-api-key sk-... --watch\n\n" +
     "Credentials (AGENT_PRIVATE_KEY, AGENT_TOKEN_ID) come from ./crucible.env or ~/.crucible/config.env."
   )
-  .version("0.3.1")
+  .version("0.4.0")
   // ── benchmark wiring ────────────────────────────────────────────────────
   .option("-s, --scenario <id>", "Scenario id (e.g. choppy-range, fakeout-pump, luna-collapse)")
   .option("-t, --token <id>", "AgentINFT tokenId (else reads AGENT_TOKEN_ID)")
   .option("--mcp-url <url>", "Override CRUCIBLE_MCP_URL")
+  .option("-n, --network <name>", "Target network: testnet (default) | mainnet", parseNetwork)
   .option("--watch", "Open browser to live spectator after start")
   // ── llm provider (the new typed flags) ──────────────────────────────────
   .option(
