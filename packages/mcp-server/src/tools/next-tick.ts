@@ -67,7 +67,9 @@ export async function handleNextTick(deps: HandleNextTickDeps): Promise<NextTick
 
     // Wait for publish-on-done to actually publish (or fail) before returning
     // so clients receive the real on-chain runId + leaderboard URL — not just
-    // the in-memory session id. Capped at 45s.
+    // the in-memory session id. Mainnet 0G Storage finalization can take a
+    // few minutes; capped at 5 min.
+    const PUBLISH_TIMEOUT_MS = 5 * 60_000;
     const publishResult = await new Promise<{
       ok: true; runId: string; txHash?: string; url: string;
     } | {
@@ -75,8 +77,8 @@ export async function handleNextTick(deps: HandleNextTickDeps): Promise<NextTick
     }>((resolve) => {
       const timer = setTimeout(() => {
         cleanup();
-        resolve({ ok: false, error: "publish did not complete within 45s" });
-      }, 45_000);
+        resolve({ ok: false, error: `publish did not complete within ${PUBLISH_TIMEOUT_MS / 1000}s — check mcp-server logs` });
+      }, PUBLISH_TIMEOUT_MS);
       function onPublished(ev: any) {
         cleanup();
         resolve({ ok: true, runId: String(ev.runId), txHash: ev.txHash, url: String(ev.url) });

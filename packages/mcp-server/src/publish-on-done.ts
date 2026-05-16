@@ -18,8 +18,11 @@ export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConf
     const runId = origCreate(opts);
     const sess = sessions.get(runId);
     sess.events.on("done", async (ev: any) => {
+      const t0 = Date.now();
+      const tag = `[publish run=${runId.slice(2, 10)} net=${sess.network} token=${sess.tokenId.toString()}]`;
       try {
         const net = networkOf(cfg, sess.network);
+        console.log(`${tag} start (publisher=${net.publisher.address})`);
 
         const dir = await mkdtemp(path.join(tmpdir(), `run-${runId.slice(2, 10)}-`));
         const meta = JSON.stringify({
@@ -42,6 +45,7 @@ export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConf
         const wrapped = { scenario: sess.scenarioId, scorecard: ev.scorecard };
         await writeFile(path.join(dir, "scorecard.json"), JSON.stringify(wrapped));
 
+        console.log(`${tag} uploading trace + scorecard to 0G Storage…`);
         const result = await publishRunV3({
           runDir: dir,
           tokenId: sess.tokenId,
@@ -52,6 +56,9 @@ export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConf
           agentVersion: sess.agentVersion,
         });
 
+        const dt = ((Date.now() - t0) / 1000).toFixed(1);
+        console.log(`${tag} published runId=${result.runId.toString()} txHash=${result.txHash} in ${dt}s`);
+
         sess.events.emit("published", {
           runId: result.runId.toString(),
           txHash: result.txHash,
@@ -59,6 +66,8 @@ export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConf
         });
         sessions.markCompleted(runId);
       } catch (err) {
+        const dt = ((Date.now() - t0) / 1000).toFixed(1);
+        console.error(`${tag} FAILED after ${dt}s:`, err);
         sess.events.emit("publish_failed", { error: String(err) });
       }
     });
