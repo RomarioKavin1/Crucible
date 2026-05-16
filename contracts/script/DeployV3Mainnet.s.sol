@@ -25,7 +25,11 @@ import {ScenarioRegistry} from "../src/ScenarioRegistry.sol";
 ///     --private-key "$DEPLOYER_PRIVATE_KEY"
 contract DeployV3Mainnet is Script {
     function run() external {
-        uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        // Prefer MAINNET_DEPLOYER_PRIVATE_KEY when present so testnet keys are
+        // never used by accident. Falls back to DEPLOYER_PRIVATE_KEY for setups
+        // that use the same wallet for both networks.
+        uint256 pk = vm.envOr("MAINNET_DEPLOYER_PRIVATE_KEY", uint256(0));
+        if (pk == 0) pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
 
         vm.startBroadcast(pk);
 
