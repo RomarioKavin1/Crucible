@@ -2,6 +2,7 @@ import { getRunRegistry, CHAIN_CONFIG } from "@/lib/chain";
 import { fmtSortino, fmtPct, fmtAddr, fromE6 } from "@/lib/format";
 import { ReplayClient } from "@/components/ReplayClient";
 import { V2RunReplay } from "@/components/V2RunReplay";
+import { RunMetaCard } from "@/components/RunMetaCard";
 import { publicClient, RUN_REGISTRY_V3_ADDRESS, AGENT_INFT_ADDRESS, ABIs, readIntelligentData } from "@/lib/contracts";
 import { ethers } from "ethers";
 import Link from "next/link";
@@ -176,6 +177,7 @@ export default async function RunPage({ params, searchParams }: {
         </div>
       </div>
 
+      {run.source === "v2" && <RunMetaCard traceRoot={run.traceHash} />}
       {run.source === "v1" && run.scenarioLink && <ReplayClient traceHash={run.traceHash} scenarioId={run.scenarioId} />}
       {run.source === "v2" && <V2RunReplay traceRoot={run.traceHash} />}
 

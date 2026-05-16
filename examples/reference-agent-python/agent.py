@@ -45,10 +45,18 @@ async def main():
             domain = json.loads(dom_res.content[0].text)
             nonce = 1
             sig = sign(domain, START_TYPES, {"scenarioId": SCENARIO, "tokenId": int(TOKEN_ID), "nonce": nonce})
+            # Read prompt.md so it can be embedded into the trace for transparency.
+            try:
+                from pathlib import Path
+                system_prompt = Path("prompt.md").read_text(encoding="utf-8")
+            except FileNotFoundError:
+                system_prompt = ""
             start = await sess.call_tool("crucible.start_run", {
                 "scenarioId": SCENARIO, "tokenId": TOKEN_ID, "nonce": str(nonce),
                 "signature": sig, "signer": acct.address,
                 "model": META["model"], "framework": META["framework"], "agentVersion": META["agentVersion"],
+                "provider": os.environ.get("LLM_PROVIDER", "anthropic"),
+                "systemPrompt": system_prompt,
             })
             data = json.loads(start.content[0].text)
             run_id = data["runId"]; obs = data["observation"]

@@ -21,6 +21,11 @@ export interface Session {
   model: string;
   framework: string;
   agentVersion: string;
+  // Optional run-disclosure metadata embedded into trace.jsonl as a header line.
+  // Not signed, not on chain — anyone auditing the trace can see what prompt and
+  // which provider the agent was running.
+  provider: string;
+  systemPrompt: string;
 }
 
 export interface CreateOpts {
@@ -31,6 +36,8 @@ export interface CreateOpts {
   model?: string;
   framework?: string;
   agentVersion?: string;
+  provider?: string;
+  systemPrompt?: string;
 }
 
 export class SessionRegistry {
@@ -46,6 +53,8 @@ export class SessionRegistry {
       model: opts.model || "unknown",
       framework: opts.framework || "unknown",
       agentVersion: opts.agentVersion || "",
+      provider: opts.provider || "",
+      systemPrompt: opts.systemPrompt || "",
     };
     // Buffer every tick event so a late-joining spectator can replay history
     sess.events.on("tick", (ev: unknown) => { sess.tickHistory.push(ev); });
