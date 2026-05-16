@@ -512,25 +512,35 @@ function ExamplePath({
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [showPrompt, setShowPrompt] = useState(false);
 
+  // Hot wallet: either user already has one (keeps the 0x... placeholder so they
+  // paste their own value), OR they generate one inline (auto-fills into exports).
+  const [hotKeyMode, setHotKeyMode] = useState<"have" | "generate">(
+    hasDelegations ? "have" : "generate",
+  );
+  const [generatedKey, setGeneratedKey] = useState<`0x${string}` | null>(null);
+
   const provider = PROVIDERS.find((p) => p.id === providerId)!;
 
-  // Build commands per platform
+  // Build commands per platform — use the just-generated key if present.
   const promptArg = ` --prompt-file ./prompt.md`;
   const baseFlags = `--scenario ${scenarioId} \\\n  --provider ${provider.id} \\\n  --model ${provider.model}${provider.extra ?? ""} \\\n  --watch`;
+  const keyValue = generatedKey ?? "0x...";
+  const keyComment = generatedKey ? "        # just-generated hot key" : "        # delegated hot key";
+
   const exportsMacLinux = [
-    `export AGENT_PRIVATE_KEY=0x...        # delegated hot key`,
+    `export AGENT_PRIVATE_KEY=${keyValue}${keyComment}`,
     `export AGENT_TOKEN_ID=${tokenId.toString()}`,
     provider.keyVar ? `export ${provider.keyVar}=sk-...` : `# no API key needed — Ollama runs locally`,
   ].filter(Boolean).join("\n");
 
   const exportsPS = [
-    `$env:AGENT_PRIVATE_KEY = "0x..."`,
+    `$env:AGENT_PRIVATE_KEY = "${keyValue}"`,
     `$env:AGENT_TOKEN_ID = "${tokenId.toString()}"`,
     provider.keyVar ? `$env:${provider.keyVar} = "sk-..."` : `# no API key needed — Ollama runs locally`,
   ].filter(Boolean).join("\n");
 
   const exportsCmd = [
-    `set AGENT_PRIVATE_KEY=0x...`,
+    `set AGENT_PRIVATE_KEY=${keyValue}`,
     `set AGENT_TOKEN_ID=${tokenId.toString()}`,
     provider.keyVar ? `set ${provider.keyVar}=sk-...` : `:: no API key needed — Ollama runs locally`,
   ].filter(Boolean).join("\n");
@@ -552,20 +562,92 @@ function ExamplePath({
 
   return (
     <div className="space-y-5">
-      {/* Inline credentials reminder */}
-      {ownerView && !hasDelegations && (
-        <div className="bg-[#fbbf2410] border border-[#fbbf2440] rounded-lg p-4 space-y-3">
-          <div className="flex items-start gap-2 text-[12.5px] text-[#fbbf24]">
-            <span aria-hidden>⚠</span>
-            <div>
-              <div className="font-medium">This agent has no delegated signing key yet</div>
-              <p className="text-[12px] text-[#aab2c5] mt-0.5 leading-relaxed">
-                The CLI needs a hot key authorized to sign on behalf of token #{tokenId.toString()}.
-                Generate one below — it&rsquo;s stored only in your browser.
-              </p>
+      {/* Hot wallet — always offered. Two paths: "I have one" (paste it) or "Generate one". */}
+      {ownerView && (
+        <div className="bg-[#0a0e17] border border-[#1c2538] rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#1c2538]">
+            <div className="flex items-center justify-between gap-3 mb-1.5">
+              <h3 className="text-[12.5px] font-semibold text-[#e6e9f0]">Hot wallet (signing key)</h3>
+              {generatedKey && (
+                <span className="text-[10px] uppercase tracking-[0.1em] font-medium px-1.5 py-0.5 rounded bg-[#10b98115] border border-[#10b98140] text-[#10b981]">
+                  ✓ Ready
+                </span>
+              )}
             </div>
+            <p className="text-[11.5px] text-[#aab2c5] leading-relaxed">
+              The CLI uses this key to sign each tick. <strong className="text-[#e6e9f0] font-medium">No funds required</strong> — it pays no gas, the publisher covers all on-chain costs. Stored in your browser only.
+            </p>
           </div>
-          <CredentialsGenerator tokenId={tokenId} />
+
+          <LayoutGroup id="hotkey-mode">
+            <div className="flex gap-1 px-2 pt-2 border-b border-[#1c2538]">
+              {([
+                { id: "have",     label: "I already have one" },
+                { id: "generate", label: "Generate a new one" },
+              ] as const).map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setHotKeyMode(m.id)}
+                  className={`relative px-3 py-2 text-[11.5px] font-medium transition-colors ${
+                    hotKeyMode === m.id ? "text-[#22d3ee]" : "text-[#6b7691] hover:text-[#aab2c5]"
+                  }`}
+                >
+                  {m.label}
+                  {hotKeyMode === m.id && (
+                    <motion.span
+                      layoutId="hotkey-underline"
+                      className="absolute -bottom-px left-0 right-0 h-[2px] bg-[#22d3ee]"
+                      transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          </LayoutGroup>
+
+          <div className="p-4">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={hotKeyMode}
+                initial={{ opacity: 0, filter: "blur(2px)" }}
+                animate={{ opacity: 1, filter: "blur(0px)" }}
+                exit={{ opacity: 0, filter: "blur(2px)" }}
+                transition={{ duration: DURATION.dropdown, ease: EASE_OUT }}
+              >
+                {hotKeyMode === "have" ? (
+                  <div className="space-y-2">
+                    <p className="text-[11.5px] text-[#aab2c5] leading-relaxed">
+                      {hasDelegations ? (
+                        <>This agent has{" "}
+                          <span className="text-[#10b981] font-medium">
+                            {/* unknown count here — but "at least one" is accurate */}
+                            an authorized key
+                          </span>. Paste its private key into{" "}
+                          <code className="font-mono text-[#22d3ee]">0x...</code>{" "}
+                          in the export commands below.
+                        </>
+                      ) : (
+                        <>No delegations on this agent yet. If you already generated a key but never authorized it, switch to <span className="text-[#22d3ee]">Generate a new one</span> to do both in one tx.</>
+                      )}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-[11.5px] text-[#aab2c5] leading-relaxed">
+                      We&rsquo;ll generate a fresh key in your browser, then send one transaction from your
+                      owner wallet to authorize it. Takes ~10s. Once done, the export commands below auto-fill
+                      with the new key.
+                    </p>
+                    <CredentialsGenerator
+                      tokenId={tokenId}
+                      onAuthorized={(pk) => setGeneratedKey(pk)}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       )}
 
