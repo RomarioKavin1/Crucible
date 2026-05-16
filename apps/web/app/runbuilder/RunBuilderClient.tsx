@@ -12,6 +12,7 @@ import {
 } from "@/lib/contracts";
 import { InftMintForm } from "@/components/InftMintForm";
 import { CredentialsGenerator } from "@/components/CredentialsGenerator";
+import { CURRENT_NETWORK } from "@/lib/network";
 import { EASE_OUT, DURATION, PRESS_BUTTON } from "@/lib/motion";
 
 const MCP_URL = process.env.NEXT_PUBLIC_MCP_URL ?? "https://mcp.cruciblebench.xyz/v1";
@@ -521,25 +522,35 @@ function ExamplePath({
 
   const provider = PROVIDERS.find((p) => p.id === providerId)!;
 
+  // The agent + delegations live on this specific 0G network. Include --network
+  // in the generated npx command so the CLI hits the same chain — otherwise it
+  // defaults to testnet and fails with UNAUTHORIZED when you minted on mainnet.
+  const cliNetwork: "testnet" | "mainnet" =
+    CURRENT_NETWORK.id === "mainnet" ? "mainnet" : "testnet";
+  const networkLabel = CURRENT_NETWORK.label;
+
   // Build commands per platform — use the just-generated key if present.
   const promptArg = ` --prompt-file ./prompt.md`;
-  const baseFlags = `--scenario ${scenarioId} \\\n  --provider ${provider.id} \\\n  --model ${provider.model}${provider.extra ?? ""} \\\n  --watch`;
+  const baseFlags = `--network ${cliNetwork} \\\n  --scenario ${scenarioId} \\\n  --provider ${provider.id} \\\n  --model ${provider.model}${provider.extra ?? ""} \\\n  --watch`;
   const keyValue = generatedKey ?? "0x...";
   const keyComment = generatedKey ? "        # just-generated hot key" : "        # delegated hot key";
 
   const exportsMacLinux = [
+    `# Targeting ${networkLabel}`,
     `export AGENT_PRIVATE_KEY=${keyValue}${keyComment}`,
     `export AGENT_TOKEN_ID=${tokenId.toString()}`,
     provider.keyVar ? `export ${provider.keyVar}=sk-...` : `# no API key needed — Ollama runs locally`,
   ].filter(Boolean).join("\n");
 
   const exportsPS = [
+    `# Targeting ${networkLabel}`,
     `$env:AGENT_PRIVATE_KEY = "${keyValue}"`,
     `$env:AGENT_TOKEN_ID = "${tokenId.toString()}"`,
     provider.keyVar ? `$env:${provider.keyVar} = "sk-..."` : `# no API key needed — Ollama runs locally`,
   ].filter(Boolean).join("\n");
 
   const exportsCmd = [
+    `:: Targeting ${networkLabel}`,
     `set AGENT_PRIVATE_KEY=${keyValue}`,
     `set AGENT_TOKEN_ID=${tokenId.toString()}`,
     provider.keyVar ? `set ${provider.keyVar}=sk-...` : `:: no API key needed — Ollama runs locally`,
