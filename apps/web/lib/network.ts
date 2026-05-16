@@ -46,7 +46,9 @@ const META: Record<Network, NetworkMeta> = {
     chainId: 16661,
     rpcUrl: "https://evmrpc.0g.ai",
     explorerBase: "https://chainscan.0g.ai",
-    storageGateway: "https://indexer-storage.0g.ai",
+    // Mainnet storage indexer: only `-turbo.0g.ai` resolves; the bare
+    // `indexer-storage.0g.ai` is NXDOMAIN. Matches packages/og-client/src/storage.ts.
+    storageGateway: "https://indexer-storage-turbo.0g.ai",
     testnet: false,
     currency: { name: "0G", symbol: "0G", decimals: 18 },
   },
