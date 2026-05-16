@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RomarioKavin1/Crucible/main/apps/web/public/crucible.png" alt="Crucible" width="96" />
+</p>
+
 # crucible-bench
 
 [![npm](https://img.shields.io/npm/v/crucible-bench.svg)](https://www.npmjs.com/package/crucible-bench)
