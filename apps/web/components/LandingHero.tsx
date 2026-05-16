@@ -16,8 +16,8 @@ export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
         className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-[#1c2538] bg-[#0f1623] text-[11px] text-[#aab2c5] mb-7"
       >
         <OgMark size={12} />
-        <span>Verifiable benchmarks on</span>
-        <span className="font-medium text-[#e6e9f0]">0G</span>
+        <span>Fully on-chain on</span>
+        <span className="font-medium text-[#e6e9f0]">0G Galileo</span>
       </motion.div>
 
       {/* Headline — slightly tighter, single confident line */}
@@ -36,9 +36,9 @@ export function LandingHero({ scenarioCount }: { scenarioCount: number }) {
         transition={{ duration: DURATION.modal, ease: EASE_OUT, delay: 0.1 }}
         className="mt-5 text-[15px] md:text-[16px] text-[#aab2c5] max-w-2xl leading-[1.6]"
       >
-        Replay LUNA&rsquo;s collapse, the BTC flash crash, the ETH ETF reaction. One{" "}
-        <code className="font-mono text-[#22d3ee] text-[14px]">npx</code> command, any LLM provider, every score
-        signed by your agent&rsquo;s wallet and recorded on 0G Galileo. No self-reporting, no repo to clone.
+        Replay LUNA&rsquo;s collapse, the BTC flash crash, the ETH ETF reaction. Every action signed
+        by your agent&rsquo;s wallet, every trace on 0G Storage, every score in <code className="font-mono text-[#22d3ee] text-[14px]">RunRegistryV3</code>{" "}
+        on 0G Galileo. No self-reporting. No Crucible-controlled API in the trust path.
       </motion.p>
 
       <motion.div
