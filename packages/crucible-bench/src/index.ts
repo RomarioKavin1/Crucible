@@ -285,7 +285,7 @@ async function runBench(opts: BenchOpts): Promise<void> {
   console.log(`▸ Connecting to MCP at ${mcpUrl}`);
   const transport = new StreamableHTTPClientTransport(new URL(mcpUrl));
   const client = new Client(
-    { name: "crucible-bench", version: "0.3.0" },
+    { name: "crucible-bench", version: "0.3.1" },
     { capabilities: {} }
   );
   await client.connect(transport);
@@ -331,6 +331,9 @@ async function runBench(opts: BenchOpts): Promise<void> {
       model,
       framework,
       agentVersion,
+      // Disclose to auditors. Embedded verbatim into trace.jsonl on the server.
+      provider,
+      systemPrompt,
     },
   });
 
@@ -453,7 +456,7 @@ program
     "  npx crucible-bench --scenario fakeout-pump --provider openai --model gpt-4o-mini --llm-api-key sk-... --watch\n\n" +
     "Credentials (AGENT_PRIVATE_KEY, AGENT_TOKEN_ID) come from ./crucible.env or ~/.crucible/config.env."
   )
-  .version("0.3.0")
+  .version("0.3.1")
   // ── benchmark wiring ────────────────────────────────────────────────────
   .option("-s, --scenario <id>", "Scenario id (e.g. choppy-range, fakeout-pump, luna-collapse)")
   .option("-t, --token <id>", "AgentINFT tokenId (else reads AGENT_TOKEN_ID)")

@@ -10,6 +10,8 @@ config({ path: "./crucible.env" });
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ethers } from "ethers";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { decide, meta } from "./strategy.js";
 
 const SERVER_URL = process.env["CRUCIBLE_MCP_URL"] ?? "http://localhost:8080/v1";
@@ -40,10 +42,15 @@ async function main() {
 
   let nonce = 1n;
   const startSig = await wallet.signTypedData(domain, START_RUN_TYPES, { scenarioId: SCENARIO, tokenId: BigInt(TOKEN_ID), nonce });
+  // Read prompt.md so it can be embedded into the trace for transparency.
+  let systemPrompt = "";
+  try { systemPrompt = readFileSync(resolve(process.cwd(), "prompt.md"), "utf8"); } catch {}
   const start = await client.callTool({ name: "crucible.start_run", arguments: {
     scenarioId: SCENARIO, tokenId: TOKEN_ID, nonce: nonce.toString(),
     signature: startSig, signer: wallet.address,
     model: meta.model, framework: meta.framework, agentVersion: meta.agentVersion,
+    provider: process.env["LLM_PROVIDER"] ?? "anthropic",
+    systemPrompt,
   }});
   const startData = JSON.parse(((start.content as { text: string }[])[0] ?? { text: "{}" }).text);
   let { runId } = startData as { runId: string };

@@ -115,7 +115,15 @@ export function V2RunReplay({ traceRoot }: { traceRoot: string }) {
         const res = await fetch(storageDownload(traceRoot));
         if (!res.ok) throw new Error(`storage ${res.status}`);
         const text = await res.text();
-        const lines = text.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l) as V2TraceLine);
+        // Filter out the meta header line (and any future non-tick lines).
+        // Tick lines always carry an `observation` field; meta lines don't.
+        const lines = text
+          .trim()
+          .split("\n")
+          .filter(Boolean)
+          .map((l) => JSON.parse(l))
+          .filter((o: any) => o && o.observation && o.action)
+          .map((o) => o as V2TraceLine);
         if (cancelled) return;
         const adapted = adaptV2(lines);
         setData(adapted);

@@ -16,6 +16,10 @@ export const StartRunInput = z.object({
   model: z.string().optional(),
   framework: z.string().optional(),
   agentVersion: z.string().optional(),
+  // Run-disclosure: embedded verbatim into trace.jsonl as a meta header line.
+  // Not signed, not on chain — purely for auditor transparency.
+  provider: z.string().optional(),
+  systemPrompt: z.string().optional(),
 });
 export type StartRunInputT = z.infer<typeof StartRunInput>;
 
@@ -61,6 +65,7 @@ export async function handleStartRun(deps: HandleStartRunDeps): Promise<StartRun
   const runId = registry.create({
     tokenId, signer: recovered, scenarioId: input.scenarioId, engine,
     model: input.model, framework: input.framework, agentVersion: input.agentVersion,
+    provider: input.provider, systemPrompt: input.systemPrompt,
   });
   // Mark the start_run nonce as consumed so the next signed call (next_tick)
   // expects nonce+1. Without this, the agent would have to either re-use nonce 1

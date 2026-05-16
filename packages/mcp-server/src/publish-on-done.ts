@@ -22,7 +22,25 @@ export function registerPublishOnDone(sessions: SessionRegistry, cfg: ServerConf
     sess.events.on("done", async (ev: any) => {
       try {
         const dir = await mkdtemp(path.join(tmpdir(), `run-${runId.slice(2, 10)}-`));
-        await writeFile(path.join(dir, "trace.jsonl"), ev.traceJsonl ?? "");
+        // Prepend a meta header line so anyone auditing the trace can see what
+        // model + prompt the agent was running. Not signed, not on chain —
+        // purely for auditor transparency. The verifier skips it because it
+        // has no signature/signer fields (existing path).
+        const meta = JSON.stringify({
+          type: "meta",
+          schema: 1,
+          tokenId: sess.tokenId.toString(),
+          scenarioId: sess.scenarioId,
+          signer: sess.signer,
+          model: sess.model,
+          framework: sess.framework,
+          agentVersion: sess.agentVersion,
+          provider: sess.provider,
+          systemPrompt: sess.systemPrompt,
+          startedAt: new Date(sess.createdAt).toISOString(),
+        });
+        const traceWithMeta = `${meta}\n${ev.traceJsonl ?? ""}`;
+        await writeFile(path.join(dir, "trace.jsonl"), traceWithMeta);
         // publishRunV3 expects scorecard.json with shape { scenario, scorecard:{...} }
         // — adapt by wrapping the engine's flat scorecard.
         const wrapped = { scenario: sess.scenarioId, scorecard: ev.scorecard };
