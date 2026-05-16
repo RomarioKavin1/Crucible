@@ -10,18 +10,15 @@ export default async function HomePage() {
   const all = await listScenarios();
 
   return (
-    <div className="space-y-12">
-      {/* Hero — full width */}
-      <LandingHero scenarioCount={all.length} />
-
-      {/* 2-column: main rail (scenarios + onboarding) + sticky recent runs */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-8 lg:gap-10">
-        <div className="space-y-12 min-w-0">
-          <FeaturedScenarios />
-          <CliOnboardingCard />
-        </div>
-        <RecentRunsFeed />
+    // Single grid from the very top so the on-chain feed sits alongside the
+    // hero — no wasted horizontal space above the fold.
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-8 lg:gap-10">
+      <div className="space-y-12 min-w-0">
+        <LandingHero scenarioCount={all.length} />
+        <FeaturedScenarios />
+        <CliOnboardingCard />
       </div>
+      <RecentRunsFeed />
     </div>
   );
 }

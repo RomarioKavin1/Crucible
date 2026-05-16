@@ -23,21 +23,25 @@ function timeAgo(ts: number): string {
 
 export function RecentRunsRail({ runs }: { runs: RecentRunRow[] }) {
   return (
-    <aside className="lg:sticky lg:top-20 self-start">
+    <aside className="lg:sticky lg:top-[72px] self-start">
       <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
         {/* Header */}
         <div className="px-4 py-3 border-b border-[#1c2538] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#10b981]" aria-hidden>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#10b981] shrink-0" aria-hidden>
               <span className="absolute inset-0 rounded-full bg-[#10b981] opacity-40 animate-ping" />
             </span>
-            <span className="text-[11.5px] font-semibold text-[#e6e9f0] uppercase tracking-[0.08em]">
-              Live feed
+            <span className="text-[11.5px] font-semibold text-[#e6e9f0] uppercase tracking-[0.08em] truncate">
+              On-chain feed
             </span>
           </div>
-          <Link href="/leaderboard" className="text-[10.5px] uppercase tracking-[0.1em] text-[#6b7691] hover:text-[#22d3ee] transition-colors font-medium">
+          <Link href="/leaderboard" className="text-[10.5px] uppercase tracking-[0.1em] text-[#6b7691] hover:text-[#22d3ee] transition-colors font-medium shrink-0">
             All
           </Link>
+        </div>
+        {/* Subhead */}
+        <div className="px-4 py-2 border-b border-[#1c2538] text-[10.5px] text-[#3d4a6e] font-mono">
+          straight from RunRegistryV3
         </div>
 
         {runs.length === 0 ? (
