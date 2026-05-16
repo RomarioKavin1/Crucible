@@ -18,7 +18,9 @@ function defaultConfig(
   const indexerUrl =
     network === "galileo"
       ? process.env["OG_GALILEO_INDEXER"] ?? "https://indexer-storage-testnet-turbo.0g.ai"
-      : process.env["OG_MAINNET_INDEXER"] ?? "https://indexer-storage-turbo.0g.ai";
+      // 0G mainnet's storage indexer. The "-turbo" variant doesn't seem to
+      // exist as a separate endpoint on mainnet — using the canonical one.
+      : process.env["OG_MAINNET_INDEXER"] ?? "https://indexer-storage.0g.ai";
   const rpcUrl =
     network === "galileo"
       ? process.env["OG_GALILEO_RPC"] ?? "https://evmrpc-testnet.0g.ai"

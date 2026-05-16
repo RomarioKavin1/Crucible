@@ -1,11 +1,14 @@
 import Link from "next/link";
-import { fetchAllRunsV3, fetchAllRuns, aggregateByAgent, listScenarios } from "@/lib/leaderboard";
+import { cookies } from "next/headers";
+import { fetchAllRunsV3ForNetwork, fetchAllRuns, aggregateByAgent, listScenarios } from "@/lib/leaderboard";
 import { OverallTable } from "@/components/LeaderboardTable";
 import { ScenarioFilterTabs } from "@/components/ScenarioFilterTabs";
 import { buildScenarioHashMap, listScenarios as listLocalScenarios } from "@/lib/scenarios";
 import { LeaderboardClient, type V2Row } from "./LeaderboardClient";
+import { NETWORK_COOKIE, networkMeta, type Network } from "@/lib/network";
 
-export const revalidate = 30;
+// Force per-request rendering so the cookie-driven network choice always applies.
+export const dynamic = "force-dynamic";
 
 export default async function LeaderboardPage({ searchParams }: { searchParams?: { source?: string } }) {
   const source = searchParams?.source === "v1" ? "v1" : "v2";
@@ -26,8 +29,13 @@ export default async function LeaderboardPage({ searchParams }: { searchParams?:
     );
   }
 
+  // Honor the network cookie the user toggled in the header.
+  const cookieValue = cookies().get(NETWORK_COOKIE)?.value;
+  const network: Network = cookieValue === "mainnet" ? "mainnet" : "galileo";
+  const netMeta = networkMeta(network);
+
   const [runs, localScenarios] = await Promise.all([
-    fetchAllRunsV3(),
+    fetchAllRunsV3ForNetwork(network),
     listLocalScenarios(),
   ]);
   const scenarioHashMap = buildScenarioHashMap(localScenarios.map((s) => s.id));
@@ -43,11 +51,11 @@ export default async function LeaderboardPage({ searchParams }: { searchParams?:
 
   return (
     <div className="space-y-6">
-      <Header source="v2" />
+      <Header source="v2" networkLabel={netMeta.label} isTestnet={netMeta.testnet} />
       <StatsStrip totalRuns={runs.length} totalAgents={uniqueTokens} totalScenarios={uniqueScenarios}
         lastRunAgo={lastRun ? Date.now() - lastRun.timestamp * 1000 : null} />
       {runs.length === 0 ? (
-        <EmptyState />
+        <EmptyState networkLabel={netMeta.label} />
       ) : (
         <LeaderboardClient
           rows={enriched}
@@ -58,17 +66,24 @@ export default async function LeaderboardPage({ searchParams }: { searchParams?:
   );
 }
 
-function Header({ source }: { source: "v1" | "v2" }) {
+function Header({ source, networkLabel, isTestnet }: { source: "v1" | "v2"; networkLabel?: string; isTestnet?: boolean }) {
   return (
     <div className="flex items-end justify-between gap-6 flex-wrap">
       <div>
-        <div className="text-[11px] uppercase tracking-[0.14em] text-[#6b7691] mb-1.5 font-medium">
-          {source === "v2" ? "Signed runs" : "Legacy v1 runs"}
+        <div className="text-[11px] uppercase tracking-[0.14em] text-[#6b7691] mb-1.5 font-medium flex items-center gap-2">
+          <span>{source === "v2" ? "Signed runs" : "Legacy v1 runs"}</span>
+          {networkLabel && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded normal-case tracking-normal text-[10px] font-medium border border-[#1c2538] bg-[#0f1623] text-[#aab2c5]">
+              <span className={`inline-block h-1 w-1 rounded-full ${isTestnet ? "bg-[#fbbf24]" : "bg-[#10b981]"}`} />
+              {networkLabel}
+              {isTestnet && <span className="text-[#fbbf24]">testnet</span>}
+            </span>
+          )}
         </div>
         <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-[#e6e9f0]">Leaderboard</h1>
         <p className="text-[13px] text-[#aab2c5] mt-1.5 max-w-xl leading-[1.6]">
           {source === "v2"
-            ? "Ranked by Sortino ratio. Every entry is signed by the agent's INFT-authorized wallet and recorded on 0G Galileo."
+            ? `Ranked by Sortino ratio. Every entry is signed by the agent's INFT-authorized wallet and recorded on ${networkLabel ?? "0G"}. Switch networks via the wallet dropdown in the header.`
             : "Pre-v2 runs under the placeholder AgentRegistry. Kept for historical reference only."}
         </p>
       </div>
@@ -121,12 +136,15 @@ function formatAgo(ms: number): string {
   if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
   return `${Math.floor(sec / 86400)}d ago`;
 }
-function EmptyState() {
+function EmptyState({ networkLabel }: { networkLabel?: string }) {
   return (
     <div className="bg-[#0f1623] border border-dashed border-[#1c2538] rounded-2xl p-12 text-center">
-      <p className="text-[#aab2c5] mb-2">No runs published yet.</p>
+      <p className="text-[#aab2c5] mb-2">
+        No runs published yet{networkLabel ? ` on ${networkLabel}` : ""}.
+      </p>
       <p className="text-[12px] text-[#6b7691]">
         Run an agent via the MCP server with <code className="font-mono text-[#22d3ee] bg-[#22d3ee0a] px-1.5 py-0.5 rounded">start_run</code> to appear here.
+        {networkLabel && " Try switching networks from the wallet dropdown if you expected runs from another chain."}
       </p>
     </div>
   );

@@ -1,6 +1,6 @@
 {
   "name": "crucible-bench",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Run an AI trading agent (any LLM provider) against Crucible Bench scenarios on 0G — single-command MCP+EIP-712 benchmark CLI.",
   "type": "module",
   "main": "./dist/index.js",
