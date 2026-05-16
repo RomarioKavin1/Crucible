@@ -9,12 +9,59 @@ import {
 
 const MCP_URL = process.env.NEXT_PUBLIC_MCP_URL ?? "https://mcp.cruciblebench.xyz/v1";
 
-type Path = "scaffold" | "cli" | "byo";
+type Path = "npm" | "scaffold" | "byo";
 
 const PATHS: { id: Path; label: string; subtitle: string }[] = [
-  { id: "scaffold", label: "Build from scratch",   subtitle: "Scaffold a project, edit decide()" },
-  { id: "cli",      label: "Use the CLI",          subtitle: "One command if you have an INFT" },
+  { id: "npm",      label: "One npm command", subtitle: "Two exports + npx — no clone" },
+  { id: "scaffold", label: "Scaffold a project", subtitle: "Edit decide() to customize" },
   { id: "byo",      label: "Bring your own agent", subtitle: "OpenClaw, Cursor, custom code" },
+];
+
+type ProviderOpt = {
+  id: "anthropic" | "openai" | "google" | "openrouter" | "ollama";
+  label: string;
+  defaultModel: string;
+  keyExport: string;          // e.g. `export ANTHROPIC_API_KEY=sk-ant-...`
+  extraFlags?: string;        // appended to the npx line
+  signupHint?: { label: string; url: string };
+};
+
+const PROVIDERS: ProviderOpt[] = [
+  {
+    id: "anthropic",
+    label: "Anthropic",
+    defaultModel: "claude-haiku-4-5",
+    keyExport: "export ANTHROPIC_API_KEY=sk-ant-...",
+    signupHint: { label: "console.anthropic.com", url: "https://console.anthropic.com/settings/keys" },
+  },
+  {
+    id: "openai",
+    label: "OpenAI",
+    defaultModel: "gpt-4o-mini",
+    keyExport: "export OPENAI_API_KEY=sk-...",
+    signupHint: { label: "platform.openai.com", url: "https://platform.openai.com/api-keys" },
+  },
+  {
+    id: "google",
+    label: "Google (Gemini)",
+    defaultModel: "gemini-2.0-flash",
+    keyExport: "export GOOGLE_GENERATIVE_AI_API_KEY=...",
+    signupHint: { label: "aistudio.google.com", url: "https://aistudio.google.com/app/apikey" },
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter (200+ models)",
+    defaultModel: "meta-llama/llama-3.3-70b-instruct",
+    keyExport: "export LLM_API_KEY=sk-or-...",
+    signupHint: { label: "openrouter.ai/keys", url: "https://openrouter.ai/keys" },
+  },
+  {
+    id: "ollama",
+    label: "Ollama (local, no key)",
+    defaultModel: "qwen2.5:32b",
+    keyExport: "# Ollama runs locally — no API key needed",
+    extraFlags: " --llm-base-url http://localhost:11434/v1",
+  },
 ];
 
 export function RunScenarioModal({
@@ -25,7 +72,7 @@ export function RunScenarioModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const [path, setPath] = useState<Path>("scaffold");
+  const [path, setPath] = useState<Path>("npm");
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
@@ -58,7 +105,6 @@ export function RunScenarioModal({
             exit="exit"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <header className="px-5 py-4 border-b border-[#1c2538] flex items-start justify-between gap-4 shrink-0">
               <div className="min-w-0">
                 <div className="text-[10px] uppercase tracking-[0.14em] text-[#22d3ee] font-medium mb-0.5">Run scenario</div>
@@ -74,7 +120,6 @@ export function RunScenarioModal({
               </motion.button>
             </header>
 
-            {/* Tab strip with sliding indicator */}
             <LayoutGroup id="modal-tabs">
               <div className="flex shrink-0 border-b border-[#1c2538] bg-[#0a0e17]/40">
                 {PATHS.map((p) => (
@@ -102,7 +147,6 @@ export function RunScenarioModal({
               </div>
             </LayoutGroup>
 
-            {/* Body — cross-fades between tabs */}
             <div className="overflow-y-auto p-5">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -112,8 +156,8 @@ export function RunScenarioModal({
                   animate="visible"
                   exit="exit"
                 >
+                  {path === "npm" && <NpmPath scenarioId={scenarioId} />}
                   {path === "scaffold" && <ScaffoldPath scenarioId={scenarioId} />}
-                  {path === "cli" && <CliPath scenarioId={scenarioId} />}
                   {path === "byo" && <ByoPath scenarioId={scenarioId} />}
                 </motion.div>
               </AnimatePresence>
@@ -125,44 +169,65 @@ export function RunScenarioModal({
   );
 }
 
-// ─── Path 1 · Scaffold (DEFAULT) ────────────────────────────────────────────
+// ─── Path 1 · One npm command (DEFAULT) ─────────────────────────────────────
 
-function ScaffoldPath({ scenarioId }: { scenarioId: string }) {
+function NpmPath({ scenarioId }: { scenarioId: string }) {
+  const [providerId, setProviderId] = useState<ProviderOpt["id"]>("anthropic");
+  const provider = PROVIDERS.find((p) => p.id === providerId)!;
+
+  const npxLine = `npx crucible-bench \\
+  --scenario ${scenarioId} \\
+  --provider ${provider.id} \\
+  --model ${provider.defaultModel}${provider.extraFlags ?? ""} \\
+  --watch`;
+
+  const combined = `export AGENT_PRIVATE_KEY=0x...        # delegated hot key from your agent page
+export AGENT_TOKEN_ID=42                # your INFT tokenId
+${provider.keyExport}
+
+${npxLine}`;
+
   return (
     <div className="space-y-4">
       <p className="text-[12.5px] text-[#aab2c5] leading-relaxed">
-        Generate a project, edit one function, run it. Full control over the strategy.
+        Two <code className="font-mono text-[#22d3ee]">export</code> lines for your keys, one <code className="font-mono text-[#22d3ee]">npx</code> command, and you&apos;re running on chain. No clone, no install.
       </p>
-      <Step n={1} title="Scaffold">
-        <CopyableCommand command={`pnpm create crucible-agent my-agent\ncd my-agent && pnpm install`} />
-      </Step>
-      <Step n={2} title="Edit decide()">
-        <p className="text-[12px] text-[#aab2c5]">
-          The only function you touch in <code className="font-mono text-[#22d3ee]">agent.ts</code>:
-        </p>
-        <CopyableCommand command={`function decide(obs) {\n  // your strategy here\n  return { kind: "market_buy", qty: 500_000_000_000_000_000n, reasoning: "..." };\n}`} />
-      </Step>
-      <Step n={3} title="Run">
-        <CopyableCommand command={`echo "SCENARIO=${scenarioId}" >> crucible.env\necho "ANTHROPIC_API_KEY=sk-ant-..." >> crucible.env\npnpm start`} />
-      </Step>
-      <Note>
-        Need an INFT? <Link href="/my-agents" className="text-[#22d3ee] hover:underline">Create one in 30 seconds.</Link>
-      </Note>
-    </div>
-  );
-}
 
-// ─── Path 2 · One-line CLI ──────────────────────────────────────────────────
+      <Step n={1} title="Pick your LLM provider">
+        <div className="flex flex-wrap gap-1.5">
+          {PROVIDERS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setProviderId(p.id)}
+              className={`px-2.5 py-1 rounded-md text-[11.5px] font-medium transition-colors border ${
+                p.id === providerId
+                  ? "bg-[#22d3ee15] border-[#22d3ee55] text-[#22d3ee]"
+                  : "bg-transparent border-[#1c2538] text-[#6b7691] hover:text-[#aab2c5] hover:border-[#232d44]"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {provider.signupHint && (
+          <p className="text-[11px] text-[#6b7691]">
+            Need a key?{" "}
+            <a
+              href={provider.signupHint.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#22d3ee] hover:underline"
+            >
+              {provider.signupHint.label} ↗
+            </a>
+          </p>
+        )}
+      </Step>
 
-function CliPath({ scenarioId }: { scenarioId: string }) {
-  return (
-    <div className="space-y-4">
-      <p className="text-[12.5px] text-[#aab2c5] leading-relaxed">
-        For when you already have an agent INFT. Uses the prebuilt Anthropic baseline.
-      </p>
-      <Step n={1} title="Get crucible.env">
+      <Step n={2} title="Get your AgentINFT credentials">
         <p className="text-[12px] text-[#aab2c5]">
-          On your agent page, click <em>Download</em> in the &ldquo;Use our example&rdquo; tab.
+          On your agent&apos;s page, click <em>Generate Runner Credentials</em> — you&apos;ll get the two values to paste below.
         </p>
         <Link
           href="/my-agents"
@@ -171,11 +236,40 @@ function CliPath({ scenarioId }: { scenarioId: string }) {
           Open My Agents →
         </Link>
       </Step>
-      <Step n={2} title="Run">
-        <CopyableCommand command={`source crucible.env\necho "ANTHROPIC_API_KEY=sk-ant-..." >> crucible.env\nnpx crucible-bench --scenario ${scenarioId} --watch`} />
+
+      <Step n={3} title="Paste and run">
+        <CopyableCommand command={combined} />
+      </Step>
+
+      <Note>
+        <code className="font-mono text-[#22d3ee]">--watch</code> opens the live spectator. The CLI also prints the link, so you can click into the browser any time.
+      </Note>
+    </div>
+  );
+}
+
+// ─── Path 2 · Scaffold a project ────────────────────────────────────────────
+
+function ScaffoldPath({ scenarioId }: { scenarioId: string }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-[12.5px] text-[#aab2c5] leading-relaxed">
+        For when you want full control — edit <code className="font-mono text-[#22d3ee]">strategy.ts</code>, swap models, change the prompt, add tools.
+      </p>
+      <Step n={1} title="Scaffold">
+        <CopyableCommand command={`pnpm create crucible-agent my-agent\ncd my-agent && pnpm install`} />
+      </Step>
+      <Step n={2} title="Edit prompt.md or strategy.ts">
+        <p className="text-[12px] text-[#aab2c5]">
+          The prompt lives in a standalone markdown file. The decide function lives in <code className="font-mono text-[#22d3ee]">strategy.ts</code>. Provider is set in <code className="font-mono text-[#22d3ee]">crucible.env</code>:
+        </p>
+        <CopyableCommand command={`LLM_PROVIDER=openai\nLLM_MODEL=gpt-4o-mini\nOPENAI_API_KEY=sk-...`} />
+      </Step>
+      <Step n={3} title="Run">
+        <CopyableCommand command={`echo "SCENARIO=${scenarioId}" >> crucible.env\npnpm start`} />
       </Step>
       <Note>
-        Swap models with <code className="font-mono text-[#22d3ee]">--model gpt-4o-mini --framework openai-sdk</code> &mdash; both get recorded on chain.
+        Need an INFT? <Link href="/my-agents" className="text-[#22d3ee] hover:underline">Mint one in 30 seconds.</Link>
       </Note>
     </div>
   );
@@ -187,7 +281,7 @@ function ByoPath({ scenarioId }: { scenarioId: string }) {
   return (
     <div className="space-y-4">
       <p className="text-[12.5px] text-[#aab2c5] leading-relaxed">
-        Wire your existing OpenClaw / Cursor / custom-code agent to the hosted MCP server &mdash; no npm needed.
+        Wire your existing OpenClaw / Cursor / custom-code agent to the hosted MCP server — no npm package, no scaffold.
       </p>
       <Step n={1} title="Add to MCP config">
         <p className="text-[12px] text-[#aab2c5]">
@@ -215,7 +309,7 @@ function ByoPath({ scenarioId }: { scenarioId: string }) {
             <code className="font-mono text-[#22d3ee]">scenarioId: &quot;{scenarioId}&quot;</code>
           </li>
           <li><code className="font-mono text-[#22d3ee]">crucible.next_tick</code> per tick (sign each Action)</li>
-          <li><code className="font-mono text-[#22d3ee]">crucible.abort_run</code> &mdash; optional</li>
+          <li><code className="font-mono text-[#22d3ee]">crucible.abort_run</code> — optional</li>
         </ul>
       </Step>
       <Note>

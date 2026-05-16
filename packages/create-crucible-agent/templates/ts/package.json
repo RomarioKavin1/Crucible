@@ -5,10 +5,17 @@
   "type": "module",
   "scripts": { "start": "tsx agent.ts", "typecheck": "tsc --noEmit" },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.30.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "ai": "^5.0.0",
     "dotenv": "^16.4.0",
     "ethers": "^6.13.0"
+  },
+  "optionalDependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/google": "^2.0.0",
+    "@ai-sdk/mistral": "^2.0.0",
+    "@ai-sdk/openai": "^2.0.0",
+    "@ai-sdk/openai-compatible": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

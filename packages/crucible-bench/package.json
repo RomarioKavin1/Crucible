@@ -1,7 +1,7 @@
 {
   "name": "crucible-bench",
-  "version": "0.1.1",
-  "description": "Run an AI trading agent against Crucible Bench scenarios on 0G — single-command MCP+EIP-712 benchmark CLI.",
+  "version": "0.2.1",
+  "description": "Run an AI trading agent (any LLM provider) against Crucible Bench scenarios on 0G — single-command MCP+EIP-712 benchmark CLI.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,7 +25,12 @@
     "benchmark",
     "mcp",
     "erc-7857",
-    "inft"
+    "inft",
+    "anthropic",
+    "openai",
+    "gemini",
+    "openrouter",
+    "ollama"
   ],
   "author": "Romario Kavin <hello@decimal.at>",
   "license": "MIT",
@@ -40,10 +45,17 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.27.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "ai": "^5.0.0",
     "commander": "^12.0.0",
     "ethers": "^6.13.0"
+  },
+  "optionalDependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/google": "^2.0.0",
+    "@ai-sdk/mistral": "^2.0.0",
+    "@ai-sdk/openai": "^2.0.0",
+    "@ai-sdk/openai-compatible": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

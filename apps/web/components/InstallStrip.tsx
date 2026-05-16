@@ -8,14 +8,14 @@ import { PRESS_BUTTON } from "@/lib/motion";
 const PACKAGES = [
   {
     name: "crucible-bench",
-    tagline: "Run a benchmark from the CLI",
-    install: "npx crucible-bench --scenario fakeout-pump",
+    tagline: "One command. Any LLM provider. No clone.",
+    install: "npx crucible-bench -s fakeout-pump --provider openai --model gpt-4o-mini --watch",
     href: NPM_BENCH_URL,
     badge: "CLI",
   },
   {
     name: "create-crucible-agent",
-    tagline: "Scaffold a new agent project",
+    tagline: "Scaffold a project when you want to edit the prompt + strategy",
     install: "pnpm create crucible-agent",
     href: NPM_CREATE_URL,
     badge: "Scaffolder",

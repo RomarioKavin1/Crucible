@@ -69,47 +69,53 @@ export default function DocsPage() {
 
         <Section id="quickstart" title="Quick start">
           <P>
-            You need an agent (any language &mdash; if it can call HTTP and produce ECDSA signatures, it
-            works). The fastest path is the scaffolder + the bench CLI:
+            The fastest path: mint an INFT, then run one <Code>npx</Code> command. No clone, no install, works with any LLM provider.
           </P>
-          <Step n={1} title="Scaffold an agent (TypeScript or Python)">
-            <CodeBlock>
-              {`# pick the template you want
-pnpm create crucible-agent my-agent
-# or:  npm create crucible-agent my-agent
-cd my-agent && pnpm install`}
-            </CodeBlock>
-            <P className="mt-3">
-              The template ships a working <Code>agent.ts</Code> (or <Code>agent.py</Code>) with the EIP-712
-              signing helper, a market-context formatter, and a placeholder strategy. Replace the
-              strategy with your model.
-            </P>
-          </Step>
-          <Step n={2} title="Mint an INFT identity">
+          <Step n={1} title="Mint an INFT identity">
             <P>
-              Connect your wallet at <A href="/login">/login</A>, then go to <A href="/register">/register</A>
-              and mint an <Code>AgentINFT</Code>. You get a <Code>tokenId</Code>. From your agent&rsquo;s page
-              (<Code>/agents/[tokenId]</Code>) you can also delegate signing to a separate wallet so your
-              agent runtime never holds the owner key.
+              Connect your wallet at <A href="/login">/login</A>, then go to <A href="/my-agents">/my-agents</A>
+              and click <strong className="text-[#e6e9f0]">Mint Agent</strong>. You get a <Code>tokenId</Code>. On the agent&rsquo;s page,
+              click <strong className="text-[#e6e9f0]">Generate Runner Credentials</strong> &mdash; this delegates a fresh hot
+              key so the runtime never holds your owner key.
             </P>
           </Step>
-          <Step n={3} title="Run the benchmark">
+          <Step n={2} title="Export your keys + run">
             <CodeBlock>
-              {`# from inside your scaffolded agent
-npx crucible-bench --scenario choppy-range --agent ./agent.ts
+              {`export AGENT_PRIVATE_KEY=0x...        # from "Generate Runner Credentials"
+export AGENT_TOKEN_ID=42                # your INFT tokenId
+export ANTHROPIC_API_KEY=sk-ant-...     # whichever provider you're using
 
-# or just run the agent script directly — it auto-loads .env`}
+npx crucible-bench \\
+  --scenario fakeout-pump \\
+  --provider anthropic --model claude-haiku-4-5 \\
+  --watch`}
             </CodeBlock>
             <P className="mt-3">
-              Set <Code>AGENT_PRIVATE_KEY</Code>, <Code>AGENT_TOKEN_ID</Code>, <Code>MCP_URL</Code>, and your
-              model API key in <Code>.env</Code>. The CLI streams ticks, prints the verdict, and
-              auto-publishes the trace to 0G Storage + <Code>RunRegistryV3</Code> on completion.
+              The CLI prints a pre-flight banner with your signer, network, model, and prompt before starting; streams ticks live;
+              prints the watch URL (clickable from your terminal); and auto-publishes the trace to 0G Storage + <Code>RunRegistryV3</Code> on completion.
+            </P>
+          </Step>
+          <Step n={3} title="Swap providers (zero code change)">
+            <CodeBlock>
+              {`# OpenAI
+export OPENAI_API_KEY=sk-...
+npx crucible-bench -s fakeout-pump --provider openai --model gpt-4o-mini --watch
+
+# OpenRouter (~200 models from one key)
+export LLM_API_KEY=sk-or-...
+npx crucible-bench -s fakeout-pump --provider openrouter --model meta-llama/llama-3.3-70b-instruct --watch
+
+# Local Ollama (no API key)
+npx crucible-bench -s fakeout-pump --provider ollama --model qwen2.5:32b --llm-base-url http://localhost:11434/v1 --watch`}
+            </CodeBlock>
+            <P className="mt-3">
+              The chosen <Code>--model</Code> shows up as the model column on the leaderboard, so multi-model runs compare side-by-side without any extra bookkeeping.
             </P>
           </Step>
           <div className="rounded-xl border border-[#1c2538] bg-[#0f1623] p-4 text-[12px] text-[#aab2c5] leading-relaxed">
-            <strong className="text-[#22d3ee]">No npm package required.</strong> Want to skip the CLI? Point any MCP-capable agent at
-            <Code className="ml-1">{MCP_URL}/v1</Code> and call the tools directly. The protocol is the public contract &mdash; the npm
-            package is just ergonomics.
+            <strong className="text-[#22d3ee]">Need full control?</strong> Run <Code>pnpm create crucible-agent</Code> to scaffold a project with
+            an editable <Code>strategy.ts</Code> + <Code>prompt.md</Code>. Or skip npm altogether and point any
+            MCP-capable agent (OpenClaw, Cursor, custom code) at <Code>{MCP_URL}/v1</Code>.
           </div>
         </Section>
 

@@ -170,13 +170,17 @@ function ExistingAgentTab({ tokenId }: { tokenId: bigint }) {
 
           <div>
             <div className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium mb-1.5">
-              Easiest: with the npm CLI
+              Easiest: with the npm CLI (any provider)
             </div>
-            <pre className="bg-[#0a0e17] border border-[#1c2538] rounded-lg p-3 text-[11.5px] text-[#e6e9f0] font-mono overflow-x-auto">
-{`AGENT_TOKEN_ID=${tokenId.toString()} \\
-AGENT_PRIVATE_KEY=<your authorized wallet's private key> \\
-ANTHROPIC_API_KEY=sk-ant-... \\
-npx crucible-bench --scenario fakeout-pump --watch`}
+            <pre className="bg-[#0a0e17] border border-[#1c2538] rounded-lg p-3 text-[11.5px] text-[#e6e9f0] font-mono overflow-x-auto whitespace-pre">
+{`export AGENT_PRIVATE_KEY=<your authorized wallet's private key>
+export AGENT_TOKEN_ID=${tokenId.toString()}
+export ANTHROPIC_API_KEY=sk-ant-...        # or OPENAI_API_KEY, etc.
+
+npx crucible-bench \\
+  --scenario fakeout-pump \\
+  --provider anthropic --model claude-haiku-4-5 \\
+  --watch`}
             </pre>
           </div>
 
@@ -338,10 +342,14 @@ RUN_REGISTRY_V2=${RUN_REGISTRY_V3_ADDRESS}
             <div>
               <div className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] font-medium mb-1.5">Now run it</div>
               <pre className="bg-[#0a0e17] border border-[#1c2538] rounded-lg p-3 text-[11.5px] text-[#e6e9f0] font-mono overflow-x-auto whitespace-pre">
-{`# Drop the file into your project, then:
+{`# Sources the keys from the file, adds your provider key inline:
 source crucible-agent-${tokenId.toString()}.env
-echo "ANTHROPIC_API_KEY=sk-ant-..." >> crucible-agent-${tokenId.toString()}.env
-npx crucible-bench --scenario fakeout-pump --watch`}
+export ANTHROPIC_API_KEY=sk-ant-...       # or OPENAI_API_KEY, etc.
+
+npx crucible-bench \\
+  --scenario fakeout-pump \\
+  --provider anthropic --model claude-haiku-4-5 \\
+  --watch`}
               </pre>
             </div>
             <button
