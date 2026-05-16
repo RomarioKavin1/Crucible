@@ -2,20 +2,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, LayoutGroup } from "motion/react";
-import { OgMark } from "./OgMark";
 import { WalletConnectButton } from "./WalletConnectButton";
 import { GITHUB_REPO_URL } from "@/lib/links";
 import { PRESS_BUTTON } from "@/lib/motion";
-import { CURRENT_NETWORK } from "@/lib/network";
 
-type NavItem = { label: string; href: string; badge?: string };
+type NavItem = { label: string; href: string; soon?: boolean };
 
 const NAV: NavItem[] = [
   { label: "Scenarios",   href: "/scenarios" },
   { label: "Leaderboard", href: "/leaderboard" },
   { label: "My Agents",   href: "/my-agents" },
   { label: "Docs",        href: "/docs" },
-  { label: "Community",   href: "/community", badge: "Soon" },
+  { label: "Community",   href: "/community", soon: true },
 ];
 
 export function SiteHeader() {
@@ -28,7 +26,7 @@ export function SiteHeader() {
 
   return (
     <header className="border-b border-[#1c2538] bg-[#0a0e17]/85 backdrop-blur-md sticky top-0 z-30">
-      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-6">
+      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-4 md:gap-6">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <Logo />
@@ -44,7 +42,7 @@ export function SiteHeader() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="relative px-3 py-1.5 group inline-flex items-center gap-1.5"
+                  className="relative px-2.5 py-1.5 group inline-flex items-center gap-1.5 whitespace-nowrap"
                 >
                   <span
                     className={`text-[12.5px] font-medium transition-colors ${
@@ -53,9 +51,9 @@ export function SiteHeader() {
                   >
                     {item.label}
                   </span>
-                  {item.badge && (
-                    <span className="text-[9px] uppercase tracking-[0.1em] font-semibold px-1 py-px rounded bg-[#fbbf2415] text-[#fbbf24] border border-[#fbbf2433]">
-                      {item.badge}
+                  {item.soon && (
+                    <span className="text-[8.5px] uppercase tracking-[0.08em] font-medium text-[#6b7691] border border-[#1c2538] rounded px-1 py-px leading-none">
+                      Soon
                     </span>
                   )}
                   {active && (
@@ -73,33 +71,22 @@ export function SiteHeader() {
 
         <div className="flex-1" />
 
-        {/* 0G chain pill — reads from CURRENT_NETWORK so it follows env switches */}
-        <a
-          href={CURRENT_NETWORK.explorerBase}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#1c2538] bg-[#0f1623] hover:border-[#232d44] transition-colors text-[11px] text-[#aab2c5]"
-          title={`${CURRENT_NETWORK.label} ${CURRENT_NETWORK.testnet ? "testnet" : "mainnet"}, chain ${CURRENT_NETWORK.chainId}`}
-        >
-          <OgMark size={11} className="text-[#22d3ee]" />
-          <span className="font-medium text-[#e6e9f0]">{CURRENT_NETWORK.label}</span>
-          <span className="text-[#3d4a6e]">·</span>
-          <span className="font-mono text-[10.5px] text-[#6b7691]">{CURRENT_NETWORK.chainId}</span>
-        </a>
-
-        {/* Github icon */}
+        {/* Github icon (hidden on small screens) */}
         <motion.a
           href={GITHUB_REPO_URL}
           target="_blank"
           rel="noopener noreferrer"
           {...PRESS_BUTTON}
-          className="hidden md:flex items-center justify-center w-8 h-8 rounded-md text-[#6b7691] hover:text-[#e6e9f0] hover:bg-[#ffffff06] transition-colors"
+          className="hidden md:flex items-center justify-center w-8 h-8 rounded-md text-[#6b7691] hover:text-[#e6e9f0] hover:bg-[#ffffff06] transition-colors shrink-0"
           aria-label="GitHub"
         >
           <GithubIcon />
         </motion.a>
 
-        <WalletConnectButton />
+        {/* Themed wallet button — owns chain status + address + actions */}
+        <div className="shrink-0">
+          <WalletConnectButton />
+        </div>
       </div>
 
       {/* Mobile nav row */}
@@ -110,14 +97,14 @@ export function SiteHeader() {
             <Link
               key={item.href}
               href={item.href}
-              className={`shrink-0 inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-2.5 transition-colors ${
+              className={`shrink-0 inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-2.5 transition-colors whitespace-nowrap ${
                 active ? "text-[#22d3ee] border-b-2 border-[#22d3ee] -mb-px" : "text-[#6b7691]"
               }`}
             >
               {item.label}
-              {item.badge && (
-                <span className="text-[9px] uppercase tracking-[0.1em] font-semibold px-1 py-px rounded bg-[#fbbf2415] text-[#fbbf24] border border-[#fbbf2433]">
-                  {item.badge}
+              {item.soon && (
+                <span className="text-[8.5px] uppercase tracking-[0.08em] font-medium text-[#6b7691] border border-[#1c2538] rounded px-1 py-px leading-none">
+                  Soon
                 </span>
               )}
             </Link>
@@ -129,7 +116,6 @@ export function SiteHeader() {
 }
 
 function Logo() {
-  // Solid-cyan monogram — same shape as the old gradient logo, but flat.
   return (
     <svg width="22" height="22" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <path

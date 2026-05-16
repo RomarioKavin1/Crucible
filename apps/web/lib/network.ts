@@ -14,7 +14,7 @@ import deployedAddresses from "../../../contracts/deployed-addresses.json";
 
 export type Network = "galileo" | "mainnet";
 
-interface NetworkMeta {
+export interface NetworkMeta {
   id: Network;
   /** Human-readable label for chips and badges. */
   label: string;
