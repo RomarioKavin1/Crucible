@@ -30,7 +30,7 @@ export function SiteHeader() {
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <Logo />
-          <span className="text-[14px] font-semibold tracking-tight text-[#e6e9f0]">Crucible</span>
+          <span className="text-[14px] font-semibold tracking-tight text-[#e6e9f0] whitespace-nowrap">Crucible Bench</span>
         </Link>
 
         {/* Nav with shared underline indicator */}
