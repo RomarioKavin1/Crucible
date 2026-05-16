@@ -12,11 +12,9 @@ const SERVER_URL = process.env.CRUCIBLE_MCP_URL ?? "http://localhost:8080/v1";
 const SCENARIO   = process.env.SCENARIO ?? "choppy-range";
 const TOKEN_ID   = process.env.AGENT_TOKEN_ID ?? "1";
 const PK         = process.env.AGENT_PRIVATE_KEY!;
-const RUN_REGISTRY_V2 = process.env.RUN_REGISTRY_V2 ?? "0x80C1496980BA1183f8368F6072a130D7B01eDA7D";
 
 const wallet = new ethers.Wallet(PK);
 
-const domain = { name: "CrucibleBench", version: "2", chainId: 16602, verifyingContract: RUN_REGISTRY_V2 };
 const ACTION_TYPES = { Action: [
   { name: "runId", type: "bytes32" }, { name: "tickId", type: "uint32" },
   { name: "kind", type: "string" },   { name: "qty", type: "uint256" },
@@ -28,8 +26,12 @@ const START_RUN_TYPES = { StartRun: [
 
 async function main() {
   const transport = new StreamableHTTPClientTransport(new URL(SERVER_URL));
-  const client = new Client({ name: "reference-agent-ts", version: "0.1.0" }, { capabilities: {} });
+  const client = new Client({ name: "reference-agent-ts", version: "0.2.0" }, { capabilities: {} });
   await client.connect(transport);
+
+  // Fetch the server's EIP-712 domain so we sign with whatever it expects.
+  const dom = await client.callTool({ name: "crucible.get_domain", arguments: {} });
+  const domain = JSON.parse((dom.content as any[])[0].text);
 
   let nonce = 1n;
   const startSig = await wallet.signTypedData(domain, START_RUN_TYPES, { scenarioId: SCENARIO, tokenId: BigInt(TOKEN_ID), nonce });
