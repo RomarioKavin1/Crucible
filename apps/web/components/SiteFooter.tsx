@@ -1,77 +1,66 @@
 import Link from "next/link";
 import { OgMark } from "./OgMark";
 import { GITHUB_REPO_URL, NPM_BENCH_URL, NPM_CREATE_URL, PROTOCOL_DOC_URL } from "@/lib/links";
-import { CURRENT_NETWORK } from "@/lib/network";
 
+/**
+ * Editorial colophon footer. Pull-quote tagline on the left, three thin link
+ * columns on the right. Bottom byline carries the credits. No 4-column SaaS
+ * footer grid.
+ */
 export function SiteFooter() {
   return (
-    <footer className="border-t border-[#1c2538] mt-16">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-          {/* Brand column */}
-          <div className="col-span-2 md:col-span-1 space-y-3">
-            <Link href="/" className="flex items-center gap-2">
-              <span
-                role="img"
-                aria-label="Crucible"
-                className="inline-block w-5 h-5 bg-[#22d3ee]"
-                style={{
-                  WebkitMaskImage: "url(/crucible.png)",
-                  maskImage: "url(/crucible.png)",
-                  WebkitMaskRepeat: "no-repeat",
-                  maskRepeat: "no-repeat",
-                  WebkitMaskSize: "contain",
-                  maskSize: "contain",
-                  WebkitMaskPosition: "center",
-                  maskPosition: "center",
-                }}
-              />
-              <span className="text-[14px] font-semibold text-[#e6e9f0]">Crucible Bench</span>
+    <footer className="mt-24 border-t border-border-subtle">
+      <div className="max-w-container-wide mx-auto px-5 md:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-x-8 gap-y-10">
+          {/* Tagline column — editorial pull-quote */}
+          <div className="md:col-span-6 lg:col-span-7">
+            <Link href="/" className="inline-flex items-baseline gap-2.5 group">
+              <Logo />
+              <span className="text-[15px] font-semibold tracking-[-0.015em] text-ink">
+                Crucible Bench
+              </span>
             </Link>
-            <p className="text-[12px] text-[#6b7691] leading-relaxed max-w-[26ch]">
-              Verifiable benchmarks for autonomous AI trading agents.
+            <p className="mt-5 text-[20px] leading-[1.35] font-light tracking-[-0.01em] text-ink-2 max-w-[34ch]">
+              Every per-tick action signed.
+              <br className="hidden md:block" />
+              <span className="text-ink-3"> Every score on chain.</span>
             </p>
           </div>
 
-          <FooterCol title="Product">
+          {/* Link columns */}
+          <FooterCol title="Product" className="md:col-span-3 lg:col-span-2">
             <FooterLink href="/scenarios">Scenarios</FooterLink>
             <FooterLink href="/leaderboard">Leaderboard</FooterLink>
-            <FooterLink href="/my-agents">My Agents</FooterLink>
+            <FooterLink href="/my-agents">My agents</FooterLink>
             <FooterLink href="/docs">Docs</FooterLink>
           </FooterCol>
 
-          <FooterCol title="Developers">
+          <FooterCol title="Build" className="md:col-span-3 lg:col-span-2">
             <FooterLink href={NPM_BENCH_URL} external>crucible-bench</FooterLink>
             <FooterLink href={NPM_CREATE_URL} external>create-crucible-agent</FooterLink>
             <FooterLink href={PROTOCOL_DOC_URL} external>Protocol spec</FooterLink>
             <FooterLink href={GITHUB_REPO_URL} external>GitHub</FooterLink>
           </FooterCol>
-
-          <FooterCol title="Network">
-            <FooterLink href={CURRENT_NETWORK.explorerBase} external>{CURRENT_NETWORK.label} explorer</FooterLink>
-            <FooterLink href="https://0g.ai" external>0G website</FooterLink>
-            <FooterLink href="https://docs.0g.ai" external>0G docs</FooterLink>
-          </FooterCol>
         </div>
 
-        {/* Built-on bar */}
-        <div className="border-t border-[#1c2538] pt-6 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2 text-[11px] text-[#6b7691]">
+        {/* Colophon — typographic byline, no boxed bar */}
+        <div className="mt-12 pt-6 border-t border-border-subtle flex items-center justify-between gap-4 flex-wrap text-[11.5px] text-ink-3">
+          <div className="flex items-center gap-2 font-mono">
             <span>Built on</span>
             <a
               href="https://0g.ai"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[#aab2c5] hover:text-[#22d3ee] transition-colors"
+              className="inline-flex items-center gap-1.5 text-ink-2 hover:text-accent transition-colors duration-fast ease-out-quart"
             >
-              <OgMark size={12} />
-              <span className="font-medium">0G</span>
+              <OgMark size={11} />
+              <span className="font-sans font-medium">0G</span>
             </a>
-            <span className="text-[#3d4a6e]">·</span>
-            <span>Storage · Chain · Compute</span>
+            <span className="text-ink-4">·</span>
+            <span>Chain · Storage · Compute</span>
           </div>
-          <div className="text-[11px] text-[#6b7691]">
-            MIT License · 0G APAC Hackathon 2026
+          <div className="font-mono">
+            MIT · 0G APAC Hackathon 2026
           </div>
         </div>
       </div>
@@ -79,35 +68,67 @@ export function SiteFooter() {
   );
 }
 
-function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+function Logo() {
   return (
-    <div className="space-y-2.5">
-      <div className="text-[10px] uppercase tracking-[0.14em] text-[#6b7691] font-medium">{title}</div>
-      <ul className="space-y-1.5">{children}</ul>
+    <span
+      role="img"
+      aria-label="Crucible"
+      className="inline-block w-[20px] h-[20px] bg-accent translate-y-px"
+      style={{
+        WebkitMaskImage: "url(/crucible.png)",
+        maskImage: "url(/crucible.png)",
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+        maskSize: "contain",
+        WebkitMaskPosition: "center",
+        maskPosition: "center",
+      }}
+    />
+  );
+}
+
+function FooterCol({
+  title,
+  children,
+  className = "",
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-3 ${className}`}>
+      <div className="text-eyebrow">{title}</div>
+      <ul className="space-y-2">{children}</ul>
     </div>
   );
 }
 
-function FooterLink({ href, children, external }: { href: string; children: React.ReactNode; external?: boolean }) {
+function FooterLink({
+  href,
+  children,
+  external,
+}: {
+  href: string;
+  children: React.ReactNode;
+  external?: boolean;
+}) {
   const isExternal = external || href.startsWith("http");
+  const cls = "text-[13px] text-ink-2 hover:text-ink transition-colors duration-fast ease-out-quart inline-flex items-center gap-1";
   if (isExternal) {
     return (
       <li>
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[12px] text-[#aab2c5] hover:text-[#e6e9f0] transition-colors inline-flex items-center gap-1"
-        >
+        <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
           {children}
-          <span className="text-[#3d4a6e] text-[10px]">↗</span>
+          <span className="text-ink-4 text-[10px]">↗</span>
         </a>
       </li>
     );
   }
   return (
     <li>
-      <Link href={href} className="text-[12px] text-[#aab2c5] hover:text-[#e6e9f0] transition-colors">
+      <Link href={href} className={cls}>
         {children}
       </Link>
     </li>

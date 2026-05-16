@@ -1,112 +1,96 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, LayoutGroup } from "motion/react";
 import { WalletConnectButton } from "./WalletConnectButton";
 import { GITHUB_REPO_URL } from "@/lib/links";
-import { PRESS_BUTTON } from "@/lib/motion";
 
-type NavItem = { label: string; href: string; soon?: boolean };
+type NavItem = { label: string; href: string };
 
 const NAV: NavItem[] = [
   { label: "Scenarios",   href: "/scenarios" },
   { label: "Leaderboard", href: "/leaderboard" },
-  { label: "My Agents",   href: "/my-agents" },
+  { label: "My agents",   href: "/my-agents" },
   { label: "Docs",        href: "/docs" },
-  { label: "Community",   href: "/community", soon: true },
 ];
 
+/**
+ * Editorial header. No centered nav, no decorative pill, no underline-spring.
+ * Active item is the highest-contrast one — contrast is the indicator.
+ * Brand: cyan diamond + wordmark, with a tiny "ver." byline to signal there's
+ * a publication behind this. Right rail: github + wallet button.
+ */
 export function SiteHeader() {
   const pathname = usePathname();
-
-  function isActive(href: string) {
-    if (href === "/") return pathname === "/";
-    return pathname?.startsWith(href);
-  }
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname?.startsWith(href);
 
   return (
-    <header className="border-b border-[#1c2538] bg-[#0a0e17]/85 backdrop-blur-md sticky top-0 z-30">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center gap-4 md:gap-6">
+    <header className="sticky top-0 z-30 border-b border-border-subtle bg-bg/85 backdrop-blur-md">
+      <div className="max-w-container-wide mx-auto px-5 md:px-8 h-16 flex items-center gap-6 md:gap-10">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
+        <Link
+          href="/"
+          className="flex items-baseline gap-2.5 shrink-0 group"
+          aria-label="Crucible Bench — home"
+        >
           <Logo />
-          <span className="text-[14px] font-semibold tracking-tight text-[#e6e9f0] whitespace-nowrap">Crucible Bench</span>
+          <span className="flex items-baseline gap-2">
+            <span className="text-[15px] font-semibold tracking-[-0.015em] text-ink whitespace-nowrap">
+              Crucible Bench
+            </span>
+            <span className="hidden sm:inline text-[10px] font-mono text-ink-4 tracking-tight">
+              v0.4
+            </span>
+          </span>
         </Link>
 
-        {/* Nav with shared underline indicator */}
-        <LayoutGroup id="site-nav">
-          <nav className="hidden md:flex items-center gap-0.5">
-            {NAV.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="relative px-2.5 py-1.5 group inline-flex items-center gap-1.5 whitespace-nowrap"
-                >
-                  <span
-                    className={`text-[12.5px] font-medium transition-colors ${
-                      active ? "text-[#e6e9f0]" : "text-[#6b7691] group-hover:text-[#aab2c5]"
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                  {item.soon && (
-                    <span className="text-[8.5px] uppercase tracking-[0.08em] font-medium text-[#6b7691] border border-[#1c2538] rounded px-1 py-px leading-none">
-                      Soon
-                    </span>
-                  )}
-                  {active && (
-                    <motion.span
-                      layoutId="nav-underline"
-                      className="absolute -bottom-[15px] left-2 right-2 h-[2px] bg-[#22d3ee] rounded-full"
-                      transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        </LayoutGroup>
+        {/* Nav — left-aligned, not centered; contrast is the active indicator */}
+        <nav className="hidden md:flex items-center gap-6">
+          {NAV.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`text-[13px] font-medium tracking-[-0.005em] whitespace-nowrap transition-colors duration-fast ease-out-quart
+                  ${active ? "text-ink" : "text-ink-3 hover:text-ink-2"}`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
         <div className="flex-1" />
 
-        {/* Github icon (hidden on small screens) */}
-        <motion.a
+        <a
           href={GITHUB_REPO_URL}
           target="_blank"
           rel="noopener noreferrer"
-          {...PRESS_BUTTON}
-          className="hidden md:flex items-center justify-center w-8 h-8 rounded-md text-[#6b7691] hover:text-[#e6e9f0] hover:bg-[#ffffff06] transition-colors shrink-0"
+          className="hidden md:flex items-center justify-center w-8 h-8 rounded text-ink-3 hover:text-ink hover:bg-surface-1 transition-colors duration-fast ease-out-quart shrink-0"
           aria-label="GitHub"
         >
           <GithubIcon />
-        </motion.a>
+        </a>
 
-        {/* Themed wallet button — owns chain status + address + actions */}
         <div className="shrink-0">
           <WalletConnectButton />
         </div>
       </div>
 
-      {/* Mobile nav row */}
-      <nav className="md:hidden border-t border-[#1c2538] flex overflow-x-auto px-4 gap-1">
+      {/* Mobile nav row — borderless, scrollable */}
+      <nav className="md:hidden border-t border-border-subtle flex overflow-x-auto px-5 gap-5">
         {NAV.map((item) => {
           const active = isActive(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`shrink-0 inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-2.5 transition-colors whitespace-nowrap ${
-                active ? "text-[#22d3ee] border-b-2 border-[#22d3ee] -mb-px" : "text-[#6b7691]"
+              className={`shrink-0 text-[12.5px] font-medium py-3 transition-colors whitespace-nowrap ${
+                active ? "text-ink" : "text-ink-3"
               }`}
             >
               {item.label}
-              {item.soon && (
-                <span className="text-[8.5px] uppercase tracking-[0.08em] font-medium text-[#6b7691] border border-[#1c2538] rounded px-1 py-px leading-none">
-                  Soon
-                </span>
-              )}
             </Link>
           );
         })}
@@ -116,13 +100,12 @@ export function SiteHeader() {
 }
 
 function Logo() {
-  // PNG → CSS mask so the alpha shape inherits the brand cyan cleanly.
-  // No filter chain drift, no color shift across browsers.
+  // PNG → CSS mask so the alpha shape inherits brand cyan without filter drift.
   return (
     <span
       role="img"
       aria-label="Crucible"
-      className="inline-block w-6 h-6 bg-[#22d3ee]"
+      className="inline-block w-[22px] h-[22px] bg-accent translate-y-px"
       style={{
         WebkitMaskImage: "url(/crucible.png)",
         maskImage: "url(/crucible.png)",

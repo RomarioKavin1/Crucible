@@ -12,15 +12,16 @@ import { decodeScenarioHash } from "@/lib/scenarios";
 import { NETWORK_COOKIE, networkMeta, storageDownload, storageDownloadFor, explorerAddress, explorerAddressFor, type Network } from "@/lib/network";
 import deployedAddresses from "../../../../../contracts/deployed-addresses.json";
 
-// Per-request render so the cookie-driven network choice always applies.
 export const dynamic = "force-dynamic";
 
 interface CommonRun {
   source: "v1" | "v2";
   runId: string;
   agentLabel: string;
+  agentDescription?: string;
+  tokenId?: string;
   agentLink: string;
-  scenarioId: string;       // string (decoded for v1, hex for v2)
+  scenarioId: string;
   scenarioLink?: string;
   recipeHash?: string;
   traceHash: string;
@@ -45,6 +46,8 @@ async function loadV2(runIdNum: bigint, network: Network): Promise<CommonRun | n
     source: "v2",
     runId: runIdNum.toString(),
     agentLabel,
+    agentDescription: r.agentDescription || undefined,
+    tokenId: r.tokenId.toString(),
     agentLink: `/agents/${r.tokenId}`,
     scenarioId: decodedScenario ?? r.scenarioId,
     scenarioLink: decodedScenario ? `/scenarios/${decodedScenario}` : undefined,
@@ -96,169 +99,205 @@ export default async function RunPage({ params, searchParams }: {
   const id = BigInt(params.id);
   const forceV1 = searchParams?.source === "v1";
 
-  // URL ?network=… wins (so CLI-printed links lock the view), else cookie, else cookie-default.
   const requested = searchParams?.network ?? cookies().get(NETWORK_COOKIE)?.value;
   const network: Network = requested === "mainnet" ? "mainnet" : "galileo";
   const netMeta = networkMeta(network);
 
   let run = forceV1 ? await loadV1(id, cfg) : await loadV2(id, network);
-  if (!run && !forceV1) run = await loadV1(id, cfg);  // fallback if v2 didn't have it
+  if (!run && !forceV1) run = await loadV1(id, cfg);
 
   if (!run) {
     return (
-      <div className="space-y-6">
-        <Link href="/leaderboard" className="text-[12px] text-[#6b7691] hover:text-[#22d3ee]">← Back to leaderboard</Link>
-        <div className="p-8 text-center text-[#6b7691]">Run #{params.id} not found in v2 or v1 registry.</div>
+      <div className="max-w-container mx-auto px-5 md:px-8 pt-10 pb-20">
+        <Link href="/leaderboard" className="editorial-link text-[13px]">← Back to leaderboard</Link>
+        <div className="mt-16 text-center text-ink-3 text-[14px]">Run #{params.id} not found in v2 or v1 registry.</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Link href="/leaderboard" className="text-[12px] text-[#6b7691] hover:text-[#22d3ee] transition-colors inline-flex items-center gap-1.5">
-        <span aria-hidden>←</span> Back to leaderboard
+    <div className="max-w-container mx-auto px-5 md:px-8 pt-8 md:pt-12 pb-20">
+      <Link
+        href="/leaderboard"
+        className="text-[12.5px] text-ink-3 hover:text-accent transition-colors duration-fast ease-out-quart inline-flex items-center gap-1.5"
+      >
+        <span aria-hidden>←</span> All runs
       </Link>
 
-      {/* HERO CARD */}
-      <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
-        <div className="px-7 py-6 flex items-start justify-between gap-6 flex-wrap">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="text-[#22d3ee] text-2xl leading-none">◆</span>
-              <h1 className="text-[28px] font-semibold tracking-tight text-[#e6e9f0] leading-none">
-                Run #{run.runId}
-              </h1>
-              <span className={`ml-1 inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium uppercase tracking-[0.1em] ${
-                run.source === "v2"
-                  ? "bg-[#10b98115] border border-[#10b98140] text-[#10b981]"
-                  : "bg-[#6b769115] border border-[#6b769140] text-[#aab2c5]"
-              }`}>
-                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{
-                  background: run.source === "v2" ? "#10b981" : "#aab2c5",
-                }} />
-                {run.source === "v2" ? "Signed" : "Legacy"}
-              </span>
-            </div>
-            <div className="text-[12px] text-[#6b7691] flex items-center gap-2 flex-wrap">
-              {run.scenarioLink ? (
-                <Link href={run.scenarioLink} className="text-[#22d3ee] hover:underline">{run.scenarioId}</Link>
+      {/* ─── HERO ─────────────────────────────────────────────────── */}
+      <header className="mt-8 mb-12 md:mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-8 gap-y-6">
+          <div className="lg:col-span-8">
+            <div className="text-eyebrow flex items-center gap-2.5 mb-5">
+              {run.source === "v2" ? (
+                <>
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-up" aria-hidden />
+                  <span className="!text-up">Signed</span>
+                </>
               ) : (
-                <span className="font-mono">
-                  {run.scenarioId.startsWith("0x")
-                    ? `${run.scenarioId.slice(0, 14)}…`
-                    : run.scenarioId}
+                <>
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-ink-4" aria-hidden />
+                  Legacy
+                </>
+              )}
+              <span className="text-ink-4">·</span>
+              <span className="font-mono normal-case tracking-normal">{netMeta.label}</span>
+              <span className="text-ink-4">·</span>
+              <span className="font-mono normal-case tracking-normal">run #{run.runId}</span>
+            </div>
+
+            <h1 className="text-h1 text-ink">
+              {run.scenarioLink ? (
+                <Link href={run.scenarioLink} className="hover:text-accent transition-colors duration-fast ease-out-quart">
+                  {run.scenarioId}
+                </Link>
+              ) : (
+                <span className="font-mono text-h2">
+                  {run.scenarioId.startsWith("0x") ? `${run.scenarioId.slice(0, 14)}…` : run.scenarioId}
                 </span>
               )}
-              <span className="text-[#3a4456]">·</span>
-              <Link href={run.agentLink} className="text-[#22d3ee] hover:underline">{run.agentLabel}</Link>
-              <span className="text-[#3a4456]">·</span>
-              <span>recorded by <code className="font-mono text-[#aab2c5]">{fmtAddr(run.recordedBy)}</code></span>
-            </div>
-          </div>
-          {run.source === "v2" && (
-            <div className="flex items-center gap-2">
+            </h1>
+
+            <p className="mt-5 text-lead text-ink-2 font-light">
+              {run.agentDescription ? (
+                <>
+                  <Link href={run.agentLink} className="text-ink hover:text-accent transition-colors duration-fast ease-out-quart">
+                    {run.agentDescription}
+                  </Link>
+                  <span className="text-ink-3"> · </span>
+                </>
+              ) : null}
+              <Link href={run.agentLink} className="text-ink-2 hover:text-accent transition-colors duration-fast ease-out-quart font-mono text-[15px]">
+                {run.source === "v2" ? `INFT #${run.tokenId}` : run.agentLabel}
+              </Link>
+              <span className="text-ink-3"> · recorded by </span>
+              <code className="font-mono text-ink-2 text-[14px]">{fmtAddr(run.recordedBy)}</code>
+            </p>
+
+            {run.source === "v2" && (
               <Link
                 href={`/verify/${run.runId}`}
-                className="inline-flex items-center gap-1.5 text-[12px] font-medium bg-[#22d3ee] hover:bg-[#67e8f9] text-[#0a0e17] px-3.5 py-2 rounded-lg transition-colors shadow-sm"
+                className="mt-8 inline-flex items-center gap-2 text-[13px] font-medium bg-accent hover:bg-accent-hover text-bg px-5 h-10 rounded transition-colors duration-fast ease-out-quart"
               >
-                Verify run <span aria-hidden>↗</span>
+                Verify this run <span aria-hidden>↗</span>
               </Link>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Score column — vertical, editorial typography */}
+          <aside className="lg:col-span-4 lg:pt-1 grid grid-cols-3 lg:grid-cols-1 gap-y-6">
+            <ScoreRow
+              label="Sortino"
+              value={fmtSortino(run.sortino)}
+              accent={run.sortino >= 0 ? "up" : "down"}
+              primary
+            />
+            <ScoreRow
+              label="Return"
+              value={fmtPct(run.totalReturn)}
+              accent={run.totalReturn >= 0 ? "up" : "down"}
+            />
+            <ScoreRow
+              label="Max drawdown"
+              value={`−${fmtPct(Math.abs(run.maxDrawdown))}`}
+              accent="down"
+            />
+          </aside>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 border-t border-[#1c2538] divide-x divide-[#1c2538]">
-          <HeroStat label="Sortino" value={fmtSortino(run.sortino)} accent={run.sortino >= 0 ? "up" : "down"} primary />
-          <HeroStat label="Total return" value={fmtPct(run.totalReturn)} accent={run.totalReturn >= 0 ? "up" : "down"} />
-          <HeroStat label="Max drawdown" value={fmtPct(Math.abs(run.maxDrawdown))} accent="down" />
-          <HeroStat
-            label="Recorded"
-            value={new Date(run.timestamp * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-            sub={new Date(run.timestamp * 1000).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-          />
-        </div>
+      </header>
+
+      {/* ─── BODY ─────────────────────────────────────────────────── */}
+      <div className="space-y-8">
+        {run.source === "v2" && <RunMetaCard traceRoot={run.traceHash} network={network} />}
+        {run.source === "v1" && run.scenarioLink && <ReplayClient traceHash={run.traceHash} scenarioId={run.scenarioId} />}
+        {run.source === "v2" && <V2RunReplay traceRoot={run.traceHash} network={network} />}
       </div>
 
-      {run.source === "v2" && <RunMetaCard traceRoot={run.traceHash} network={network} />}
-      {run.source === "v1" && run.scenarioLink && <ReplayClient traceHash={run.traceHash} scenarioId={run.scenarioId} />}
-      {run.source === "v2" && <V2RunReplay traceRoot={run.traceHash} network={network} />}
-
-      {/* ON-CHAIN PROOF */}
-      <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
-        <div className="px-5 py-3 border-b border-[#1c2538] flex items-center justify-between">
-          <span className="text-[12px] font-medium text-[#e6e9f0]">On-chain proof</span>
-          <span className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691]">{netMeta.label} · {run.source}</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#1c2538]">
-          <ProofCell
+      {/* ─── COLOPHON / on-chain proof ─────────────────────────────── */}
+      <section className="mt-16 pt-10 border-t border-border-subtle">
+        <div className="text-eyebrow mb-6">On-chain colophon</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-8">
+          <ProofRow
             label="Run record"
-            value={`runId ${run.runId}`}
-            sub={run.source === "v2" ? "RunRegistryV3 · 0G Galileo" : "RunRegistry · 0G Galileo"}
+            value={`runId #${run.runId}`}
+            sub={run.source === "v2" ? `RunRegistryV3 · ${netMeta.label}` : `RunRegistry · ${netMeta.label}`}
             link={run.source === "v2" ? explorerAddressFor(run.registryAddress, network) : explorerAddress(run.registryAddress)}
-            linkLabel="View contract"
+            linkLabel="Contract"
           />
-          <ProofCell
+          <ProofRow
             label="Trace blob"
             value={shortHash(run.traceHash, 10, 6)}
-            sub="Stored on 0G Storage"
+            sub="0G Storage · content-addressed"
             link={run.source === "v2" ? storageDownloadFor(run.traceHash, network) : storageDownload(run.traceHash)}
             linkLabel="Download"
           />
-          <ProofCell
+          <ProofRow
             label={run.source === "v2" ? "INFT contract" : "Recipe hash"}
             value={run.source === "v2" ? shortHash(AGENT_INFT_ADDRESS, 10, 6) : shortHash(run.recipeHash ?? "", 10, 6)}
-            sub={run.source === "v2" ? "AgentINFT (ERC-7857)" : "committed in AgentRegistry"}
+            sub={run.source === "v2" ? "AgentINFT · ERC-7857" : "committed in AgentRegistry"}
             link={run.source === "v2"
               ? explorerAddressFor(((deployedAddresses as any)[network === "mainnet" ? "mainnetV2" : "galileoV2"]?.AgentINFT ?? AGENT_INFT_ADDRESS) as string, network)
               : explorerAddress(cfg.contracts.AgentRegistry)}
-            linkLabel="View contract"
+            linkLabel="Contract"
           />
         </div>
-      </div>
+      </section>
     </div>
   );
 }
 
-function HeroStat({
-  label, value, sub, accent, primary,
+function ScoreRow({
+  label,
+  value,
+  accent,
+  primary,
 }: {
   label: string;
   value: string;
-  sub?: string;
   accent?: "up" | "down";
   primary?: boolean;
 }) {
-  const color = accent === "up" ? "#10b981" : accent === "down" ? "#ef4444" : "#e6e9f0";
+  const colorCls = accent === "up" ? "text-up" : accent === "down" ? "text-down" : "text-ink";
   return (
-    <div className="px-5 py-4">
-      <div className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] mb-1.5 font-medium">{label}</div>
-      <div className={`flex items-baseline gap-1.5 font-mono ${primary ? "text-[26px]" : "text-[20px]"}`} style={{ color }}>
-        {accent === "down" && <span className="text-[12px]">▼</span>}
-        {accent === "up" && <span className="text-[12px]">▲</span>}
-        <span>{value}</span>
+    <div>
+      <div className="text-eyebrow mb-2">{label}</div>
+      <div
+        className={`font-mono tabular-nums tracking-tight leading-none ${colorCls} ${
+          primary ? "text-[40px] md:text-[48px]" : "text-[24px]"
+        }`}
+      >
+        {value}
       </div>
-      {sub && <div className="text-[11px] text-[#6b7691] mt-1">{sub}</div>}
     </div>
   );
 }
 
-function ProofCell({
-  label, value, sub, link, linkLabel,
-}: { label: string; value: string; sub: string; link: string; linkLabel: string }) {
+function ProofRow({
+  label,
+  value,
+  sub,
+  link,
+  linkLabel,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  link: string;
+  linkLabel: string;
+}) {
   return (
-    <div className="px-5 py-4">
-      <div className="text-[10px] uppercase tracking-[0.12em] text-[#6b7691] mb-1.5 font-medium">{label}</div>
-      <div className="font-mono text-[14px] text-[#e6e9f0] truncate">{value}</div>
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <span className="text-[11px] text-[#6b7691]">{sub}</span>
-        <a
-          href={link}
-          target={link.startsWith("http") ? "_blank" : undefined}
-          rel={link.startsWith("http") ? "noopener noreferrer" : undefined}
-          className="text-[11px] text-[#22d3ee] hover:underline inline-flex items-center gap-1"
-        >
-          {linkLabel} <span aria-hidden>↗</span>
-        </a>
-      </div>
+    <div>
+      <div className="text-eyebrow mb-2">{label}</div>
+      <div className="font-mono text-[14px] text-ink truncate mb-1">{value}</div>
+      <div className="text-[12px] text-ink-3 mb-2">{sub}</div>
+      <a
+        href={link}
+        target={link.startsWith("http") ? "_blank" : undefined}
+        rel={link.startsWith("http") ? "noopener noreferrer" : undefined}
+        className="editorial-link text-[12.5px] font-medium"
+      >
+        {linkLabel} →
+      </a>
     </div>
   );
 }

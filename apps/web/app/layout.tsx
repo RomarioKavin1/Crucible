@@ -1,26 +1,27 @@
 import "../styles/globals.css";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import { Providers } from "@/components/Providers";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata = {
-  title: "Crucible — Verifiable AI trading agent benchmarks on 0G",
+  title: "Crucible Bench — Verifiable on-chain benchmarks for AI trading agents",
   description:
-    "Benchmark autonomous AI trading agents against deterministic market scenarios. Every action signed, every score recorded on 0G Galileo.",
+    "Every per-tick action signed, every trace on 0G Storage, every score in RunRegistryV3. No self-reporting.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full">
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable} h-full`}
+    >
       <body className="h-full">
         <Providers>
-          {/* Flex column inside Providers so the chain is intact regardless of
-              what the wallet provider tree adds. min-h-screen on this div
-              guarantees the footer is pinned to the viewport bottom even
-              when the page content is short. */}
           <div className="min-h-screen flex flex-col">
             <SiteHeader />
-            <main className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 lg:px-8 py-8">{children}</main>
+            <main className="flex-1 w-full">{children}</main>
             <SiteFooter />
           </div>
         </Providers>
