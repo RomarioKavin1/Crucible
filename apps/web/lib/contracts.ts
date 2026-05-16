@@ -93,18 +93,24 @@ export async function readOwnerOf(tokenId: bigint): Promise<`0x${string}`> {
 }
 
 export async function readRunsByToken(tokenId: bigint): Promise<bigint[]> {
+  // New runs are recorded on V3. V3 exposes getRunsByToken with an identical
+  // signature, so callers stay unchanged. (V2 is frozen — its data is still
+  // queryable elsewhere for the deprecated leaderboard view.)
   return (await publicClient.readContract({
-    address: RUN_REGISTRY_V2_ADDRESS,
-    abi: RUN_REGISTRY_V2_ABI,
+    address: RUN_REGISTRY_V3_ADDRESS,
+    abi: RUN_REGISTRY_V3_ABI,
     functionName: "getRunsByToken",
     args: [tokenId],
   })) as bigint[];
 }
 
 export async function readRun(runId: bigint) {
+  // New runs publish to V3. V3 returns a superset of V2 fields
+  // (adds model/framework/agentVersion), so callers that read the
+  // common fields (traceRoot, tokenId, scenarioId, sortino, …) work unchanged.
   return await publicClient.readContract({
-    address: RUN_REGISTRY_V2_ADDRESS,
-    abi: RUN_REGISTRY_V2_ABI,
+    address: RUN_REGISTRY_V3_ADDRESS,
+    abi: RUN_REGISTRY_V3_ABI,
     functionName: "getRun",
     args: [runId],
   });
