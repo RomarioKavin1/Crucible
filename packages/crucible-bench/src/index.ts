@@ -297,7 +297,7 @@ async function runBench(opts: BenchOpts): Promise<void> {
   console.log(`▸ Connecting to MCP at ${mcpUrl}`);
   const transport = new StreamableHTTPClientTransport(new URL(mcpUrl));
   const client = new Client(
-    { name: "crucible-bench", version: "0.4.0" },
+    { name: "crucible-bench", version: "0.4.1" },
     { capabilities: {} }
   );
   await client.connect(transport);
@@ -415,6 +415,10 @@ async function runBench(opts: BenchOpts): Promise<void> {
       observation?: Record<string, unknown>;
       scorecard?: Record<string, unknown>;
       runUrl?: string;
+      published?: boolean;
+      publishedRunId?: string;
+      txHash?: string;
+      publishError?: string;
     };
 
     if (out.done) {
@@ -424,7 +428,6 @@ async function runBench(opts: BenchOpts): Promise<void> {
       const totalReturn = sc["totalReturnPct"] as number | undefined;
       const maxDD = sc["maxDrawdownPct"] as number | undefined;
       const pnl = sc["pnlAbsolute"] as number | undefined;
-      const runUrl = out.runUrl ?? startData.runUrl;
 
       if (sortino != null)
         console.log(`  Sortino:   ${sortino >= 0 ? "+" : ""}${sortino.toFixed(2)}`);
@@ -438,8 +441,21 @@ async function runBench(opts: BenchOpts): Promise<void> {
         console.log(`  Return:    ${sign}${(totalReturn * 100).toFixed(2)}%`);
       }
       if (maxDD != null) console.log(`  Max DD:    ${(maxDD * 100).toFixed(2)}%`);
-      if (runUrl) console.log(`  Run page:  ${runUrl}`);
-      else console.log(`  Run page:  ${webBase}/runs/${runId}`);
+
+      // Publish status — only show the on-chain URL after publish-on-done
+      // actually confirms. Otherwise tell the user it didn't land.
+      if (out.published && out.runUrl) {
+        console.log(`  Run page:  ${out.runUrl}`);
+        if (out.publishedRunId) console.log(`  On-chain run id: #${out.publishedRunId}`);
+        if (out.txHash) console.log(`  Publish tx: ${out.txHash}`);
+      } else if (out.publishError) {
+        console.log(`\n✗ On-chain publish failed: ${out.publishError}`);
+        console.log(`  The trace was computed but never made it onto 0G — no leaderboard row.`);
+        console.log(`  Watch URL (session, not the chain row): ${liveUrl}`);
+      } else {
+        // Older server that doesn't return publish status — fall back to session URL.
+        console.log(`  Run page:  ${webBase}/runs/${runId}`);
+      }
       return;
     }
 
@@ -475,7 +491,7 @@ program
     "  npx crucible-bench --scenario fakeout-pump --provider openai --model gpt-4o-mini --llm-api-key sk-... --watch\n\n" +
     "Credentials (AGENT_PRIVATE_KEY, AGENT_TOKEN_ID) come from ./crucible.env or ~/.crucible/config.env."
   )
-  .version("0.4.0")
+  .version("0.4.1")
   // ── benchmark wiring ────────────────────────────────────────────────────
   .option("-s, --scenario <id>", "Scenario id (e.g. choppy-range, fakeout-pump, luna-collapse)")
   .option("-t, --token <id>", "AgentINFT tokenId (else reads AGENT_TOKEN_ID)")

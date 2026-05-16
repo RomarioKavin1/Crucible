@@ -64,7 +64,40 @@ export async function handleNextTick(deps: HandleNextTickDeps): Promise<NextTick
   if (session.engine.isDone()) {
     const { scorecard, traceJsonl } = session.engine.finalize();
     session.events.emit("tick", { tickId: input.tickId, action: input, fill, observation: null });
-    session.events.emit("done", { scorecard, traceJsonl });
+
+    // Wait for publish-on-done to actually publish (or fail) before returning
+    // so clients receive the real on-chain runId + leaderboard URL — not just
+    // the in-memory session id. Capped at 45s.
+    const publishResult = await new Promise<{
+      ok: true; runId: string; txHash?: string; url: string;
+    } | {
+      ok: false; error: string;
+    }>((resolve) => {
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve({ ok: false, error: "publish did not complete within 45s" });
+      }, 45_000);
+      function onPublished(ev: any) {
+        cleanup();
+        resolve({ ok: true, runId: String(ev.runId), txHash: ev.txHash, url: String(ev.url) });
+      }
+      function onFailed(ev: any) {
+        cleanup();
+        resolve({ ok: false, error: String(ev.error ?? "unknown") });
+      }
+      function cleanup() {
+        clearTimeout(timer);
+        session.events.off("published", onPublished);
+        session.events.off("publish_failed", onFailed);
+      }
+      session.events.on("published", onPublished);
+      session.events.on("publish_failed", onFailed);
+      // Fire the done event *after* we're listening, so publish-on-done
+      // (which listens for "done") can run its async work and emit
+      // "published"/"publish_failed" without us racing it.
+      session.events.emit("done", { scorecard, traceJsonl });
+    });
+
     return {
       tickId: input.tickId,
       fill,
@@ -72,6 +105,9 @@ export async function handleNextTick(deps: HandleNextTickDeps): Promise<NextTick
       done: true,
       scorecard,
       traceJsonl,
+      ...(publishResult.ok
+        ? { published: true, publishedRunId: publishResult.runId, runUrl: publishResult.url, txHash: publishResult.txHash }
+        : { published: false, publishError: publishResult.error }),
     };
   }
 
