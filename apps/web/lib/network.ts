@@ -46,7 +46,7 @@ const META: Record<Network, NetworkMeta> = {
   mainnet: {
     id: "mainnet",
     label: "0G Mainnet",
-    chainId: 16601,
+    chainId: 16661,
     rpcUrl: "https://evmrpc.0g.ai",
     explorerBase: "https://chainscan.0g.ai",
     storageGateway: "https://indexer-storage.0g.ai",

@@ -14,6 +14,7 @@ const SERVER_URL = process.env.CRUCIBLE_MCP_URL ?? "http://localhost:8080/v1";
 const SCENARIO   = process.env.SCENARIO ?? "choppy-range";
 const TOKEN_ID   = process.env.AGENT_TOKEN_ID ?? "1";
 const PK         = process.env.AGENT_PRIVATE_KEY!;
+const NETWORK    = (process.env.NETWORK ?? "testnet") as "testnet" | "mainnet";
 
 const wallet = new ethers.Wallet(PK);
 
@@ -31,8 +32,8 @@ async function main() {
   const client = new Client({ name: "reference-agent-ts", version: "0.2.0" }, { capabilities: {} });
   await client.connect(transport);
 
-  // Fetch the server's EIP-712 domain so we sign with whatever it expects.
-  const dom = await client.callTool({ name: "crucible.get_domain", arguments: {} });
+  // Fetch the server's EIP-712 domain for the target network.
+  const dom = await client.callTool({ name: "crucible.get_domain", arguments: { network: NETWORK } });
   const domain = JSON.parse((dom.content as any[])[0].text);
 
   let nonce = 1n;
@@ -43,6 +44,7 @@ async function main() {
   const start = await client.callTool({ name: "crucible.start_run", arguments: {
     scenarioId: SCENARIO, tokenId: TOKEN_ID, nonce: nonce.toString(),
     signature: startSig, signer: wallet.address,
+    network: NETWORK,
     model: meta.model, framework: meta.framework, agentVersion: meta.agentVersion,
     provider: process.env.LLM_PROVIDER ?? "anthropic",
     systemPrompt,

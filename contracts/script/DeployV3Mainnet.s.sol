@@ -7,7 +7,7 @@ import {AgentINFT} from "../src/AgentINFT.sol";
 import {RunRegistryV3} from "../src/RunRegistryV3.sol";
 import {ScenarioRegistry} from "../src/ScenarioRegistry.sol";
 
-/// @notice Deploys the v3 stack on 0G Mainnet (chain id 16601):
+/// @notice Deploys the v3 stack on 0G Mainnet (chain id 16661):
 ///   - ScenarioRegistry (fresh, no v1 to share with)
 ///   - AgentINFT
 ///   - RunRegistryV3 (with the deployer auto-trusted as attester)

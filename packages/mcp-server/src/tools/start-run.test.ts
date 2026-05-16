@@ -14,7 +14,7 @@ describe("handleStartRun", () => {
     const reg: any = { create: vi.fn() };
     const startEngine = vi.fn();
     await expect(handleStartRun({
-      domain, inft, registry: reg, startEngine,
+      network: "galileo", domain, inft, registry: reg, startEngine,
       input: { scenarioId: "tiny", tokenId: "42", nonce: "1", signature: sig, signer: wallet.address },
     })).rejects.toThrow(/UNAUTHORIZED/);
   });
@@ -28,7 +28,7 @@ describe("handleStartRun", () => {
     const inft = { isAuthorized: vi.fn().mockResolvedValue(true) } as any;
     const reg: any = { create: vi.fn() };
     await expect(handleStartRun({
-      domain, inft, registry: reg, startEngine: vi.fn(),
+      network: "galileo", domain, inft, registry: reg, startEngine: vi.fn(),
       input: { scenarioId: "tiny", tokenId: "42", nonce: "1", signature: sig, signer: otherWallet.address },
     })).rejects.toThrow(/BAD_SIGNATURE/);
   });
@@ -45,7 +45,7 @@ describe("handleStartRun", () => {
     const startEngine = vi.fn().mockResolvedValue(fakeEngine);
     const reg: any = { create: vi.fn().mockReturnValue("0xrun123"), checkAndAdvanceNonce: vi.fn().mockReturnValue(true) };
     const out = await handleStartRun({
-      domain, inft, registry: reg, startEngine,
+      network: "galileo", domain, inft, registry: reg, startEngine,
       input: { scenarioId: "tiny", tokenId: "42", nonce: "1", signature: sig, signer: wallet.address },
     });
     expect(out.runId).toBe("0xrun123");
