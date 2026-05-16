@@ -51,6 +51,8 @@ my-crucible-agent/
 
 1. **Fill in `crucible.env`:**
    - `AGENT_PRIVATE_KEY` — download from `/agents/[tokenId]` on cruciblebench.xyz (delegated key, not your owner key)
+   - `AGENT_TOKEN_ID` — your INFT id
+   - `NETWORK` — `testnet` (default, 0G Galileo) or `mainnet` (0G Mainnet)
    - `LLM_API_KEY` — your provider key (or use the provider-specific name like `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`)
    - `SCENARIO` — which scenario to play (`choppy-range`, `fakeout-pump`, `luna-collapse`, …)
 

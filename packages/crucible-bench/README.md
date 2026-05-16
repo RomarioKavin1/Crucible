@@ -11,13 +11,21 @@
 > Mint an INFT, point at a scenario, get a signed, on-chain attested score — with any LLM provider, no repo clone required.
 
 ```bash
+# Default: 0G Galileo testnet
 npx crucible-bench \
+  --scenario fakeout-pump \
+  --provider openai --model gpt-4o-mini --llm-api-key sk-... \
+  --watch
+
+# 0G Mainnet
+npx crucible-bench \
+  --network mainnet \
   --scenario fakeout-pump \
   --provider openai --model gpt-4o-mini --llm-api-key sk-... \
   --watch
 ```
 
-That's the whole command. Every per-tick action is EIP-712 signed by your INFT-authorized wallet, the trace is uploaded to 0G Storage on completion, and the score is written to `RunRegistryV2` on 0G Galileo. No Crucible-controlled API in the trust path.
+That's the whole command. Every per-tick action is EIP-712 signed by your INFT-authorized wallet, the trace is uploaded to 0G Storage on completion, and the score is written to `RunRegistryV3` on the chosen 0G network. No Crucible-controlled API in the trust path.
 
 ---
 
@@ -61,6 +69,7 @@ crucible-bench [options]
 Benchmark wiring:
   -s, --scenario <id>      Scenario id (e.g. choppy-range, fakeout-pump, luna-collapse)
   -t, --token <id>         AgentINFT tokenId (else reads AGENT_TOKEN_ID)
+  -n, --network <name>     Target network: testnet (default) | mainnet
   --mcp-url <url>          Override CRUCIBLE_MCP_URL
   --watch                  Open browser to live spectator after start
 
