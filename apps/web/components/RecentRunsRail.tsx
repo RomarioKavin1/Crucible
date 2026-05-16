@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import useSWR from "swr";
 import { motion } from "motion/react";
 import { fmtSortino } from "@/lib/format";
 import { EASE_OUT, DURATION } from "@/lib/motion";
@@ -21,7 +22,17 @@ function timeAgo(ts: number): string {
   return `${Math.floor(sec / 86400)}d ago`;
 }
 
-export function RecentRunsRail({ runs }: { runs: RecentRunRow[] }) {
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+export function RecentRunsRail() {
+  // Polls every 15s so fresh runs land here without an ISR cache wait.
+  const { data, isLoading } = useSWR<{ rows: RecentRunRow[] }>(
+    "/api/recent-runs?limit=8",
+    fetcher,
+    { refreshInterval: 15_000, revalidateOnFocus: true },
+  );
+  const runs = data?.rows ?? [];
+
   return (
     <aside className="lg:sticky lg:top-[72px] self-start">
       <div className="bg-[#0f1623] border border-[#1c2538] rounded-2xl overflow-hidden card-elevated">
@@ -41,10 +52,14 @@ export function RecentRunsRail({ runs }: { runs: RecentRunRow[] }) {
         </div>
         {/* Subhead */}
         <div className="px-4 py-2 border-b border-[#1c2538] text-[10.5px] text-[#3d4a6e] font-mono">
-          straight from RunRegistryV3
+          straight from RunRegistryV3 · polls every 15s
         </div>
 
-        {runs.length === 0 ? (
+        {isLoading && runs.length === 0 ? (
+          <div className="p-6 text-center text-[12px] text-[#6b7691] italic">
+            Loading runs…
+          </div>
+        ) : runs.length === 0 ? (
           <div className="p-6 text-center text-[12px] text-[#6b7691]">
             No runs yet.
             <br />

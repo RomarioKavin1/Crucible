@@ -6,7 +6,7 @@ import { CURRENT_NETWORK } from "@/lib/network";
 export function SiteFooter() {
   return (
     <footer className="border-t border-[#1c2538] mt-16">
-      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1 space-y-3">
