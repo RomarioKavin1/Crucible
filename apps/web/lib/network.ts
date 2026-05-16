@@ -1,13 +1,17 @@
 /**
  * Single source of truth for network metadata across the frontend.
  *
- * Switch networks by setting NEXT_PUBLIC_OG_NETWORK=mainnet (default: galileo).
- * Mainnet only "activates" once contracts/deployed-addresses.json has populated
- * mainnet + mainnetV2 sections — until then `isMainnetReady()` returns false
- * and `currentNetwork()` falls back to galileo with a one-time console warning.
+ * Order of precedence for active network:
+ *   1. `crucible-network` cookie (set by the in-header NetworkToggle; works on
+ *      both client and server). Writable at runtime.
+ *   2. NEXT_PUBLIC_OG_NETWORK env (build-time default; mostly "galileo").
  *
- * URLs (RPC, explorer, storage gateway) are derived from this module.
- * Never hardcode `chainscan-galileo.0g.ai` etc. inline — import from here.
+ * `CURRENT_NETWORK` is a Proxy that re-resolves on every property access, so
+ * existing call sites like `CURRENT_NETWORK.label` automatically pick up the
+ * cookie change after a router.refresh() / reload — no refactor needed.
+ *
+ * URLs (RPC, explorer, storage gateway) all flow through here. Never hardcode
+ * `chainscan-galileo.0g.ai` etc. inline — import from this module.
  */
 
 import deployedAddresses from "../../../contracts/deployed-addresses.json";
@@ -16,19 +20,12 @@ export type Network = "galileo" | "mainnet";
 
 export interface NetworkMeta {
   id: Network;
-  /** Human-readable label for chips and badges. */
   label: string;
-  /** EVM chain id. */
   chainId: number;
-  /** Public RPC endpoint. */
   rpcUrl: string;
-  /** Block explorer base (no trailing slash). */
   explorerBase: string;
-  /** 0G Storage indexer/gateway base for `?root=…` downloads (no trailing slash). */
   storageGateway: string;
-  /** Whether this is a testnet (drives `testnet: true` in the viem chain). */
   testnet: boolean;
-  /** Native currency descriptor for viem. */
   currency: { name: string; symbol: string; decimals: number };
 }
 
@@ -55,52 +52,84 @@ const META: Record<Network, NetworkMeta> = {
   },
 };
 
-/** Raw selection from env, may be ahead of contract deployment. */
+export const NETWORK_COOKIE = "crucible-network";
+
+/** Parse the cookie value into a typed Network, or null if absent/invalid. */
+function parseNetworkCookie(raw: string | null | undefined): Network | null {
+  if (!raw) return null;
+  const v = decodeURIComponent(raw);
+  return v === "mainnet" || v === "galileo" ? v : null;
+}
+
+/** Client-side cookie read. Returns null on server. */
+function readClientCookie(): Network | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(/(?:^|;\s*)crucible-network=([^;]+)/);
+  return parseNetworkCookie(m?.[1] ?? null);
+}
+
 function envNetwork(): Network {
   const v = process.env["NEXT_PUBLIC_OG_NETWORK"];
   return v === "mainnet" ? "mainnet" : "galileo";
 }
 
-/**
- * Returns true iff the mainnet `mainnetV2` slot in deployed-addresses.json
- * has the V3 contract address populated. The single field we gate on is
- * `RunRegistryV3` — without it, the leaderboard reads would fail.
- */
 export function isMainnetReady(): boolean {
   const all = deployedAddresses as Record<string, Record<string, string> | undefined>;
   return Boolean(all["mainnetV2"]?.["RunRegistryV3"]);
 }
 
 /**
- * Active network the app actually uses. If env says mainnet but addresses
- * aren't populated yet, falls back to galileo. Logged once on the server side.
+ * Active network. Client reads cookie; server falls back to env.
+ * (Server Components needing per-request cookie awareness should pass a cookie
+ * value via `currentNetworkFromCookie(cookieValue)` — see lib/network-server.ts.)
  */
-let _warned = false;
 export function currentNetwork(): Network {
-  const want = envNetwork();
-  if (want === "mainnet" && !isMainnetReady()) {
-    if (!_warned && typeof window === "undefined") {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "[network] NEXT_PUBLIC_OG_NETWORK=mainnet but mainnetV2 addresses are empty. " +
-        "Falling back to galileo. Populate contracts/deployed-addresses.json and redeploy.",
-      );
-      _warned = true;
-    }
-    return "galileo";
+  const fromCookie = readClientCookie();
+  if (fromCookie) {
+    // Even if the cookie says mainnet but addresses aren't populated, respect
+    // the user's choice and let the data layer surface the empty-state.
+    return fromCookie;
   }
+  const want = envNetwork();
+  if (want === "mainnet" && !isMainnetReady()) return "galileo";
   return want;
 }
 
-/** Full metadata for the current network (for `import { CURRENT_NETWORK }`). */
-export const CURRENT_NETWORK: NetworkMeta = META[currentNetwork()];
+/** Server-only helper: resolve network from an explicitly-passed cookie value. */
+export function currentNetworkFromCookie(cookieValue: string | null | undefined): Network {
+  const fromCookie = parseNetworkCookie(cookieValue);
+  if (fromCookie) return fromCookie;
+  const want = envNetwork();
+  if (want === "mainnet" && !isMainnetReady()) return "galileo";
+  return want;
+}
 
-/** Metadata for any network — useful when rendering both side-by-side. */
+/**
+ * Proxy: every property access re-runs `currentNetwork()`, so callers like
+ * `CURRENT_NETWORK.label` automatically respond to cookie changes. The Proxy
+ * target is an empty object — all reads delegate to META[currentNetwork()].
+ */
+export const CURRENT_NETWORK: NetworkMeta = new Proxy({} as NetworkMeta, {
+  get(_target, prop) {
+    return META[currentNetwork()][prop as keyof NetworkMeta];
+  },
+  has(_target, prop) {
+    return prop in META.galileo;
+  },
+  ownKeys() {
+    return Reflect.ownKeys(META.galileo);
+  },
+  getOwnPropertyDescriptor(_t, prop) {
+    return Reflect.getOwnPropertyDescriptor(META.galileo, prop);
+  },
+});
+
+/** Direct lookup — useful when rendering both networks side-by-side. */
 export function networkMeta(n: Network): NetworkMeta {
   return META[n];
 }
 
-// ─── URL helpers — always go through these, never hardcode ─────────────────
+// ─── URL helpers — all flow through CURRENT_NETWORK so they auto-switch ─────
 
 export function explorerUrl(path = ""): string {
   return `${CURRENT_NETWORK.explorerBase}${path.startsWith("/") ? path : `/${path}`}`;

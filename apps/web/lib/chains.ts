@@ -26,5 +26,27 @@ export const mainnet = defineChain({
   testnet: false,
 });
 
-/** The currently-active viem chain — derived from NEXT_PUBLIC_OG_NETWORK + isMainnetReady gate. */
-export const activeChain = CURRENT_NETWORK.id === "mainnet" ? mainnet : galileo;
+/**
+ * Resolves to whichever chain is active RIGHT NOW (cookie + env). Wrapped in
+ * a Proxy so every property access re-checks — call sites continue to use
+ * `activeChain` as if it were a const, and it auto-updates after a cookie flip
+ * + router refresh.
+ */
+function resolveChain() {
+  return CURRENT_NETWORK.id === "mainnet" ? mainnet : galileo;
+}
+
+export const activeChain = new Proxy({} as ReturnType<typeof resolveChain>, {
+  get(_t, prop) {
+    return (resolveChain() as any)[prop];
+  },
+  has(_t, prop) {
+    return prop in galileo;
+  },
+  ownKeys() {
+    return Reflect.ownKeys(galileo);
+  },
+  getOwnPropertyDescriptor(_t, prop) {
+    return Reflect.getOwnPropertyDescriptor(galileo, prop);
+  },
+}) as ReturnType<typeof resolveChain>;

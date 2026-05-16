@@ -1,17 +1,42 @@
 // apps/web/lib/contracts.ts
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, type PublicClient } from "viem";
 import { activeChain } from "./chains";
 import { CURRENT_NETWORK } from "./network";
 import deployedAddresses from "../../../contracts/deployed-addresses.json";
 
-// Pick the V2-tier slot (which holds AgentINFT + RunRegistryV3) for the
-// currently-active network. Falls back to galileoV2 if mainnet isn't ready
-// (network.ts has already logged the warning at that point).
-const v2Key = CURRENT_NETWORK.id === "mainnet" ? "mainnetV2" : "galileoV2";
-const v2 = (deployedAddresses as Record<string, Record<string, string>>)[v2Key] ?? {};
-export const AGENT_INFT_ADDRESS: `0x${string}` = v2["AgentINFT"] as `0x${string}`;
-export const RUN_REGISTRY_V2_ADDRESS: `0x${string}` = v2["RunRegistryV2"] as `0x${string}`;
-export const RUN_REGISTRY_V3_ADDRESS: `0x${string}` = v2["RunRegistryV3"] as `0x${string}`;
+// ─── Per-network contract address resolution ──────────────────────────────────
+//
+// Addresses live in deployed-addresses.json under galileoV2 / mainnetV2.
+// We resolve LAZILY (on every read) so the network toggle in the header
+// instantly switches every contract call site without re-importing modules.
+
+function v2Slot() {
+  const key = CURRENT_NETWORK.id === "mainnet" ? "mainnetV2" : "galileoV2";
+  return (deployedAddresses as Record<string, Record<string, string>>)[key] ?? {};
+}
+
+/**
+ * Boxed-String proxy: behaves like a `0x${string}` for all the things viem
+ * does (regex test for `isAddress`, string interpolation, lowercase compare).
+ * Each property/coercion access re-runs `getter()` so the address always
+ * matches the currently-active network.
+ */
+function addrProxy(getter: () => string): `0x${string}` {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new Proxy(new String("") as any, {
+    get(_t, prop) {
+      const v = String(getter() ?? "");
+      if (prop === Symbol.toPrimitive) return () => v;
+      if (prop === "toString" || prop === "valueOf") return () => v;
+      // @ts-expect-error — delegating to the underlying string
+      return v[prop];
+    },
+  });
+}
+
+export const AGENT_INFT_ADDRESS:        `0x${string}` = addrProxy(() => v2Slot()["AgentINFT"] ?? "");
+export const RUN_REGISTRY_V2_ADDRESS:   `0x${string}` = addrProxy(() => v2Slot()["RunRegistryV2"] ?? "");
+export const RUN_REGISTRY_V3_ADDRESS:   `0x${string}` = addrProxy(() => v2Slot()["RunRegistryV3"] ?? "");
 
 const AGENT_INFT_ABI = [
   { type: "function", name: "tokensOf", stateMutability: "view", inputs: [{ name: "o", type: "address" }], outputs: [{ type: "uint256[]" }] },
@@ -53,7 +78,28 @@ const RUN_REGISTRY_V2_ABI = [
   },
 ] as const;
 
-export const publicClient = createPublicClient({ chain: activeChain, transport: http() });
+// Lazy per-network client cache. Recreated when network changes (via cookie).
+const _clients = new Map<number, PublicClient>();
+function getClient(): PublicClient {
+  const chainId = activeChain.id;
+  let c = _clients.get(chainId);
+  if (!c) {
+    c = createPublicClient({ chain: activeChain, transport: http() });
+    _clients.set(chainId, c);
+  }
+  return c;
+}
+
+/** Proxy so existing `publicClient.readContract(...)` calls auto-route to the
+ *  right chain after the network toggle. */
+export const publicClient: PublicClient = new Proxy({} as PublicClient, {
+  get(_t, prop) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c = getClient() as any;
+    const v = c[prop];
+    return typeof v === "function" ? v.bind(c) : v;
+  },
+});
 
 export async function readTokensOf(owner: `0x${string}`): Promise<bigint[]> {
   return (await publicClient.readContract({
