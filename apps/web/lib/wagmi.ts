@@ -10,11 +10,11 @@ export { galileo, mainnet, activeChain };
 
 export const wagmiConfig: Config = getDefaultConfig({
   appName: "Crucible Bench",
-  // Public Reown demo project ID — works without setup but should be replaced with
-  // your own NEXT_PUBLIC_WALLETCONNECT_ID for production to avoid rate limits.
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_ID ?? "c4f79cc821944d9680842e34466bfbd",
-  // Wagmi accepts a non-empty tuple — even when only one chain is active, list
-  // both so the wallet's chain switcher shows the alternative.
-  chains: [activeChain, activeChain.id === galileo.id ? mainnet : galileo],
+  // IMPORTANT: register the REAL chain objects, not activeChain (which is a
+  // network-aware Proxy that resolves to galileo at SSR/module-load time and
+  // would collapse the tuple to a single chain id, making switchChain to the
+  // other network a silent no-op).
+  chains: [galileo, mainnet],
   ssr: true,
 });
