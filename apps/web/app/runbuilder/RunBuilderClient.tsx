@@ -527,33 +527,34 @@ function ExamplePath({
   // defaults to testnet and fails with UNAUTHORIZED when you minted on mainnet.
   const cliNetwork: "testnet" | "mainnet" =
     CURRENT_NETWORK.id === "mainnet" ? "mainnet" : "testnet";
-  const networkLabel = CURRENT_NETWORK.label;
 
-  // Build commands per platform — use the just-generated key if present.
+  // Build commands per platform. No shell comments in the copyable blocks:
+  // pasting `# ...` into an interactive zsh without `interactive_comments`
+  // throws "command not found: #" (and an inline `# foo` after `export FOO=bar`
+  // is parsed as args → "export: not valid in this context"). The target
+  // network is already encoded in `--network` in the run command, so the
+  // dropped "# Targeting …" comment loses no information. For Ollama (no API
+  // key) we omit the line entirely rather than emit a comment.
   const promptArg = ` --prompt-file ./prompt.md`;
   const baseFlags = `--network ${cliNetwork} \\\n  --scenario ${scenarioId} \\\n  --provider ${provider.id} \\\n  --model ${provider.model}${provider.extra ?? ""} \\\n  --watch`;
   const keyValue = generatedKey ?? "0x...";
-  const keyComment = generatedKey ? "        # just-generated hot key" : "        # delegated hot key";
 
   const exportsMacLinux = [
-    `# Targeting ${networkLabel}`,
-    `export AGENT_PRIVATE_KEY=${keyValue}${keyComment}`,
+    `export AGENT_PRIVATE_KEY=${keyValue}`,
     `export AGENT_TOKEN_ID=${tokenId.toString()}`,
-    provider.keyVar ? `export ${provider.keyVar}=sk-...` : `# no API key needed — Ollama runs locally`,
+    provider.keyVar ? `export ${provider.keyVar}=sk-...` : null,
   ].filter(Boolean).join("\n");
 
   const exportsPS = [
-    `# Targeting ${networkLabel}`,
     `$env:AGENT_PRIVATE_KEY = "${keyValue}"`,
     `$env:AGENT_TOKEN_ID = "${tokenId.toString()}"`,
-    provider.keyVar ? `$env:${provider.keyVar} = "sk-..."` : `# no API key needed — Ollama runs locally`,
+    provider.keyVar ? `$env:${provider.keyVar} = "sk-..."` : null,
   ].filter(Boolean).join("\n");
 
   const exportsCmd = [
-    `:: Targeting ${networkLabel}`,
     `set AGENT_PRIVATE_KEY=${keyValue}`,
     `set AGENT_TOKEN_ID=${tokenId.toString()}`,
-    provider.keyVar ? `set ${provider.keyVar}=sk-...` : `:: no API key needed — Ollama runs locally`,
+    provider.keyVar ? `set ${provider.keyVar}=sk-...` : null,
   ].filter(Boolean).join("\n");
 
   const runMacLinux = `npx crucible-bench \\\n  ${baseFlags.replaceAll("\\\n  ", "\\\n  ")}`;
